@@ -1,5 +1,5 @@
-// Permissions code: 84992
-// View channels, Send messages, Embed links(?), Read message history
+// Permissions code: 67584
+// Send messages, read message history
 
 require("console-stamp")(console, {
 	datePrefix: "",
@@ -15,17 +15,21 @@ console.log(`${name} started.`)
 // Crash when a reject() doesn't have a .catch(); useful for debugging
 process.on("unhandledRejection", up => { throw up })
 
+const local = process.env.LOCAL != "0" && process.env.LOCAL != "false"
+
 const Markov = require("./markov") // Local markov.js file
 const Discord = require("discord.js")
 const fs = require("fs")
-//const AWS = require("aws-sdk")
+const AWS = require("aws-sdk")
+
 const { // Assign the keys in the config file to variables
-	prefix, // Apparently require()-ing JSON is bad practice
-	channels, // I'll change it if it ever becomes an issue
+	prefix,
+	channels,
 	admins,
 	banned,
-	users
-} = require("./config.json")
+	users,
+	nicknames
+} = JSON.parse(fs.readFileSync("./" + process.env.CONFIG_FILENAME, "UTF-8"))
 
 ensureDirectorySync(corpusDir)
 
@@ -35,31 +39,29 @@ console.log("Corpi:", fs.readdirSync(corpusDir).toString())
 // Markov setup 
 console.info("Loading corpi and spawning Markovs...")
 const writeables = new Map()
-setAllWriteStreams()
-
 const corpi = new Map() // Plural of corpus is corpi dont @ me
 const markovs = new Map()
 regenerateAll()
 console.info("Markovs are ready.")
 
 
-/*AWS.config.update({
+AWS.config.update({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 })
-const s3 = new AWS.S3()*/
+const s3 = new AWS.S3()
 
 
 const help = {
 	scrape: {
 		admin: true,
 		desc: `Sorts through [howManyMessages] messages in [channel] for messages from [users].`,
-		syntax: `Syntax: |scrape <channelID> <howManyMessages> [...users (IDs only)]`
+		syntax: `Syntax: ${prefix}scrape <channelID> <howManyMessages> [...users (IDs only)]`
 	},
 	imitate: {
 		admin: false,
-		desc: `Imitates a user. Random if not specified.`,
-		syntax: `Syntax: |imitate [user (mention or ID)]`
+		desc: `Imitate a user.`,
+		syntax: `Syntax: ${prefix}imitate <ping user>`
 	}
 }
 
@@ -79,6 +81,7 @@ const client = new Discord.Client()
 
 client.on("ready", () => {
 	console.log(`Logged in as ${client.user.tag}.\n`)
+	updateNicknames()
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${prefix}help)`, { type: "WATCHING" })
@@ -93,12 +96,11 @@ client.on("message", message => {
 	const authorId = message.author.id
 
 	if ((!isBanned(authorId)) // Not banned from using Bipolar
-		&& !message.author.bot // Not a bot
 		&& (channelWhitelisted(message.channel.id)) || // Channel is either whitelisted or is a DM channel
 			(message.channel.type == "dm")) {
 
 		// Ping
-		if (message.isMentioned(client.user)) {
+		if (message.isMentioned(client.user) && !message.author.bot) {
 			if (message.content.split(" ").length === 1) { // Message is one word (i.e. only the ping)
 				imitateRandom(message.channel)
 					.then(log.imitate)
@@ -120,8 +122,10 @@ client.on("message", message => {
 		}
 
 		if (monitoring(authorId)) {
-			writeables.get(authorId).write(message.content, () => {
-				regenerate(authorId).catch(console.error)
+			ensureWriteStream(authorId).then(writeStream => {
+				writeStream.write(message.content + "\n", () => {
+					regenerate(authorId).catch(console.error)
+				})
 			})
 		}
 	}
@@ -166,9 +170,7 @@ function regenerateAll() {
 
 	for (const userId of fs.readdirSync(corpusDir)) { // Every subdirectory in corpusDir (which are all supposed to be user IDs)
 		regenerate(userId).catch(err => {
-			if (err.message === "NODATA") {
-				console.warn(`${userId} has no data!`)
-			} else {
+			if (err.message !== "NODATA") {
 				throw err
 			}
 		})
@@ -205,8 +207,6 @@ function regenerate(userId) {
  * Maps [userId] to a write stream
  *   for [userId]'s corpus.
  * 
- * this code makes me angry
- * 
  * @param {string} userId - create a write stream for this user's corpus
  * @return {Promise<void|Error} Promise
  */
@@ -228,28 +228,6 @@ function setWriteStream(userId) {
 
 
 /**
- * Sets a write stream for all users in
- *   the users constant.
- */
-function setAllWriteStreams() {
-	for (const i in users) {
-		setWriteStream(users[i]).catch(up => { throw up })
-	}
-}
-
-
-/**
- * Is Bipolar recording this user's messages?
- * 
- * @param {string} userId - ID of user to check
- * @return {Boolean} Whether or not Bipolar is monitoring this user
- */
-function monitoring(userId) {
-	return users.hasOwnProperty(userId)
-}
-
-
-/**
  * 0.05% chance to return true; else false
  * 
  * @return {Boolean} True/false
@@ -259,13 +237,13 @@ function blurtChance() {
 }
 
 
-/**
+/** UNUSED
  * Randomly chooses a value from a collection
  * 
  * @param {Collection} collection
  * @return {any} random value from collection
  */
-function randomChoice(collection) {
+/*function randomChoice(collection) {
 	const index = Math.floor(Math.random() * collection.size)
 	let counter = 0
 	for (const value of collection.values()) {
@@ -273,7 +251,7 @@ function randomChoice(collection) {
 			return value
 		}
 	}
-}
+}*/
 
 
 /**
@@ -317,6 +295,7 @@ function imitateRandom(channel) {
 		imitate(user, channel)
 			.then(resolve)
 			.catch(reject)
+
 	})
 }
 
@@ -331,7 +310,8 @@ function imitateRandom(channel) {
  */
 function imitate(user, channel) {
 	return new Promise( (resolve, reject) => {
-		const str = markovs.get(user.id).generate().substring(0, 1024)
+		if (!user) reject("User not found")
+		const str = markovs.get(user.id).generate().substring(0, 342)
 		const embed = new Discord.RichEmbed()
 			.setColor("#9A5898") // Lavender
 			.setThumbnail(user.displayAvatarURL)
@@ -346,30 +326,39 @@ function imitate(user, channel) {
 }
 
 
-function isBanned(userId) {
-	for (const key in banned) {
-		if (banned[key] == userId)
+/**
+ * Is [val] in [obj]?
+ * 
+ * @param {any} val
+ * @param {Object} object
+ * @return {Boolean} True/false
+ */
+function has(val, obj) {
+	for (const i in obj) {
+		if (obj[i] == val)
 			return true
 	}
 	return false
+}
+
+
+function monitoring(userId) {
+	return has(userId, users)
 }
 
 
 function isAdmin(userId) {
-	for (const key in admins) {
-		if (admins[key] == userId)
-			return true
-	}
-	return false
+	return has(userId, admins)
+}
+
+
+function isBanned(userId) {
+	return has(userId, banned)
 }
 
 
 function channelWhitelisted(channelId) {
-	for (const key in channels) {
-		if (channels[key] == channelId)
-			return true
-	}
-	return false
+	return has(channelId, channels)
 }
 
 
@@ -456,7 +445,10 @@ function scrape(channel, howManyMessages, userIds) {
 					if (index !== -1) { // Supposed to log this user
 						const userId = userIds[index]
 
-						writeables.get(userId).write(message.content + "\n")
+						ensureWriteStream(userId).then(writeStream => {
+							writeStream.write(message.content + "\n")
+						})
+						
 						global.messagesAdded++
 					}
 				}
@@ -481,6 +473,8 @@ function scrape(channel, howManyMessages, userIds) {
 
 function handleCommands(message) {
 	return new Promise ( (resolve, reject) => {
+		if (message.author.bot) { reject("Bots are not allowed to use commands"); return }
+
 		const args = message.content.slice(prefix.length).split(/ +/)
 		const command = args.shift().toLowerCase()
 
@@ -549,23 +543,19 @@ function handleCommands(message) {
 
 			if (command === "imitate") {
 				if (args[0]) { 
-					const orig = args[0]
 					// Try to convert args[0] to a user
 					if (isMention(args[0]))
 						args[0] = getUserFromMention(args[0])
 					else
 						args[0] = client.users.get(args[0]) // maybe it's a user ID
 
-					if (args[0]) { // If args[0] was successfully converted to a user
+					if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
 						imitate(args[0], message.channel)
-						resolve(command)
-					} else {
-						reject(`Argument "${orig}" does not resolve to a user`)
+							.then(log.imitate)
+							.catch(console.error)
 					}
-				} else {
-					imitateRandom(message.channel)
-					resolve(command)
 				}
+				resolve(command)
 			}
 
 		} catch (err) {
@@ -622,6 +612,25 @@ function ensureDirectorySync(dir) {
 
 
 /**
+ * Make a WriteStream if it doesn't already exist
+ * 
+ * @param {string} userId - ID for the WriteStream
+ * @return {Promise<WriteStream>} Promise of a WriteStream
+ */
+function ensureWriteStream(userId) {
+	return new Promise(resolve => {
+		if (writeables.has(userId)) {
+			resolve(writeables.get(userId))
+		} else {
+			setWriteStream(userId).then( () => {
+				resolve(writeables.get(userId))
+			})
+		}
+	})
+}
+
+
+/**
  * @param {string} mention
  * @return {User} User if exists, null if not
  */
@@ -658,6 +667,65 @@ function isMention(word) {
  */
 function location(message) {
 	return `[${message.guild.name} - #${message.channel.name}]`
+}
+
+
+/**
+ * Reads a file from S3_BUCKET_NAME
+ * 
+ * @param {string} fileName - file to read from the S3 bucket
+ * @return {Promise<string|Error>} Buffer from bucket, else error
+ */
+function s3Read(fileName) {
+	return new Promise( (resolve, reject) => {
+		const params = {
+			Bucket: process.env.S3_BUCKET_NAME, 
+			Key: "bipolar/" + fileName
+		}
+
+		s3.getObject(params, (err, data) => {
+			if (data.Body === undefined || data.Body === null) {
+				reject(data.Body)
+			} else {
+				if (err)
+					reject(err)
+				else
+					resolve(data.Body)
+			}
+		})
+	})
+}
+
+
+/**
+ * Sets the custom nicknames from the config file
+ * 
+ * @return {Promise<void>} Whether there were errors or not
+ */
+function updateNicknames() {
+	return new Promise ( (resolve, reject) => {
+		var erred = false
+
+		for (const serverName in nicknames) {
+			const pair = nicknames[serverName]
+			const server = client.guilds.get(pair[0])
+			if (!server) {
+				console.warn(`${name} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				continue
+			}
+			server.me.setNickname(pair[1])
+				.then(console.log(`Custom nickname in ${pair[0]}: ${pair[1]}.\n`))
+				.catch(err => {
+					erred = true
+					logError(err)
+				})
+		}
+
+		(erred)
+			? reject()
+			: resolve()
+
+	})
 }
 
 
