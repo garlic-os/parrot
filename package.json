@@ -1,0 +1,7 @@
+{
+    "main": "index.js",
+    "dependencies": {
+        "console-stamp": "^0.2.9",
+        "discord.js": "^11.5.1"
+    }
+}
