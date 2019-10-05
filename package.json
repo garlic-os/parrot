@@ -1,6 +1,7 @@
 {
     "main": "index.js",
     "dependencies": {
+        "aws-sdk": "^2.543.0",
         "console-stamp": "^0.2.9",
         "discord.js": "^11.5.1"
     }
