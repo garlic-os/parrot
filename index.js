@@ -1,78 +1,81 @@
 // Permissions code: 67584
 // Send messages, read message history
 
-require("console-stamp")(console, {
-	datePrefix: "",
-	dateSuffix: "",
-	pattern: " "
-})
-
-const name = "Bipolar"
-const corpusDir = "./corpus"
-
-console.log(`${name} started.`)
 
 // Crash when a reject() doesn't have a .catch(); useful for debugging
 process.on("unhandledRejection", up => { throw up })
 
 const local = process.env.LOCAL != "0" && process.env.LOCAL != "false"
 
-const Markov = require("./markov") // Local markov.js file
-const Discord = require("discord.js")
-const fs = require("fs")
-const AWS = require("aws-sdk")
+// Requirements
+require("console-stamp")(console, {
+	datePrefix: "",
+	dateSuffix: "",
+	pattern: " "
+})
 
-const { // Assign the keys in the config file to variables
-	prefix,
-	channels,
-	admins,
-	banned,
-	users,
-	nicknames
-} = JSON.parse(fs.readFileSync("./" + process.env.CONFIG_FILENAME, "UTF-8"))
+// Requirements
+const Markov = require("./markov"), // Local markov.js file
+      Discord = require("discord.js"),
+      fs = require("fs"),
+      AWS = require("aws-sdk")
 
-ensureDirectorySync(corpusDir)
-
-console.log("Corpi:", fs.readdirSync(corpusDir).toString())
-
-
-// Markov setup 
-console.info("Loading corpi and spawning Markovs...")
-const writeables = new Map()
-const corpi = new Map() // Plural of corpus is corpi dont @ me
-const markovs = new Map()
-regenerateAll()
-console.info("Markovs are ready.")
-
-
+// Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 })
 const s3 = new AWS.S3()
 
+// Load config
+const configLoaded = read(process.env.CONFIG_PATH).then(data => {
+	global.config = JSON.parse(data)
 
-const help = {
-	scrape: {
-		admin: true,
-		desc: `Sorts through [howManyMessages] messages in [channel] for messages from [users].`,
-		syntax: `Syntax: ${prefix}scrape <channelID> <howManyMessages> [...users (IDs only)]`
-	},
-	imitate: {
-		admin: false,
-		desc: `Imitate a user.`,
-		syntax: `Syntax: ${prefix}imitate <ping user>`
+	// Local directories have to exist before they can be accessed
+	if (local) {
+		ensureDirectory(config.corpusDir)
+			.catch(err => { throw err })
+		
 	}
-}
+
+	// Markov setup 
+	console.info("Loading corpi and spawning Markovs...")
+	global.corpi = new Map() // plural of corpus is corpi dont @ me
+	global.markovs = new Map()
+
+	loadAllCorpi().then( () => {
+		console.info("Corpi are loaded.")
+		regenerateAll()
+			.then(console.info("Markovs are ready."))
+			.catch(err => { throw err })
+	})
+	.catch(err => { throw err })
+
+	// "Help" command
+	global.help = {
+		scrape: {
+			admin: true,
+			desc: `Sorts through [howManyMessages] messages in [channel] for messages from [users].`,
+			syntax: `Syntax: ${config.prefix}scrape <channelID> <howManyMessages> [...users (IDs only)]`
+		},
+		imitate: {
+			admin: false,
+			desc: `Imitate a user.`,
+			syntax: `Syntax: ${config.prefix}imitate <ping a user>`
+		}
+	}
+})
 
 // Reusable log messages
 const log = {
 	say:      message  => console.log(`${location(message)} Said: ${message.content}`),
 	imitate:  res      => console.log(`[${res.channel.guild.name} - #${res.channel.name}] Imitated ${res.user.tag}, saying: ${res.str}`),
-	presence: presence => console.log(`Set ${name}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`),
+	presence: presence => console.log(`Set ${config.name}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`),
 	help:     message  => console.log(`${location(message)} Sent the Help box`)
 }
 
+const lastMessageIds = new Map()
+const buffers = new Map()
 
 const client = new Discord.Client()
 
@@ -80,15 +83,33 @@ const client = new Discord.Client()
 // --- LISTENERS ---------------------------------------------
 
 client.on("ready", () => {
-	console.log(`Logged in as ${client.user.tag}.\n`)
+	console.info(`Logged in as ${client.user.tag}.\n`)
 	updateNicknames()
 
 	// "Watching everyone"
-	client.user.setActivity(`everyone (${prefix}help)`, { type: "WATCHING" })
+	client.user.setActivity(`everyone (${config.prefix}help)`, { type: "WATCHING" })
 		.then(log.presence)
 		.catch(console.error)
 
-	printRegisteredChannels()
+	
+	userTable().then(table => {
+		console.info("Users:")
+		console.table(table)
+	})
+	.catch(console.warn)
+	
+	channelTable().then(table => {
+		console.info("Channels:")
+		console.table(table)
+	})
+	.catch(console.warn)
+
+	nicknameTable().then(table => {
+		console.info("Nicknames:")
+		console.table(table)
+	})
+	.catch(console.info)
+
 })
 
 
@@ -101,6 +122,7 @@ client.on("message", message => {
 
 		// Ping
 		if (message.isMentioned(client.user) && !message.author.bot) {
+			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			if (message.content.split(" ").length === 1) { // Message is one word (i.e. only the ping)
 				imitateRandom(message.channel)
 					.then(log.imitate)
@@ -109,24 +131,43 @@ client.on("message", message => {
 		}
 
 		// Command
-		else if (message.content.startsWith(prefix)) {
+		else if (message.content.startsWith(config.prefix)) {
 			handleCommands(message)
 		}
 		
 		// If the message is nothing special, maybe imitate someone anyway
 		else if (blurtChance()) {
-			console.log(`${locationString(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
+			console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
 			imitateRandom(message.channel)
 				.then(log.imitate)
 				.catch(console.error)
 		}
 
 		if (monitoring(authorId)) {
-			ensureWriteStream(authorId).then(writeStream => {
-				writeStream.write(message.content + "\n", () => {
-					regenerate(authorId).catch(console.error)
-				})
-			})
+
+			// Only take the time and processing power to regenerate
+			//   if the user hasn't spoken for a little bit,
+			//   instead of regenerating for _every_ message.
+			// Saves Bipolar from being bogged down by spam.
+			lastMessageIds.set(authorId, message.id)
+			if (!buffers.has(authorId)) buffers.set(authorId, "")
+			// Build up new messages in a buffer to reduce accesses to the huge corpus variables
+			buffers.set(authorId, buffers.get(authorId) + message.content + "\n")
+
+			// After 5 seconds of no activity from a user, save their corpus and regenerate their Markov
+			setTimeout( () => {
+				if (lastMessageIds.get(authorId) === message.id) { // Message from this user is the same one from 5 seconds ago
+					regenerate(authorId)
+						.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
+						.catch(console.error)
+					
+					corpi.set(authorId, corpi.get(authorId) + buffers.get(authorId))
+					buffers.set(authorId, "")
+					write(`${config.corpusDir}/${authorId}/corpus.txt`, corpi.get(authorId))
+						.then(console.log(`Saved ${message.author.tag}'s corpus.`))
+						.catch(console.error)
+				}
+			}, 5000)
 		}
 	}
 })
@@ -151,9 +192,11 @@ ${guild.name} (ID: ${guild.id})
 
 // --- LOGIN -------------------------------------------------
 
-const in_ = "Logging in..."
-console.log(in_) // log in_
-client.login(process.env.DISCORD_BOT_TOKEN) // log in
+Promise.all([configLoaded]).then( () => {
+	console.info("Logging in...")
+	client.login(process.env.DISCORD_BOT_TOKEN)
+})
+
 
 // --- /LOGIN ------------------------------------------------
 
@@ -161,68 +204,463 @@ client.login(process.env.DISCORD_BOT_TOKEN) // log in
 
 
 /**
- * Reloads all corpus files and
- *   regenerates all Markov chains
+ * Loads the corpus corresponding to a user ID
+ * 
+ * @param {string} userId - user ID whose corpus to load
+ * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
  */
-function regenerateAll() {
-	corpi.clear() // Make sure a user gets cleared from memory if
-	markovs.clear() // they are deleted from storage
-
-	for (const userId of fs.readdirSync(corpusDir)) { // Every subdirectory in corpusDir (which are all supposed to be user IDs)
-		regenerate(userId).catch(err => {
-			if (err.message !== "NODATA") {
-				throw err
-			}
+function loadCorpus(userId) {
+	return new Promise( (resolve, reject) => {
+		read(`${config.corpusDir}/${userId}/corpus.txt`).then(corpus => {
+			corpi.set(userId, corpus)
+			resolve()
 		})
-	}
+		.catch(reject)
+	})
 }
 
 
 /**
- * Reloads the corpus file and
- *   regenerates the Markov chain
- *   that correspond to [userId]
+ * Loads all the corpi in the corpus directory
  * 
- * @param {string} userId - regenerates the Markov for this user
- * @return {Promise<void|Error} void
+ * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ */
+function loadAllCorpi() {
+	return new Promise( (resolve, reject) => {
+		ls(config.corpusDir).then(userIds => {
+			for (const userId of userIds) {
+				loadCorpus(userId)
+					.then(resolve)
+					.catch(reject)
+			}
+		})
+
+	})
+}
+
+
+/**
+ * (Re)generates the Markov chain
+ *   that corresponds to [userId]
+ * 
+ * @param {string} userId - regenerates this user's Markov chain
+ * @return {Promise<void|Error} Resolve: void; Reject: Error
  */
 function regenerate(userId) {
 	return new Promise( (resolve, reject) => {
-		fs.readFile(`${corpusDir}/${userId}/corpus.txt`, "UTF-8", (err, corpus) => { // Read the corpus.txt inside
-			if (err) {
-				reject(err)
-			} else if (corpus.length === 0) {
-				reject(Error("NODATA"))
-			} else {
-				corpi.set(userId, corpus) // Map the directory to its corpus
-				markovs.set(userId, new Markov(corpus)) // Map the directory to a Markov, which gets that directory's corpus.txt
-				resolve()
+		const corpus = corpi.get(userId)
+
+		try {
+			markovs.set(userId, new Markov(corpus))
+		} catch (err) {
+			return reject(err)
+		}
+
+		resolve()
+	})
+}
+
+
+/**
+ * (Re)generates all Markov chains
+ * 
+ * @return {Promise<void|Error>} Resolve: void - everything regenerated successfully; Reject: Error - something failed
+ */
+function regenerateAll() {
+	return new Promise( (resolve, reject) => {
+		for (const userId of corpi.keys()) {
+			regenerate(userId)
+				.catch(reject)
+		}
+		resolve()
+	})
+}
+
+
+/**
+ * Generates a string from [user]'s Markov
+ *   and sends it to [channel]
+ * 
+ * @param {User} user - User to generate a message from
+ * @param {Channel} channel - Channel to send the message to
+ * @return {Promise} Resolve: { user, message } object; Reject: .send's rejection 
+ */
+function imitate(user, channel) {
+	return new Promise( (resolve, reject) => {
+		if (!user) return reject("User not found")
+		const str = markovs.get(user.id).generate().substring(0, 342)
+		const embed = new Discord.RichEmbed()
+			.setColor(config.embedColor)
+			.setThumbnail(user.displayAvatarURL)
+			.addField(channel.members.get(user.id).displayName, str)
+
+		channel.send(embed).then( () => {
+			resolve( { user: user, channel: channel, str: str } )
+		})
+		.catch(reject)
+	})
+}
+
+
+/**
+ * Forwards a randomly-picked user to imitate()
+ * 
+ * @param {Channel} channel - Channel to send the message to
+ * @return {Promise} Resolution or rejection from imitate()
+ */
+function imitateRandom(channel) {
+	return new Promise( (resolve, reject) => {
+		const userId = randomKey(markovs)
+		const user = client.users.get(userId)
+		imitate(user, channel)
+			.then(resolve)
+			.catch(reject)
+
+	})
+}
+
+
+/**
+ * Shortcut that adds a standard .then and .catch
+ *   to message-sending commands
+ * 
+ * @param {Channel} channel - Discord channel to send the message to
+ * @param {string} content - Content of message
+ */
+function say(channel, content) {
+	channel.send(content)
+		.then(log.say)
+		.catch(console.error)
+}
+
+
+/**
+ * Scrape channel
+ * Records each user's messages to [config.corpusDir]/[userId]/corpus.txt
+ *
+ * @param {Channel} channel - what channel to scrape
+ * @param {number} howManyMessages - number of messages to scan (a negative number will scan all messages)
+ * @param {string[]} [userIds=config.users] - array of user IDs to get messages from (default: the user IDs in the config file)
+ * @return {Promise<number|Error>} number of messages added
+ */
+function scrape(channel, howManyMessages, userIds) {
+	return new Promise( (resolve, reject) => { try {
+		userIds = userIds || Object.values(config.users) // default: config's user IDs
+		const howManyRequests = Math.ceil(howManyMessages / 100)
+		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
+		let activeLoops = 0
+		let messagesAdded = 0
+
+		function _loop(counter, fetchOptions) {
+			activeLoops++
+			channel.fetchMessages(fetchOptions).then(messages => {
+				// Sometimes the last message is just undefined. No idea why.
+				let lastMessages = messages.last()
+				let toLast = 2
+				while (!lastMessages[0]) {
+					lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+					toLast++
+				}
+
+				const lastMessage = lastMessages[0]
+
+				// Sometimes the actual message is in "message[1]", instead "message". No idea why.
+				fetchOptions.before = (Array.isArray(lastMessage))
+					? lastMessage[1].id
+					: lastMessage.id
+
+				if (messages.size >= 100 && counter != 0) // Next request won't be empty
+					_loop(counter-1, fetchOptions)
+
+				for (let message of messages) {
+					// In case message is actually in message[1]
+					if (Array.isArray(message)) message = message[1]
+
+					const index = userIds.indexOf(message.author.id)
+					if (index !== -1) { // Supposed to log this user
+						const userId = userIds[index]
+
+						corpi.set(userId, corpi.get(userId) + message.content + "\n")
+						
+						messagesAdded++
+					}
+				}
+
+				activeLoops--
+			})
+		}
+		_loop(howManyRequests, fetchOptions)
+
+		const whenDone = setInterval( () => {
+			if (activeLoops === 0) {
+				clearInterval(whenDone)
+				resolve(messagesAdded)
 			}
+		}, 100)
+	
+	} catch (err) {
+		reject(err)
+	}})
+}
+
+
+/**
+ * Parses a message whose content is presumed to be a command
+ *   and performs the corresponding action
+ * 
+ * here be dragons
+ * 
+ * @param {Message} messageObj - Discord message to be parsed
+ * @return {Promise<string>} Resolve: name of command performed; Reject: error
+ */
+function handleCommands(message) {
+	return new Promise ( (resolve, reject) => {
+		if (message.author.bot) { reject("Bots are not allowed to use commands"); return }
+
+		console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
+
+		const args = message.content.slice(config.prefix.length).split(/ +/)
+		const command = args.shift().toLowerCase()
+
+		try {
+			const admin = isAdmin(message.author.id)
+
+			if (command === "help") {
+				const embed = new Discord.RichEmbed()
+					.setColor(config.embedColor)
+					.setTitle("Help")
+				
+				if (help.hasOwnProperty(args[0])) {
+					if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
+						return resolve(command) // Do nothing
+					} else {
+						embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
+					}
+				} else {
+					for (const [command, properties] of Object.entries(help)) {
+						if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
+							embed.addField(command, properties.desc + "\n" + properties.syntax)
+					}
+				}
+				message.channel.send(embed)
+					.then(message => {
+						log.help(message)
+						return resolve(command)
+					})
+					.catch(reject)
+			}
+
+
+			if (command === "scrape" && admin) {
+				const channel = (args[0] === "here")
+					? message.channel
+					: client.channels.get(args[0])
+				if (!channel)
+					return reject(`${config.name} can't access the channel: first argument ${args[0]}`)
+
+				const howManyMessages = (args[1] === "all")
+					? -1
+					: parseInt(args[1])
+				if (isNaN(howManyMessages))
+					return reject(`Second argument "${args[1]}" is not a number"`)
+
+				const userIds = (args[2])
+					? args.slice(2)
+					: Object.values(config.users)
+
+				say(message.channel, `Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`)
+				scrape(channel, howManyMessages, userIds)
+					.then(messagesAdded => {
+						say(message.channel, `Added ${messagesAdded} messages.`)
+						console.log("Saving corpi...")
+						saveAllCorpi()
+							.then(stats => console.log(`Corpi saved (${stats[0]}).`))
+							.catch(stats => console.warn(`${stats[0]} corpi saved; ${stats[1]} failed.`))
+					})
+					.catch(err => {
+						console.error(err)
+						say(message.channel, "ERROR! " + err)
+					})
+				resolve(command)
+			}
+
+			if (command === "imitate") {
+				if (args[0]) { 
+					// Try to convert args[0] to a user
+					if (isMention(args[0]))
+						args[0] = getUserFromMention(args[0])
+					else
+						args[0] = client.users.get(args[0]) // Maybe it's a user ID
+
+					if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
+						imitate(args[0], message.channel)
+							.then(log.imitate)
+							.catch(console.error)
+					}
+				}
+				resolve(command)
+			}
+
+		} catch (err) {
+			console.error(err)
+			reject(err)
+		}
+		
+	})
+}
+
+
+/**
+ * Sets the custom nicknames from the config file
+ * 
+ * @return {Promise<void>} Whether there were errors or not
+ */
+function updateNicknames() {
+	return new Promise ( (resolve, reject) => {
+		var erred = false
+
+		for (const serverName in config.nicknames) {
+			const pair = config.nicknames[serverName]
+			const server = client.guilds.get(pair[0])
+			if (!server) {
+				console.warn(`${config.name} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				continue
+			}
+			server.me.setNickname(pair[1])
+				.catch(err => {
+					erred = true
+					logError(err)
+				})
+		}
+
+		if (erred) return reject()
+		resolve()
+
+	})
+}
+
+
+/**
+ * Make directory if it doesn't already exist
+ *
+ * @param {string} dir - Directory of which to ensure existence
+ * @return {Promise<string|Error>} Directory if it already exists or was successfully made; error if something goes wrong
+ */
+function ensureDirectory(dir) {
+	return new Promise ( (resolve, reject) => {
+		if (!local) return resolve(dir) // Directories in S3 don't have to exist before they can be used
+		fs.stat(dir, err => {
+			if (err && err.code === "ENOENT") {
+				fs.mkdir(dir, { recursive: true }, err => {
+					if (err) return reject(err)
+					resolve(dir)
+				})
+			} else if (err)
+				return reject(err)
+			resolve(dir)
 		})
 	})
 }
 
 
 /**
- * Maps [userId] to a write stream
- *   for [userId]'s corpus.
+ * Reads a file from S3_BUCKET_NAME
  * 
- * @param {string} userId - create a write stream for this user's corpus
- * @return {Promise<void|Error} Promise
+ * @param {string} path - path to file to read from the S3 bucket
+ * @return {Promise<Buffer|Error>} Buffer from bucket, else error
  */
-function setWriteStream(userId) {
+function read(path) {
 	return new Promise( (resolve, reject) => {
-		ensureDirectory(`${corpusDir}/${userId}`).then(dir => {
-			writeables.set(
-				userId,
-				fs.createWriteStream(
-					`${dir}/corpus.txt`
-					, { flags: "a" }
-				)
-			)
-			resolve()
-		})
-		.catch(reject)	
+		if (local) {
+			fs.readFile(path, (err, data) => {
+				if (err) return reject(err)
+				resolve(data)
+			})
+		}
+
+		else {
+			const params = {
+				Bucket: process.env.S3_BUCKET_NAME, 
+				Key: path
+			}
+			s3.getObject(params, (err, data) => {
+				if (err) return reject(err)
+
+				if (data.Body === undefined || data.Body === null)
+					return reject(`Empty response at path: ${path}`)
+
+				resolve(data.Body)
+			})
+		}
+	})
+}
+
+
+function ls(dir) {
+	return new Promise ((resolve, reject) => {
+		if (local) {
+			fs.readdir(dir, (err, files) => {
+				if (err) return reject(err)
+				resolve(files)
+			})
+		} else {
+			const params = {
+				Bucket: process.env.S3_BUCKET_NAME,
+				Delimiter: "/",
+				Prefix: dir
+			}
+			s3.listObjectsV2(params, (err, files) => {
+				if (err) return reject(err)
+
+				const fileList = []
+				for (const entry in files.Contents) {
+					fileList.push(entry.Key)
+				}
+				resolve(fileList)
+			})
+		}
+	})
+}
+
+
+function write(path, data) {
+	return new Promise( (resolve, reject) => {
+		function cb(err, res) {
+			if (err) return reject(err)
+			resolve(res)
+		}
+
+		if (local) {
+			fs.writeFile(path, data, cb)
+		}
+		
+		else {
+			const params = {
+				Bucket: process.env.S3_BUCKET_NAME,
+				Key: path,
+				Body: Buffer.from(data, "UTF-8")
+			}
+			s3.upload(params, cb)
+		}
+	})
+}
+
+
+function saveAllCorpi() {
+	return new Promise( (resolve, reject) => {
+		var saved = 0
+		var failed = 0
+		for (const [userId, corpus] of corpi.entries()) {
+			write(`${config.corpusDir}/${userId}/corpus.txt`, corpus)
+				.then(saved++)
+				.catch(err => {
+					failed++
+					console.error(err)
+				})
+		}
+		(failed) // not 0
+			? reject([saved, failed])
+			: resolve([saved, failed])
 	})
 }
 
@@ -235,23 +673,6 @@ function setWriteStream(userId) {
 function blurtChance() {
 	return Math.random() * 100 <= 0.05 // 0.05% chance
 }
-
-
-/** UNUSED
- * Randomly chooses a value from a collection
- * 
- * @param {Collection} collection
- * @return {any} random value from collection
- */
-/*function randomChoice(collection) {
-	const index = Math.floor(Math.random() * collection.size)
-	let counter = 0
-	for (const value of collection.values()) {
-		if (counter++ === index) {
-			return value
-		}
-	}
-}*/
 
 
 /**
@@ -283,46 +704,31 @@ function statusCode(code) {
 
 
 /**
- * Forwards a randomly-picked user to imitate()
- * 
- * @param {Channel} channel - Channel to send the message to
- * @return {Promise} Resolution or rejection from imitate()
+ * @param {string} mention
+ * @return {User} User if exists, null if not
  */
-function imitateRandom(channel) {
-	return new Promise( (resolve, reject) => {
-		const userId = randomKey(markovs)
-		const user = client.users.get(userId)
-		imitate(user, channel)
-			.then(resolve)
-			.catch(reject)
+function getUserFromMention(mention) {
+	if (mention && mention.startsWith("<@") && mention.endsWith(">")) {
+		mention = mention.slice(
+			(mention.charAt(2) === "!")
+				? 3
+				: 2
+			, -1
+		)
 
-	})
+		return client.users.get(mention)
+	}
+
+	return null
 }
 
 
 /**
- * Generates a string from [user]'s Markov
- *   and sends it to [channel]
- * 
- * @param {User} user - User to generate a message from
- * @param {Channel} channel - Channel to send the message to
- * @return {Promise} Resolve: { user, message } object; Reject: .send's rejection 
+ * @param {string} word - a word that may or may not be a mention
+ * @return {Boolean} whether word is a mention or not
  */
-function imitate(user, channel) {
-	return new Promise( (resolve, reject) => {
-		if (!user) reject("User not found")
-		const str = markovs.get(user.id).generate().substring(0, 342)
-		const embed = new Discord.RichEmbed()
-			.setColor("#9A5898") // Lavender
-			.setThumbnail(user.displayAvatarURL)
-			.addField(channel.members.get(user.id).displayName, str)
-
-		channel.send(embed)
-			.then( () => {
-				resolve( { user: user, channel: channel, str: str } )
-			})
-			.catch(reject)
-	})
+function isMention(word) {
+	return word.startsWith("<@") && word.endsWith(">")
 }
 
 
@@ -343,35 +749,22 @@ function has(val, obj) {
 
 
 function monitoring(userId) {
-	return has(userId, users)
+	return has(userId, config.users)
 }
 
 
 function isAdmin(userId) {
-	return has(userId, admins)
+	return has(userId, config.admins)
 }
 
 
 function isBanned(userId) {
-	return has(userId, banned)
+	return has(userId, config.banned)
 }
 
 
 function channelWhitelisted(channelId) {
-	return has(channelId, channels)
-}
-
-
-function printRegisteredChannels() {
-	if (isEmpty(channels)) {
-		console.warn("No channels are whitelisted.")
-	} else {
-		console.info("Channels:")
-		for (const channelName in channels) {
-			console.info(`	${channelName} (ID: ${channels[channelName]})`)
-		}
-		console.info()
-	}
+	return has(channelId, config.channels)
 }
 
 
@@ -390,275 +783,6 @@ function isEmpty(obj) {
 }
 
 
-function say(channel, string) {
-	channel.send(string)
-		.then(log.say)
-		.catch(console.error)
-}
-
-
-/**
- * Scrape channel
- * Records each user's messages to [corpusDir]/[userId]/corpus.txt
- *
- * @param {Channel} channel - what channel to scrape
- * @param {number} howManyMessages - number of messages to scan (a negative number will scan all messages)
- * @param {string[]} [userIds=users] - array of user IDs to get messages from (default: the user IDs in the config file)
- * @return {Promise<number|Error>} number of messages added
- */
-function scrape(channel, howManyMessages, userIds) {
-	return new Promise( (resolve, reject) => { try {
-		userIds = userIds || Object.values(users) // default: config's user IDs
-		const howManyRequests = Math.ceil(howManyMessages / 100)
-		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
-		const global = {
-			activeLoops: 0,
-			messagesAdded: 0
-		}
-
-		function _loop(counter, fetchOptions) {
-			global.activeLoops++
-			channel.fetchMessages(fetchOptions).then(messages => {
-				// Sometimes the last message is just undefined. No idea why.
-				let lastMessages = messages.last()
-				let toLast = 2
-				while (!lastMessages[0]) {
-					lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-					toLast++
-				}
-
-				const lastMessage = lastMessages[0]
-
-				// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-				fetchOptions.before = (Array.isArray(lastMessage))
-					? lastMessage[1].id
-					: lastMessage.id
-
-				if (messages.size >= 100 && counter != 0) // Next request won't be empty
-					_loop(counter-1, fetchOptions)
-
-				for (let message of messages) {
-					// In case message is actually in message[1]
-					if (Array.isArray(message)) message = message[1]
-
-					const index = userIds.indexOf(message.author.id)
-					if (index !== -1) { // Supposed to log this user
-						const userId = userIds[index]
-
-						ensureWriteStream(userId).then(writeStream => {
-							writeStream.write(message.content + "\n")
-						})
-						
-						global.messagesAdded++
-					}
-				}
-
-				global.activeLoops--
-			})
-		}
-		_loop(howManyRequests, fetchOptions)
-
-		const whenDone = setInterval( () => {
-			if (global.activeLoops === 0) {
-				clearInterval(whenDone)
-				resolve(global.messagesAdded)
-			}
-		}, 100)
-	
-	} catch (err) {
-		reject(err)
-	}})
-}
-
-
-function handleCommands(message) {
-	return new Promise ( (resolve, reject) => {
-		if (message.author.bot) { reject("Bots are not allowed to use commands"); return }
-
-		const args = message.content.slice(prefix.length).split(/ +/)
-		const command = args.shift().toLowerCase()
-
-		try {
-			const admin = isAdmin(message.author.id)
-
-			if (command === "help") {
-				const embed = new Discord.RichEmbed()
-					.setColor("#9A5898") // Lavender
-					.setTitle("Help")
-				
-				if (help.hasOwnProperty(args[0])) {
-					if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
-						resolve(command)
-						return
-					} else {
-						embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
-					}
-				} else {
-					for (const [command, properties] of Object.entries(help)) {
-						if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
-							embed.addField(command, properties.desc + "\n" + properties.syntax)
-					}
-				}
-				message.channel.send(embed)
-					.then(message => {
-						log.help(message)
-						resolve(command)
-						return
-					})
-					.catch(reject)
-			}
-
-
-			if (command === "scrape" && admin) {
-				const channel = (args[0] === "here")
-					? message.channel
-					: client.channels.get(args[0])
-				if (!channel) {
-					reject(`${name} can't access the channel: first argument ${args[0]}`)
-					return
-				}
-
-				const howManyMessages = (args[1] === "all")
-					? -1
-					: parseInt(args[1])
-				if (isNaN(howManyMessages)) {
-					reject(`Second argument "${args[1]}" is not a number"`)
-					return
-				}
-
-				const userIds = (args[2])
-					? args.slice(2, "Infinity") // Every element except the first two; is there a less hacky way to do this?
-					: Object.values(users)
-
-				say(message.channel, `Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`)
-				scrape(channel, howManyMessages, userIds)
-					.then(messagesAdded => {
-						say(message.channel, `Added ${messagesAdded} messages.`)
-					})
-					.catch(err => {
-						say(message.channel, err)
-					})
-				resolve(command)
-			}
-
-			if (command === "imitate") {
-				if (args[0]) { 
-					// Try to convert args[0] to a user
-					if (isMention(args[0]))
-						args[0] = getUserFromMention(args[0])
-					else
-						args[0] = client.users.get(args[0]) // maybe it's a user ID
-
-					if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
-						imitate(args[0], message.channel)
-							.then(log.imitate)
-							.catch(console.error)
-					}
-				}
-				resolve(command)
-			}
-
-		} catch (err) {
-			console.error(err)
-			reject(err)
-		}
-		
-	})
-}
-
-
-/**
- * Make directory if it doesn't already exist
- *
- * @param {string} dir - Directory of which to ensure existence
- * @return {Promise<string|Error>} Directory if it already exists or was successfully made; error if something goes wrong
- */
-function ensureDirectory(dir) {
-	return new Promise ( (resolve, reject) => {
-		fs.stat(dir, err => {
-			if (err && err.code === "ENOENT") {
-				fs.mkdir(dir, { recursive: true }, err => {
-					if (err)
-						reject(err)
-					else
-						resolve(dir)
-				})
-			} else if (err) {
-				reject(err)
-			} else {
-				resolve(dir)
-			}
-		})
-	})
-}
-
-
-/**
- * Make directory if it doesn't already exist
- * ~Synchronous edition!~
- *
- * @param {string} dir - Direectory of which to ensure existence
- * @return {string} Directory if it already exists or was successfully made (throws error otherwise)
- */
-function ensureDirectorySync(dir) {
-	try {
-		fs.mkdirSync(dir, { recursive: true })
-	} catch (err) {
-		if (err.code !== "EEXIST")
-			throw err
-	}
-	return dir
-}
-
-
-/**
- * Make a WriteStream if it doesn't already exist
- * 
- * @param {string} userId - ID for the WriteStream
- * @return {Promise<WriteStream>} Promise of a WriteStream
- */
-function ensureWriteStream(userId) {
-	return new Promise(resolve => {
-		if (writeables.has(userId)) {
-			resolve(writeables.get(userId))
-		} else {
-			setWriteStream(userId).then( () => {
-				resolve(writeables.get(userId))
-			})
-		}
-	})
-}
-
-
-/**
- * @param {string} mention
- * @return {User} User if exists, null if not
- */
-function getUserFromMention(mention) {
-	if (!mention) return null
-
-	if (mention.startsWith("<@") && mention.endsWith(">")) {
-		mention = mention.slice(2, -1)
-
-		if (mention.startsWith("!"))
-			mention = mention.slice(1)
-
-		return client.users.get(mention)
-	}
-
-	return null
-}
-
-
-/**
- * @param {string} word - a word that may or may not be a mention
- * @return {Boolean} whether word is a mention or not
- */
-function isMention(word) {
-	return word.startsWith("<@") && word.endsWith(">")
-}
-
-
 /**
  * Shortcut to a reusable message location string
  * 
@@ -670,64 +794,59 @@ function location(message) {
 }
 
 
-/**
- * Reads a file from S3_BUCKET_NAME
- * 
- * @param {string} fileName - file to read from the S3 bucket
- * @return {Promise<string|Error>} Buffer from bucket, else error
- */
-function s3Read(fileName) {
+function channelTable() {
 	return new Promise( (resolve, reject) => {
-		const params = {
-			Bucket: process.env.S3_BUCKET_NAME, 
-			Key: "bipolar/" + fileName
-		}
+		if (isEmpty(config.channels))
+			return reject("No channels are whitelisted.")
 
-		s3.getObject(params, (err, data) => {
-			if (data.Body === undefined || data.Body === null) {
-				reject(data.Body)
-			} else {
-				if (err)
-					reject(err)
-				else
-					resolve(data.Body)
-			}
-		})
+		const stats = {}
+		for (const i in config.channels) {
+			const channelId = config.channels[i]
+			const channel = client.channels.get(channelId)
+			const stat = {}
+			stat["Server"] = channel.guild.name
+			stat["Name"] = "#" + channel.name
+			stats[channelId] = stat
+		}
+		resolve(stats)
 	})
 }
 
 
-/**
- * Sets the custom nicknames from the config file
- * 
- * @return {Promise<void>} Whether there were errors or not
- */
-function updateNicknames() {
-	return new Promise ( (resolve, reject) => {
-		var erred = false
+function userTable() {
+	return new Promise( (resolve, reject) => {
+		if (isEmpty(config.users))
+			return reject("No users defined.")
 
-		for (const serverName in nicknames) {
-			const pair = nicknames[serverName]
-			const server = client.guilds.get(pair[0])
-			if (!server) {
-				console.warn(`${name} isn't in ${pair[0]}! Nickname cannot be set here.`)
-				continue
-			}
-			server.me.setNickname(pair[1])
-				.then(console.log(`Custom nickname in ${pair[0]}: ${pair[1]}.\n`))
-				.catch(err => {
-					erred = true
-					logError(err)
-				})
+		const stats = {}
+		for (const i in config.users) {
+			const userId = config.users[i]
+			const stat = {}
+			stat["Username"] = client.users.get(userId).tag
+			stat["Has data"] = corpi.has(userId)
+			stats[userId] = stat
 		}
-
-		(erred)
-			? reject()
-			: resolve()
-
+		resolve(stats)
 	})
 }
 
 
-// --- /FUNCTIONS --------------------------------------------
+function nicknameTable() {
+	return new Promise( (resolve, reject) => {
+		if (isEmpty(config.nicknames))
+			return reject("No nicknames defined.")
 
+		const stats = {}
+		for (const i in config.nicknames) {
+			const server = client.guilds.get(config.nicknames[i][0])
+			const stat = {}
+			stat["Server"] = server.name
+			stat["Nickname"] = server.me.nickname
+			stats[pair[0]] = stat
+		}
+		resolve(stats)
+	})
+}
+
+
+// --- /FUNCTIONS -------------------------------------------
