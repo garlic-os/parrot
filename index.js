@@ -157,14 +157,15 @@ client.on("message", message => {
 			// After 5 seconds of no activity from a user, save their corpus and regenerate their Markov
 			setTimeout( () => {
 				if (lastMessageIds.get(authorId) === message.id) { // Message from this user is the same one from 5 seconds ago
-					regenerate(authorId)
-						.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
-						.catch(console.error)
-					
 					corpi.set(authorId, corpi.get(authorId) + buffers.get(authorId))
 					buffers.set(authorId, "")
 					write(`${config.corpusDir}/${authorId}/corpus.txt`, corpi.get(authorId))
-						.then(console.log(`Saved ${message.author.tag}'s corpus.`))
+						.then( () => {
+							console.log(`Saved ${message.author.tag}'s corpus.`)
+							regenerate(authorId)
+								.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
+								.catch(console.error)
+						})
 						.catch(console.error)
 				}
 			}, 5000)
@@ -288,14 +289,14 @@ function regenerateAll() {
 function imitate(user, channel) {
 	return new Promise( (resolve, reject) => {
 		if (!user) return reject("User not found")
-		const str = markovs.get(user.id).generate().substring(0, 342)
+		const imitation = markovs.get(user.id).generate().substring(0, 342) // Arbitrary message size cap
 		const embed = new Discord.RichEmbed()
 			.setColor(config.embedColor)
 			.setThumbnail(user.displayAvatarURL)
-			.addField(channel.members.get(user.id).displayName, str)
+			.addField(channel.members.get(user.id).displayName, imitation)
 
 		channel.send(embed).then( () => {
-			resolve( { user: user, channel: channel, str: str } )
+			resolve( { user: user, channel: channel, str: imitation } )
 		})
 		.catch(reject)
 	})
