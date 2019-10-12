@@ -1,5 +1,5 @@
 # Bipolar
-_Imitate everyone individually_
+_Imitate everyone individually._
 
 A totally-original Markov-chain-based Discord bot that keeps a separate Markov chain for any number of users.
 
