@@ -496,6 +496,8 @@ function handleCommands(message) {
 					// Try to convert args[0] to a user
 					if (isMention(args[0]))
 						args[0] = getUserFromMention(args[0])
+					else if (args[0] === "me") // Say "me" instead of pinging yourself
+						args[0] = message.author
 					else
 						args[0] = client.users.get(args[0]) // Maybe it's a user ID
 
