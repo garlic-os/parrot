@@ -151,6 +151,7 @@ client.on("message", message => {
 			// Saves Bipolar from being bogged down by spam.
 			lastMessageIds.set(authorId, message.id)
 			if (!buffers.has(authorId)) buffers.set(authorId, "")
+			if (!corpi.has(authorId)) corpi.set(authorId, "")
 			// Build up new messages in a buffer to reduce accesses to the huge corpus variables
 			buffers.set(authorId, buffers.get(authorId) + message.content + "\n")
 
