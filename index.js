@@ -492,7 +492,7 @@ function handleCommands(message) {
 			}
 
 			if (command === "imitate") {
-				if (args[0]) { 
+				if (args[0]) {
 					// Try to convert args[0] to a user
 					if (isMention(args[0]))
 						args[0] = getUserFromMention(args[0])
@@ -501,10 +501,14 @@ function handleCommands(message) {
 					else
 						args[0] = client.users.get(args[0]) // Maybe it's a user ID
 
-					if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
-						imitate(args[0], message.channel)
-							.then(log.imitate)
-							.catch(console.error)
+					try {
+						if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
+							imitate(args[0], message.channel)
+								.then(log.imitate)
+								.catch(console.error)
+						}
+					} catch (err) {
+						console.error(err)
 					}
 				}
 				resolve(command)
