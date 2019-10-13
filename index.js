@@ -27,14 +27,16 @@ AWS.config.update({
 })
 const s3 = new AWS.S3()
 
+const init = []
+
 // Load config
-const configLoaded = read(process.env.CONFIG_PATH).then(data => {
+init.push(read(process.env.CONFIG_PATH).then(data => {
 	global.config = JSON.parse(data)
 
 	// Local directories have to exist before they can be accessed
 	if (local) {
-		ensureDirectory(config.corpusDir)
-			.catch(err => { throw err })
+		init.push(ensureDirectory(config.corpusDir)
+			.catch(err => { throw err }))
 		
 	}
 
@@ -43,13 +45,13 @@ const configLoaded = read(process.env.CONFIG_PATH).then(data => {
 	global.corpi = new Map() // plural of corpus is corpi dont @ me
 	global.markovs = new Map()
 
-	loadAllCorpi().then( () => {
+	init.push(loadAllCorpi().then( () => {
 		console.info("Corpi are loaded.")
 		regenerateAll()
 			.then(console.info("Markovs are ready."))
 			.catch(err => { throw err })
 	})
-	.catch(err => { throw err })
+	.catch(err => { throw err }))
 
 	// "Help" command
 	global.help = {
@@ -64,7 +66,7 @@ const configLoaded = read(process.env.CONFIG_PATH).then(data => {
 			syntax: `Syntax: ${config.prefix}imitate <ping a user>`
 		}
 	}
-})
+}))
 
 // Reusable log messages
 const log = {
@@ -194,7 +196,7 @@ ${guild.name} (ID: ${guild.id})
 
 // --- LOGIN -------------------------------------------------
 
-Promise.all([configLoaded]).then( () => {
+Promise.all([init]).then( () => {
 	console.info("Logging in...")
 	client.login(process.env.DISCORD_BOT_TOKEN)
 })
