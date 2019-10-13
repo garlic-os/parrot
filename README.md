@@ -3,9 +3,6 @@ _Imitate everyone individually._
 
 A totally-original Markov-chain-based Discord bot that keeps a separate Markov chain for any number of users.
 
-## Known issues
-- Uses all the same data and users for every server
-
 ## Environment variables
 | Name | Description |
 | --- | --- |
@@ -18,3 +15,4 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 
 ## TODO
 - Let different data and users and stuff be used per each server that Bipolar is in
+- Save messages in batches instead of individually
