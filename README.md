@@ -15,4 +15,3 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 
 ## TODO
 - Let different data and users and stuff be used per each server that Bipolar is in
-- Save messages in batches instead of individually
