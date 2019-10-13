@@ -290,7 +290,7 @@ function regenerateAll() {
 function imitate(user, channel) {
 	return new Promise( (resolve, reject) => {
 		if (!user) return reject("User not found")
-		const imitation = markovs.get(user.id).generate().substring(0, 342) // Arbitrary message size cap
+		const imitation = markovs.get(user.id).generate().substring(0, quoteSize())
 		const embed = new Discord.RichEmbed()
 			.setColor(config.embedColor)
 			.setThumbnail(user.displayAvatarURL)
@@ -319,6 +319,11 @@ function imitateRandom(channel) {
 			.catch(reject)
 
 	})
+}
+
+
+function quoteSize() {
+	return Math.floor(Math.random() * 337 + 5)
 }
 
 
