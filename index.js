@@ -1,9 +1,7 @@
 // Permissions code: 67584
 // Send messages, read message history
 
-
-// Crash when a reject() doesn't have a .catch(); useful for debugging
-process.on("unhandledRejection", up => { throw up })
+process.on("unhandledRejection", console.error)
 
 const local = process.env.LOCAL != "0" && process.env.LOCAL != "false"
 
