@@ -372,7 +372,7 @@ function scrape(channel, howManyMessages) {
 					? lastMessage[1].id
 					: lastMessage.id
 
-				if (messages.size >= 100 && counter != 0) // Next request won't be empty
+				if (messages.size >= 100 && counter != 0) // Next request won't be empty and hasn't gotten enough messages
 					_loop(counter-1, fetchOptions)
 
 				for (let message of messages) {
@@ -458,7 +458,7 @@ function handleCommands(message) {
 					return reject(`${config.name} can't access the channel: first argument ${args[0]}`)
 
 				const howManyMessages = (args[1] === "all")
-					? -1
+					? "Infinity" // lol
 					: parseInt(args[1])
 				if (isNaN(howManyMessages))
 					return reject(`Second argument "${args[1]}" is not a number"`)
