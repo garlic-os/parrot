@@ -812,11 +812,12 @@ function nicknameTable() {
 
 		const stats = {}
 		for (const i in config.nicknames) {
-			const server = client.guilds.get(config.nicknames[i][0])
+			const pair = config.nicknames[i]
+			const server = client.guilds.get(pair[0])
 			const stat = {}
 			stat["Server"] = server.name
 			stat["Nickname"] = server.me.nickname
-			stats[pair[0]] = stat
+			stats[pair] = stat
 		}
 		resolve(stats)
 	})
