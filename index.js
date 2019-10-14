@@ -489,14 +489,10 @@ function handleCommands(message) {
 					else
 						args[0] = client.users.get(args[0]) // Maybe it's a user ID
 
-					try {
-						if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
-							imitate(args[0], message.channel)
-								.then(log.imitate)
-								.catch(logError)
-						}
-					} catch (err) {
-						logError(err)
+					if (args[0].id && markovs.has(args[0].id)) { // Is a user Bipolar can imitate
+						imitate(args[0], message.channel)
+							.then(log.imitate)
+							.catch(logError)
 					}
 				}
 				resolve(command)
