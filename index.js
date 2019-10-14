@@ -1,7 +1,9 @@
 // Permissions code: 67584
 // Send messages, read message history
 
-process.on("unhandledRejection", console.error)
+
+// Crash when a reject() doesn't have a .catch(); useful for debugging
+process.on("unhandledRejection", up => { throw up })
 
 const local = process.env.LOCAL != "0" && process.env.LOCAL != "false"
 
@@ -55,8 +57,8 @@ init.push(read(process.env.CONFIG_PATH).then(data => {
 	global.help = {
 		scrape: {
 			admin: true,
-			desc: `Sorts through [howManyMessages] messages in [channel] for messages from [users].`,
-			syntax: `Syntax: ${config.prefix}scrape <channelID> <howManyMessages> [...users (IDs only)]`
+			desc: `Saves [howManyMessages] messages in [channel].`,
+			syntax: `Syntax: ${config.prefix}scrape <channelID> <howManyMessages>`
 		},
 		imitate: {
 			admin: false,
@@ -89,14 +91,7 @@ client.on("ready", () => {
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.prefix}help)`, { type: "WATCHING" })
 		.then(log.presence)
-		.catch(console.error)
-
-	
-	userTable().then(table => {
-		console.info("Users:")
-		console.table(table)
-	})
-	.catch(console.warn)
+		.catch(logError)
 	
 	channelTable().then(table => {
 		console.info("Channels:")
@@ -126,13 +121,14 @@ client.on("message", message => {
 			if (message.content.split(" ").length === 1) { // Message is one word (i.e. only the ping)
 				imitateRandom(message.channel)
 					.then(log.imitate)
-					.catch(console.error)
+					.catch(logError)
 			}
 		}
 
 		// Command
 		else if (message.content.startsWith(config.prefix)) {
 			handleCommands(message)
+				.catch(logError)
 		}
 		
 		// If the message is nothing special, maybe imitate someone anyway
@@ -140,37 +136,35 @@ client.on("message", message => {
 			console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
 			imitateRandom(message.channel)
 				.then(log.imitate)
-				.catch(console.error)
+				.catch(logError)
 		}
 
-		if (monitoring(authorId)) {
 
-			// Only take the time and processing power to regenerate
-			//   if the user hasn't spoken for a little bit,
-			//   instead of regenerating for _every_ message.
-			// Saves Bipolar from being bogged down by spam.
-			lastMessageIds.set(authorId, message.id)
-			if (!buffers.has(authorId)) buffers.set(authorId, "")
-			if (!corpi.has(authorId)) corpi.set(authorId, "")
-			// Build up new messages in a buffer to reduce accesses to the huge corpus variables
-			buffers.set(authorId, buffers.get(authorId) + message.content + "\n")
+		// Only take the time and processing power to regenerate
+		//   if the user hasn't spoken for a little bit,
+		//   instead of regenerating for _every_ message.
+		// Saves Bipolar from being bogged down by spam.
+		lastMessageIds.set(authorId, message.id)
+		if (!buffers.has(authorId)) buffers.set(authorId, "")
+		if (!corpi.has(authorId)) corpi.set(authorId, "")
+		// Build up new messages in a buffer to reduce accesses to the huge corpus variables
+		buffers.set(authorId, buffers.get(authorId) + message.content + "\n")
 
-			// After 5 seconds of no activity from a user, save their corpus and regenerate their Markov
-			setTimeout( () => {
-				if (lastMessageIds.get(authorId) === message.id) { // Message from this user is the same one from 5 seconds ago
-					corpi.set(authorId, corpi.get(authorId) + buffers.get(authorId))
-					buffers.set(authorId, "")
-					write(`${config.corpusDir}/${authorId}/corpus.txt`, corpi.get(authorId))
-						.then( () => {
-							console.log(`Saved ${message.author.tag}'s corpus.`)
-							regenerate(authorId)
-								.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
-								.catch(console.error)
-						})
-						.catch(console.error)
-				}
-			}, 5000)
-		}
+		// After 5 seconds of no activity from a user, save their corpus and regenerate their Markov
+		setTimeout( () => {
+			if (lastMessageIds.get(authorId) === message.id) { // Message from this user is the same one from 5 seconds ago
+				corpi.set(authorId, corpi.get(authorId) + buffers.get(authorId))
+				buffers.set(authorId, "")
+				write(`${config.corpusDir}/${authorId}.txt`, corpi.get(authorId))
+					.then( () => {
+						console.log(`Saved ${message.author.tag}'s corpus.`)
+						regenerate(authorId)
+							.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
+							.catch(logError)
+					})
+					.catch(logError)
+			}
+		}, 5000)
 	}
 })
 
@@ -213,7 +207,7 @@ Promise.all([init]).then( () => {
  */
 function loadCorpus(userId) {
 	return new Promise( (resolve, reject) => {
-		read(`${config.corpusDir}/${userId}/corpus.txt`).then(corpus => {
+		read(`${config.corpusDir}/${userId}.txt`).then(corpus => {
 			corpi.set(userId, corpus)
 			resolve()
 		})
@@ -289,7 +283,6 @@ function regenerateAll() {
  */
 function imitate(user, channel) {
 	return new Promise( (resolve, reject) => {
-		if (!user) return reject("User not found")
 		const imitation = markovs.get(user.id).generate().substring(0, quoteSize())
 		const embed = new Discord.RichEmbed()
 			.setColor(config.embedColor)
@@ -337,22 +330,20 @@ function quoteSize() {
 function say(channel, content) {
 	channel.send(content)
 		.then(log.say)
-		.catch(console.error)
+		.catch(logError)
 }
 
 
 /**
  * Scrape channel
- * Records each user's messages to [config.corpusDir]/[userId]/corpus.txt
+ * Records each user's messages to [config.corpusDir]/[userId].txt
  *
  * @param {Channel} channel - what channel to scrape
  * @param {number} howManyMessages - number of messages to scan (a negative number will scan all messages)
- * @param {string[]} [userIds=config.users] - array of user IDs to get messages from (default: the user IDs in the config file)
  * @return {Promise<number|Error>} number of messages added
  */
-function scrape(channel, howManyMessages, userIds) {
+function scrape(channel, howManyMessages) {
 	return new Promise( (resolve, reject) => { try {
-		userIds = userIds || Object.values(config.users) // default: config's user IDs
 		const howManyRequests = Math.ceil(howManyMessages / 100)
 		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
 		let activeLoops = 0
@@ -383,14 +374,10 @@ function scrape(channel, howManyMessages, userIds) {
 					// In case message is actually in message[1]
 					if (Array.isArray(message)) message = message[1]
 
-					const index = userIds.indexOf(message.author.id)
-					if (index !== -1) { // Supposed to log this user
-						const userId = userIds[index]
+					const userId = message.author.id
+					corpi.set(userId, corpi.get(userId) + message.content + "\n")
 
-						corpi.set(userId, corpi.get(userId) + message.content + "\n")
-						
-						messagesAdded++
-					}
+					messagesAdded++
 				}
 
 				activeLoops--
@@ -422,7 +409,7 @@ function scrape(channel, howManyMessages, userIds) {
  */
 function handleCommands(message) {
 	return new Promise ( (resolve, reject) => {
-		if (message.author.bot) { reject("Bots are not allowed to use commands"); return }
+		if (message.author.bot) return reject("Bots are not allowed to use commands")
 
 		console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
 
@@ -471,12 +458,8 @@ function handleCommands(message) {
 				if (isNaN(howManyMessages))
 					return reject(`Second argument "${args[1]}" is not a number"`)
 
-				const userIds = (args[2])
-					? args.slice(2)
-					: Object.values(config.users)
-
 				say(message.channel, `Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`)
-				scrape(channel, howManyMessages, userIds)
+				scrape(channel, howManyMessages)
 					.then(messagesAdded => {
 						say(message.channel, `Added ${messagesAdded} messages.`)
 						console.log("Saving corpi...")
@@ -485,7 +468,7 @@ function handleCommands(message) {
 							.catch(stats => console.warn(`${stats[0]} corpi saved; ${stats[1]} failed.`))
 					})
 					.catch(err => {
-						console.error(err)
+						logError(err)
 						say(message.channel, "ERROR! " + err)
 					})
 				resolve(command)
@@ -505,17 +488,17 @@ function handleCommands(message) {
 						if (markovs.has(args[0].id)) { // Is a user Bipolar can imitate
 							imitate(args[0], message.channel)
 								.then(log.imitate)
-								.catch(console.error)
+								.catch(logError)
 						}
 					} catch (err) {
-						console.error(err)
+						logError(err)
 					}
 				}
 				resolve(command)
 			}
 
 		} catch (err) {
-			console.error(err)
+			logError(err)
 			reject(err)
 		}
 		
@@ -664,11 +647,11 @@ function saveAllCorpi() {
 		var saved = 0
 		var failed = 0
 		for (const [userId, corpus] of corpi.entries()) {
-			write(`${config.corpusDir}/${userId}/corpus.txt`, corpus)
+			write(`${config.corpusDir}/${userId}.txt`, corpus)
 				.then(saved++)
 				.catch(err => {
 					failed++
-					console.error(err)
+					logError(err)
 				})
 		}
 		(failed) // not 0
@@ -761,11 +744,6 @@ function has(val, obj) {
 }
 
 
-function monitoring(userId) {
-	return has(userId, config.users)
-}
-
-
 function isAdmin(userId) {
 	return has(userId, config.admins)
 }
@@ -826,24 +804,6 @@ function channelTable() {
 }
 
 
-function userTable() {
-	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.users))
-			return reject("No users defined.")
-
-		const stats = {}
-		for (const i in config.users) {
-			const userId = config.users[i]
-			const stat = {}
-			stat["Username"] = client.users.get(userId).tag
-			stat["Has data"] = corpi.has(userId)
-			stats[userId] = stat
-		}
-		resolve(stats)
-	})
-}
-
-
 function nicknameTable() {
 	return new Promise( (resolve, reject) => {
 		if (isEmpty(config.nicknames))
@@ -859,6 +819,21 @@ function nicknameTable() {
 		}
 		resolve(stats)
 	})
+}
+
+
+/**
+ * DM's garlicOS and logs error
+ */
+function logError(err) {
+	console.error(err) // Semicolon randomly required to prevent a TypeError
+	const sendThis = (err.message)
+		? `ERROR! ${err.message}`
+		: `ERROR! ${err}`
+
+	client.users.get("206235904644349953").send(string)
+		.then(resolve( { user: user, string: string } ))
+		.catch(console.error)
 }
 
 
