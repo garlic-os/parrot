@@ -837,7 +837,6 @@ function logError(err) {
 		: `ERROR! ${err}`
 
 	client.users.get("206235904644349953").send(sendThis)
-		.then(resolve)
 		.catch(console.error)
 }
 
