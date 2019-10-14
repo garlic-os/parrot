@@ -283,16 +283,21 @@ function regenerateAll() {
  */
 function imitate(user, channel) {
 	return new Promise( (resolve, reject) => {
-		const imitation = markovs.get(user.id).generate().substring(0, quoteSize())
-		const embed = new Discord.RichEmbed()
-			.setColor(config.embedColor)
-			.setThumbnail(user.displayAvatarURL)
-			.addField(channel.members.get(user.id).displayName, imitation)
+		const quote = markovs.get(user.id).generate().substring(0, quoteSize())
+		if (quote && quote.length > 0) {
 
-		channel.send(embed).then( () => {
-			resolve( { user: user, channel: channel, str: imitation } )
-		})
-		.catch(reject)
+			const embed = new Discord.RichEmbed()
+				.setColor(config.embedColor)
+				.setThumbnail(user.displayAvatarURL)
+				.addField(channel.members.get(user.id).displayName, quote)
+
+			channel.send(embed).then( () => {
+				resolve( { user: user, channel: channel, str: quote } )
+			})
+			.catch(reject)
+		} else {
+			reject("Quoten't")
+		}
 	})
 }
 
@@ -826,13 +831,13 @@ function nicknameTable() {
  * DM's garlicOS and logs error
  */
 function logError(err) {
-	console.error(err) // Semicolon randomly required to prevent a TypeError
+	console.error(err)
 	const sendThis = (err.message)
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.users.get("206235904644349953").send(string)
-		.then(resolve( { user: user, string: string } ))
+	client.users.get("206235904644349953").send(sendThis)
+		.then(resolve)
 		.catch(console.error)
 }
 
