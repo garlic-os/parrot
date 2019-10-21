@@ -12,6 +12,7 @@ for (const key in process.env) {
 		config[key] = process.env[key]
 	}
 }
+
 if (config.NODE_ENV === "production")
 	process.on("unhandledRejection", logError)
 else
@@ -94,8 +95,9 @@ client.on("message", message => {
 		if (message.isMentioned(client.user) && !message.author.bot) {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			if (!message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
-				imitate(message.author).then(sentence => {
-					message.channel.send(imitateEmbed(message.author, sentence, message.channel))
+				const randomUser = client.users.get(randomUserId())
+				imitate(randomUser).then(sentence => {
+					message.channel.send(imitateEmbed(randomUser, sentence, message.channel))
 						.then(log.imitate)
 				})
 			}
@@ -111,8 +113,11 @@ client.on("message", message => {
 			// Maybe imitate someone anyway
 			if (blurtChance()) {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-				imitateRandom(message.channel)
-					.then(log.imitate)
+				const randomUser = client.users.get(randomUserId())
+				imitate(randomUser).then(sentence => {
+					message.channel.send(imitateEmbed(randomUser, sentence, message.channel))
+						.then(log.imitate)
+				})
 			}
 
 			if (message.content.length > 0) {
