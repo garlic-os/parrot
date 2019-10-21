@@ -95,10 +95,11 @@ client.on("message", message => {
 		if (message.isMentioned(client.user) && !message.author.bot) {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			if (!message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
-				const randomUser = client.users.get(randomUserId())
-				imitate(randomUser).then(sentence => {
-					message.channel.send(imitateEmbed(randomUser, sentence, message.channel))
-						.then(log.imitate)
+				randomUser().then(user => {
+					imitate(randomUser).then(sentence => {
+						message.channel.send(imitateEmbed(user, sentence, message.channel))
+							.then(log.imitate)
+					})
 				})
 			}
 		}
@@ -113,10 +114,11 @@ client.on("message", message => {
 			// Maybe imitate someone anyway
 			if (blurtChance()) {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-				const randomUser = client.users.get(randomUserId())
-				imitate(randomUser).then(sentence => {
-					message.channel.send(imitateEmbed(randomUser, sentence, message.channel))
-						.then(log.imitate)
+				randomUser().then(user => {
+					imitate(user).then(sentence => {
+						message.channel.send(imitateEmbed(user, sentence, message.channel))
+							.then(log.imitate)
+					})
 				})
 			}
 
@@ -201,10 +203,16 @@ function imitate(user) {
 }
 
 
-function randomUserId() {
-	const userIds = s3listUserIds()
-	const randomIndex = ~~(Math.random() * --userIds.length)
-	return userIds[randomIndex]
+function randomUser() {
+	return new Promise( (resolve, reject) => {
+		s3listUserIds().then(userIds => {
+			const randomIndex = ~~(Math.random() * --userIds.length)
+			const user = client.users.get(userIds[randomIndex])
+			if (!user) return reject("randomUser(): user not found")
+			resolve(user)
+		})
+		.catch(reject)
+	})
 }
 
 
@@ -435,8 +443,7 @@ function handleCommands(message) {
 							args[0] = client.users.get(args[0]) // Maybe it's a user ID
 
 					} else {
-						const userId = randomUserId()
-						args[0] = client.users.get(userId)
+						randomUser().then(user => args[0] = user)
 					}
 
 					imitate(args[0]).then(sentence => {
