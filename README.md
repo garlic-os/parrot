@@ -17,7 +17,7 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 | `CHANNEL_WHITELIST` | A JSON-encoded dictionary of the channels Bipolar is allowed to speak and learn in. | `{"random server name or whatever you want - #general":"<CHANNEL ID HERE>"}` |
 | `NICKNAMES` | A JSON-encoded dictionary of any server-specific nicknames Bipolar has. | `"a server": ["<SERVER ID HERE>", "Bipolarn't"]` |
 | `ADMINS` | A JSON-encoded dictionary of the users that are allowed to use Bipolar's admin commands. | `{"You, probably":"<USER ID HERE>"}` |
-| `BANNED` | A JSON-encoded dictionary of the users that aren't allowed to use Bipolar's commands. Bipolar will also stop learning from this user. |
+| `BANNED` | A JSON-encoded dictionary of the users that aren't allowed to use Bipolar's commands. Bipolar will also stop learning from this user. | `{"Naughty boy":"<USER ID HERE>"}` |
 | `AUTOSAVE_INTERVAL_MS` | Number of milliseconds Bipolar will wait before saving all unsaved cache. | `600000` (10 minutes) |
 
 
