@@ -4,15 +4,14 @@
 
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
-const dotenv = require("dotenv").config()
-if (dotenv.error) throw dotenv.error
-const config = dotenv.parsed
-for (const key in config) {
+const config = {}
+for (const key in process.env) {
 	try {
-		config[key] = JSON.parse(config[key])
-	} catch (e) {}
+		config[key] = JSON.parse(process.env[key])
+	} catch (e) {
+		config[key] = process.env[key]
+	}
 }
-
 if (config.NODE_ENV === "production")
 	process.on("unhandledRejection", logError)
 else
