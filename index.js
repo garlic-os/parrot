@@ -2,10 +2,21 @@
 // Send messages, read message history
 
 
-// Crash when a reject() doesn't have a .catch(); useful for debugging
-process.on("unhandledRejection", up => { throw up })
+// Load environment variables to const config
+// JSON parse any value that is JSON parseable
+const dotenv = require("dotenv").config()
+if (dotenv.error) throw dotenv.error
+const config = dotenv.parsed
+for (const key in config) {
+	try {
+		config[key] = JSON.parse(config[key])
+	} catch (e) {}
+}
 
-const local = process.env.LOCAL != "0" && process.env.LOCAL != "false"
+if (config.NODE_ENV === "production")
+	process.on("unhandledRejection", logError)
+else
+	process.on("unhandledRejection", up => { throw up })
 
 // Requirements
 require("console-stamp")(console, {
@@ -15,69 +26,34 @@ require("console-stamp")(console, {
 })
 
 // Requirements
-const Markov = require("./markov"), // Local markov.js file
+const markov = require("./markov"), // Local markov.js file
       Discord = require("discord.js"),
       fs = require("fs"),
       AWS = require("aws-sdk")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
-	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+	accessKeyId: config.AWS_ACCESS_KEY_ID,
+	secretAccessKey: config.AWS_SECRET_ACCESS_KEY
 })
 const s3 = new AWS.S3()
 
+// List of promises
 const init = []
 
-// Load config
-init.push(read(process.env.CONFIG_PATH).then(data => {
-	global.config = JSON.parse(data)
-
-	// Local directories have to exist before they can be accessed
-	if (local) {
-		init.push(ensureDirectory(config.corpusDir)
-			.catch(err => { throw err }))
-		
-	}
-
-	// Markov setup 
-	console.info("Loading corpi and spawning Markovs...")
-	global.corpi = new Map() // plural of corpus is corpi dont @ me
-	global.markovs = new Map()
-
-	init.push(loadAllCorpi().then( () => {
-		console.info("Corpi are loaded.")
-		regenerateAll()
-			.then(console.info("Markovs are ready."))
-			.catch(err => { throw err })
-	})
-	.catch(err => { throw err }))
-
-	// "Help" command
-	global.help = {
-		scrape: {
-			admin: true,
-			desc: `Saves [howManyMessages] messages in [channel].`,
-			syntax: `Syntax: ${config.prefix}scrape <channelID> <howManyMessages>`
-		},
-		imitate: {
-			admin: false,
-			desc: `Imitate a user.`,
-			syntax: `Syntax: ${config.prefix}imitate <ping a user>`
-		}
-	}
-}))
+// Local directories have to exist before they can be accessed
+init.push(ensureDirectory("./cache"))
 
 // Reusable log messages
 const log = {
-	say:      message  => console.log(`${location(message)} Said: ${message.content}`),
-	imitate:  res      => console.log(`[${res.channel.guild.name} - #${res.channel.name}] Imitated ${res.user.tag}, saying: ${res.str}`),
-	presence: presence => console.log(`Set ${config.name}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`),
-	help:     message  => console.log(`${location(message)} Sent the Help box`)
+	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
+	, imitate: message => console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
+	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
+	, help:    message => console.log(`${location(message)} Sent the Help message`)
 }
 
-const lastMessageIds = new Map()
-const buffers = new Map()
+const buffers = {},
+      unsavedCache = []
 
 const client = new Discord.Client()
 
@@ -89,9 +65,8 @@ client.on("ready", () => {
 	updateNicknames()
 
 	// "Watching everyone"
-	client.user.setActivity(`everyone (${config.prefix}help)`, { type: "WATCHING" })
-		.then(log.presence)
-		.catch(logError)
+	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
+		.then(presence => console.info(`${config.NAME}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`))
 	
 	channelTable().then(table => {
 		console.info("Channels:")
@@ -111,60 +86,56 @@ client.on("ready", () => {
 client.on("message", message => {
 	const authorId = message.author.id
 
-	if ((!isBanned(authorId)) // Not banned from using Bipolar
-		&& (channelWhitelisted(message.channel.id)) || // Channel is either whitelisted or is a DM channel
-			(message.channel.type == "dm")) {
+	if (!isBanned(authorId) // Not banned from using Bipolar
+	   && (channelWhitelisted(message.channel.id) // Channel is either whitelisted or is a DM channel
+		  || message.channel.type === "dm")
+	   && message.author.id !== client.user.id) { // Not self
 
 		// Ping
 		if (message.isMentioned(client.user) && !message.author.bot) {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
-			if (message.content.split(" ").length === 1) { // Message is one word (i.e. only the ping)
-				imitateRandom(message.channel)
-					.then(log.imitate)
-					.catch(logError)
+			if (!message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
+				imitate(message.author).then(sentence => {
+					message.channel.send(imitateEmbed(message.author, sentence, message.channel))
+						.then(log.imitate)
+				})
 			}
 		}
 
 		// Command
-		else if (message.content.startsWith(config.prefix)) {
+		else if (message.content.startsWith(config.PREFIX)) {
 			handleCommands(message)
-				.catch(logError)
 		}
 		
-		// If the message is nothing special, maybe imitate someone anyway
-		else if (blurtChance()) {
-			console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-			imitateRandom(message.channel)
-				.then(log.imitate)
-				.catch(logError)
-		}
-
-
-		// Only take the time and processing power to regenerate
-		//   if the user hasn't spoken for a little bit,
-		//   instead of regenerating for _every_ message.
-		// Saves Bipolar from being bogged down by spam.
-		lastMessageIds.set(authorId, message.id)
-		if (!buffers.has(authorId)) buffers.set(authorId, "")
-		if (!corpi.has(authorId)) corpi.set(authorId, "")
-		// Build up new messages in a buffer to reduce accesses to the huge corpus variables
-		buffers.set(authorId, buffers.get(authorId) + message.content + "\n")
-
-		// After 5 seconds of no activity from a user, save their corpus and regenerate their Markov
-		setTimeout( () => {
-			if (lastMessageIds.get(authorId) === message.id) { // Message from this user is the same one from 5 seconds ago
-				corpi.set(authorId, corpi.get(authorId) + buffers.get(authorId))
-				buffers.set(authorId, "")
-				write(`${config.corpusDir}/${authorId}.txt`, corpi.get(authorId))
-					.then( () => {
-						console.log(`Saved ${message.author.tag}'s corpus.`)
-						regenerate(authorId)
-							.then(console.log(`Regenerated ${message.author.tag}'s Markov.`))
-							.catch(logError)
-					})
-					.catch(logError)
+		// Nothing special
+		else {
+			// Maybe imitate someone anyway
+			if (blurtChance()) {
+				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
+				imitateRandom(message.channel)
+					.then(log.imitate)
 			}
-		}, 5000)
+
+			if (message.content.length > 0) {
+				// Record the message to the user's corpus
+				// Builds up messages from that user until they have
+				//   been silent for at least five seconds,
+				// then writes them all to cache in one fell swoop.
+				// Messages will be saved for good come the next autosave.
+				if (buffers.hasOwnProperty(authorId) && buffers[authorId].length > 0) {
+					buffers[authorId] += message.content + "\n"
+				} else {
+					buffers[authorId] = message.content + "\n"
+					setTimeout( () => {
+						appendCorpus(authorId, buffers[authorId]).then( () => {
+							unsavedCache.push(authorId)
+							console.log(`Learned from ${message.author.tag}:`, buffers[authorId])
+							buffers[authorId] = ""
+						})
+					}, 5000)
+				}
+			}
+		}
 	}
 })
 
@@ -188,9 +159,20 @@ ${guild.name} (ID: ${guild.id})
 
 // --- LOGIN -------------------------------------------------
 
+// When all initalization promises have resolved
 Promise.all([init]).then( () => {
 	console.info("Logging in...")
 	client.login(process.env.DISCORD_BOT_TOKEN)
+
+	// Autosave
+	setInterval( () => {
+		saveCache()
+	}, config.AUTOSAVE_INTERVAL_MS)
+})
+.catch( () => {
+	console.error("One or more initialization steps have failed:")
+	console.error(init)
+	throw "Startup failure"
 })
 
 
@@ -200,148 +182,72 @@ Promise.all([init]).then( () => {
 
 
 /**
- * Loads the corpus corresponding to a user ID
+ * Generates a sentence based off [user]'s corpus
  * 
- * @param {string} userId - user ID whose corpus to load
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ * @param {User} user - User to generate a sentence from
+ * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading [user]'s corpus
  */
-function loadCorpus(userId) {
+function imitate(user) {
 	return new Promise( (resolve, reject) => {
-		read(`${config.corpusDir}/${userId}.txt`).then(corpus => {
-			corpi.set(userId, corpus)
-			resolve()
+		loadCorpus(user.id).then(corpus => {
+			resolve(markov(corpus, ~~(Math.random() * 49 + 1))) // 1-50 words
 		})
 		.catch(reject)
 	})
 }
 
 
+function randomUserId() {
+	const userIds = s3listUserIds()
+	const randomIndex = ~~(Math.random() * --userIds.length)
+	return userIds[randomIndex]
+}
+
+
 /**
- * Loads all the corpi in the corpus directory
+ * Generates a Discord Rich Embed object out of the supplied information
  * 
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ * @param {User} str - messages to print
+ * @return {RichEmbed} Discord Rich Embed object
  */
-function loadAllCorpi() {
-	return new Promise( (resolve, reject) => {
-		ls(config.corpusDir).then(userIds => {
-			for (const userId of userIds) {
-				loadCorpus(userId)
-					.then(resolve)
-					.catch(reject)
-			}
-		})
-
-	})
+function defaultEmbed(str) {
+	return new Discord.RichEmbed()
+		.setColor(config.EMBED_COLORS.normal)
+		.addField(config.NAME, str)
 }
 
 
 /**
- * (Re)generates the Markov chain
- *   that corresponds to [userId]
+ * Generates a Discord Rich Embed object out of the supplied information
  * 
- * @param {string} userId - regenerates this user's Markov chain
- * @return {Promise<void|Error} Resolve: void; Reject: Error
+ * @param {User} user - Shows this user's avatar and nickname
+ * @param {string} quote - Shows this text
+ * @param {Channel} channel - User's nickname is fetched from this channel
+ * @return {RichEmbed} Discord Rich Embed object
  */
-function regenerate(userId) {
-	return new Promise( (resolve, reject) => {
-		const corpus = corpi.get(userId)
-
-		try {
-			markovs.set(userId, new Markov(corpus))
-		} catch (err) {
-			return reject(err)
-		}
-
-		resolve()
-	})
+function imitateEmbed(user, quote, channel) {
+	return new Discord.RichEmbed()
+		.setColor(config.EMBED_COLORS.normal)
+		.setThumbnail(user.displayAvatarURL)
+		.addField(channel.members.get(user.id).displayName, quote)
 }
 
-
 /**
- * (Re)generates all Markov chains
+ * Generates a Discord Rich Embed object out of the supplied information
  * 
- * @return {Promise<void|Error>} Resolve: void - everything regenerated successfully; Reject: Error - something failed
+ * @param {string} err - Error to print
+ * @return {RichEmbed} Discord Rich Embed object
  */
-function regenerateAll() {
-	return new Promise( (resolve, reject) => {
-		for (const userId of corpi.keys()) {
-			regenerate(userId)
-				.catch(reject)
-		}
-		resolve()
-	})
+function errorEmbed(err) {
+	return new Discord.RichEmbed()
+		.setColor(config.EMBED_COLORS.error)
+		.addField("Error", err)
 }
 
 
 /**
- * Generates a string from [user]'s Markov
- *   and sends it to [channel]
- * 
- * @param {User} user - User to generate a message from
- * @param {Channel} channel - Channel to send the message to
- * @return {Promise} Resolve: { user, message } object; Reject: .send's rejection 
- */
-function imitate(user, channel) {
-	return new Promise( (resolve, reject) => {
-		const quote = markovs.get(user.id).generate().substring(0, quoteSize())
-		if (quote && quote.length > 0) {
-
-			const embed = new Discord.RichEmbed()
-				.setColor(config.embedColor)
-				.setThumbnail(user.displayAvatarURL)
-				.addField(channel.members.get(user.id).displayName, quote)
-
-			channel.send(embed).then( () => {
-				resolve( { user: user, channel: channel, str: quote } )
-			})
-			.catch(reject)
-		} else {
-			reject("Quoten't")
-		}
-	})
-}
-
-
-/**
- * Forwards a randomly-picked user to imitate()
- * 
- * @param {Channel} channel - Channel to send the message to
- * @return {Promise} Resolution or rejection from imitate()
- */
-function imitateRandom(channel) {
-	return new Promise( (resolve, reject) => {
-		const userId = randomKey(markovs)
-		const user = client.users.get(userId)
-		imitate(user, channel)
-			.then(resolve)
-			.catch(reject)
-
-	})
-}
-
-
-function quoteSize() {
-	return Math.floor(Math.random() * 337 + 5)
-}
-
-
-/**
- * Shortcut that adds a standard .then and .catch
- *   to message-sending commands
- * 
- * @param {Channel} channel - Discord channel to send the message to
- * @param {string} content - Content of message
- */
-function say(channel, content) {
-	channel.send(content)
-		.then(log.say)
-		.catch(logError)
-}
-
-
-/**
- * Scrape channel
- * Records each user's messages to [config.corpusDir]/[userId].txt
+ * Scrapes [howManyMessages] messages from [channel].
+ * Adds the messages to their corresponding user's corpus.
  *
  * @param {Channel} channel - what channel to scrape
  * @param {number} howManyMessages - number of messages to scan (a negative number will scan all messages)
@@ -376,15 +282,10 @@ function scrape(channel, howManyMessages) {
 					_loop(counter-1, fetchOptions)
 
 				for (let message of messages) {
-					// In case message is actually in message[1]
-					if (Array.isArray(message)) message = message[1]
-
-					const userId = message.author.id
-					corpi.set(userId, corpi.get(userId) + message.content + "\n")
-
-					messagesAdded++
+					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+					appendCorpus(message.author.id, message.content + "\n")
+						.then(unsavedCache.push(message.author.id))
 				}
-
 				activeLoops--
 			})
 		}
@@ -414,92 +315,159 @@ function scrape(channel, howManyMessages) {
  */
 function handleCommands(message) {
 	return new Promise ( (resolve, reject) => {
-		if (message.author.bot) return reject("Bots are not allowed to use commands")
+		if (message.author.bot) return resolve(null)
 
 		console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
 
-		const args = message.content.slice(config.prefix.length).split(/ +/)
+		const args = message.content.slice(config.PREFIX.length).split(/ +/)
 		const command = args.shift().toLowerCase()
 
 		try {
 			const admin = isAdmin(message.author.id)
+			switch (command) {
+				case "help":
+					// "Help" command
+					const help = {
+						help: {
+							admin: false,
+							desc: `Help.`,
+							syntax: `${config.PREFIX}help`
+						},
+						imitate: {
+							admin: false,
+							desc: `Imitate a user.`,
+							syntax: `${config.PREFIX}imitate <ping a user>`
+						},
+						save: {
+							admin: true,
+							desc: `Upload all unsaved cache to S3.`,
+							syntax: `${config.PREFIX}save`
+						},
+						scrape: {
+							admin: true,
+							desc: `Save [howManyMessages] messages in [channel].`,
+							syntax: `${config.PREFIX}scrape <channelID> <howManyMessages>`
+						},
+						embed: {
+							admin: true,
+							desc: `Generate an embed.`,
+							syntax: `${config.PREFIX}embed <message>`
+						},
+						error: {
+							admin: true,
+							desc: `Generate an error embed.`,
+							syntax: `${config.PREFIX}error <message>`
+						}
+					}
 
-			if (command === "help") {
-				const embed = new Discord.RichEmbed()
-					.setColor(config.embedColor)
-					.setTitle("Help")
-				
-				if (help.hasOwnProperty(args[0])) {
-					if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
-						return resolve(command) // Do nothing
+					const embed = new Discord.RichEmbed()
+						.setColor(config.EMBED_COLORS.normal)
+						.setTitle("Help")
+					
+					if (help.hasOwnProperty(args[0])) {
+						if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
+							break
+						} else {
+							embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
+						}
 					} else {
-						embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
+						for (const [command, properties] of Object.entries(help)) {
+							if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
+								embed.addField(command, properties.desc + "\n" + properties.syntax)
+						}
 					}
-				} else {
-					for (const [command, properties] of Object.entries(help)) {
-						if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
-							embed.addField(command, properties.desc + "\n" + properties.syntax)
+					message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
+						.then(log.help)
+						.catch(reject)
+					break
+
+
+				case "scrape":
+					if (!admin) {
+						message.channel.send(errorEmbed("You aren't allowed to use this command."))
+							.then(log.error)
+						break
 					}
-				}
-				message.channel.send(embed)
-					.then(message => {
-						log.help(message)
-						return resolve(command)
-					})
-					.catch(reject)
-			}
-
-
-			if (command === "scrape" && admin) {
-				const channel = (args[0] === "here")
-					? message.channel
-					: client.channels.get(args[0])
-				if (!channel)
-					return reject(`${config.name} can't access the channel: first argument ${args[0]}`)
-
-				const howManyMessages = (args[1] === "all")
-					? "Infinity" // lol
-					: parseInt(args[1])
-				if (isNaN(howManyMessages))
-					return reject(`Second argument "${args[1]}" is not a number"`)
-
-				say(message.channel, `Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`)
-				scrape(channel, howManyMessages)
-					.then(messagesAdded => {
-						say(message.channel, `Added ${messagesAdded} messages.`)
-						console.log("Saving corpi...")
-						saveAllCorpi()
-							.then(stats => console.log(`Corpi saved (${stats[0]}).`))
-							.catch(stats => console.warn(`${stats[0]} corpi saved; ${stats[1]} failed.`))
-					})
-					.catch(err => {
-						logError(err)
-						say(message.channel, "ERROR! " + err)
-					})
-				resolve(command)
-			}
-
-			if (command === "imitate") {
-				if (args[0]) {
-					// Try to convert args[0] to a user
-					if (isMention(args[0]))
-						args[0] = getUserFromMention(args[0])
-					else if (args[0] === "me") // Say "me" instead of pinging yourself
-						args[0] = message.author
-					else
-						args[0] = client.users.get(args[0]) // Maybe it's a user ID
-
-					if (args[0].id && markovs.has(args[0].id)) { // Is a user Bipolar can imitate
-						imitate(args[0], message.channel)
-							.then(log.imitate)
-							.catch(logError)
+					const channel = (args[0] === "here")
+						? message.channel
+						: client.channels.get(args[0])
+					if (!channel) {
+						message.channel.send(errorEmbed(`Channel not accessible: ${args[0]}`))
+							.then(log.error)
+						break
 					}
-				}
-				resolve(command)
+
+					const howManyMessages = (args[1] === "all")
+						? "Infinity" // lol
+						: parseInt(args[1])
+					if (isNaN(howManyMessages)) {
+						message.channel.send(errorEmbed(`Not a number: ${args[1]}`))
+							.then(log.error)
+						break
+					}
+
+					message.channel.send(defaultEmbed(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
+						.then(log.say)
+
+					scrape(channel, howManyMessages)
+						.then(messagesAdded => {
+							message.channel.send(defaultEmbed(`Added ${messagesAdded} messages.`))
+								.then(log.say)
+						})
+						.catch(err => {
+							message.channel.send(errorEmbed(err))
+								.then(log.error)
+						})
+					break
+
+				case "imitate":
+					if (args[0]) {
+						// Try to convert args[0] to a user
+						if (isMention(args[0]))
+							args[0] = getUserFromMention(args[0])
+						else if (args[0] === "me") // You can say "me" instead of pinging yourself
+							args[0] = message.author
+						else
+							args[0] = client.users.get(args[0]) // Maybe it's a user ID
+
+					} else {
+						const userId = randomUserId()
+						args[0] = client.users.get(userId)
+					}
+
+					imitate(args[0]).then(sentence => {
+						message.channel.send(imitateEmbed(args[0], sentence, message.channel))
+					})					
+					break
+
+				case "embed":
+					if (!admin || !args[0]) break
+					message.channel.send(defaultEmbed(args.join(" ")))
+						.then(log.say)
+					break
+
+				case "error":
+					if (!admin || !args[0]) break
+					message.channel.send(errorEmbed(args.join(" ")))
+						.then(log.error)
+					break
+
+				case "save":
+					if (!admin) break
+					if (unsavedCache.length === 0) {
+						message.channel.send(errorEmbed("Nothing to save."))
+						break
+					}
+					message.channel.send(defaultEmbed("Saving..."))
+					saveCache()
+						.then(savedCount => {
+							message.channel.send(defaultEmbed(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+						})
+					break
 			}
+			resolve(command)
 
 		} catch (err) {
-			logError(err)
 			reject(err)
 		}
 		
@@ -516,11 +484,11 @@ function updateNicknames() {
 	return new Promise ( (resolve, reject) => {
 		var erred = false
 
-		for (const serverName in config.nicknames) {
-			const pair = config.nicknames[serverName]
+		for (const serverName in config.NICKNAMES) {
+			const pair = config.NICKNAMES[serverName]
 			const server = client.guilds.get(pair[0])
 			if (!server) {
-				console.warn(`${config.name} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				console.warn(`${config.NAME} isn't in ${pair[0]}! Nickname cannot be set here.`)
 				continue
 			}
 			server.me.setNickname(pair[1])
@@ -538,14 +506,107 @@ function updateNicknames() {
 
 
 /**
- * Make directory if it doesn't already exist
+ * Downloads a file from S3_BUCKET_NAME.
+ * 
+ * @param {string} path - path to file to download from the S3 bucket
+ * @return {Promise<Buffer|Error>} Resolve: Buffer from bucket; Reject: error
+ */
+function s3read(path) {
+	return new Promise( (resolve, reject) => {
+		const params = {
+			Bucket: process.env.S3_BUCKET_NAME, 
+			Key: path
+		}
+		s3.getObject(params, (err, data) => {
+			if (err) return reject(err)
+
+			if (data.Body === undefined || data.Body === null)
+				return reject(`Empty response at path: ${path}`)
+
+			resolve(data.Body.toString()) // Convert Buffer to string
+		})
+	})
+}
+
+/**
+ * Uploads (and overwrites) a file to S3_BUCKET_NAME.
+ * 
+ * @param {string} path - path to upload to
+ * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
+ */
+function s3write(path, data) {
+	return new Promise( (resolve, reject) => {
+		const params = {
+			Bucket: process.env.S3_BUCKET_NAME,
+			Key: path,
+			Body: Buffer.from(data, "UTF-8")
+		}
+		s3.upload(params, (err, res) => {
+			if (err) return reject(err)
+			resolve(res)
+		})
+	})
+}
+
+
+/**
+ * Compiles a list of all the IDs inside 
+ */
+function s3listUserIds() {
+	return new Promise( (resolve, reject) => {
+		const params = {
+			Bucket: process.env.S3_BUCKET_NAME,
+			Delimiter: config.CORPUS_DIR,
+		}
+		s3.listObjectsV2(params, (err, res) => {
+			if (err) return reject(err)
+			resolve(res.Contents.map(file => file.Key.slice(0, -4))) // Array of filenames from each entry in res, minus extensions
+		})
+	})
+}
+
+
+/**
+ * Uploads all unsaved cache to S3
+ *   and empties the list of unsaved files.
+ * 
+ * @return {Promise<void|Error>} Resolve: nothing; Reject: s3write() error
+ */
+function saveCache() {
+	return new Promise( (resolve, reject) => {
+		let savedCount = 0
+		let operations = 0
+		while (unsavedCache.length > 0) {
+			operations++
+			const userId = unsavedCache.pop()
+			loadCorpus(userId).then(corpus => {
+				s3write(`${config.CORPUS_DIR}/${userId}.txt`, corpus)
+					.then( () => {
+						savedCount++
+						operations--
+					})
+					.catch(reject)
+			})
+		}
+
+		const whenDone = setInterval( () => {
+			if (operations === 0) {
+				clearInterval(whenDone)
+				resolve(savedCount)
+			}
+		}, 100)
+	})
+}
+
+
+/**
+ * Make directory if it doesn't exist
  *
  * @param {string} dir - Directory of which to ensure existence
  * @return {Promise<string|Error>} Directory if it already exists or was successfully made; error if something goes wrong
  */
 function ensureDirectory(dir) {
 	return new Promise ( (resolve, reject) => {
-		if (!local) return resolve(dir) // Directories in S3 don't have to exist before they can be used
 		fs.stat(dir, err => {
 			if (err && err.code === "ENOENT") {
 				fs.mkdir(dir, { recursive: true }, err => {
@@ -561,103 +622,85 @@ function ensureDirectory(dir) {
 
 
 /**
- * Reads a file from S3_BUCKET_NAME
+ * Try to load the corpus corresponding to [userId] from cache.
+ * If the corpus isn't in cache, try to download it from S3.
+ * If it isn't there either, give up.
  * 
- * @param {string} path - path to file to read from the S3 bucket
- * @return {Promise<Buffer|Error>} Buffer from bucket, else error
+ * @param {string} userId - user ID whose corpus to load
+ * @return {Promise<corpus|Error>} Resolve: [userId]'s corpus; Reject: Error
  */
-function read(path) {
+function loadCorpus(userId) {
 	return new Promise( (resolve, reject) => {
-		if (local) {
-			fs.readFile(path, (err, data) => {
-				if (err) return reject(err)
-				resolve(data)
-			})
-		}
+		cacheRead(userId) // Maybe the user's corpus is in cache
+			.then(resolve)
+			.catch(err => {
+				if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
+					return reject(err) // because it couldn't find the file
 
-		else {
-			const params = {
-				Bucket: process.env.S3_BUCKET_NAME, 
-				Key: path
-			}
-			s3.getObject(params, (err, data) => {
-				if (err) return reject(err)
-
-				if (data.Body === undefined || data.Body === null)
-					return reject(`Empty response at path: ${path}`)
-
-				resolve(data.Body)
-			})
-		}
-	})
-}
-
-
-function ls(dir) {
-	return new Promise ((resolve, reject) => {
-		if (local) {
-			fs.readdir(dir, (err, files) => {
-				if (err) return reject(err)
-				resolve(files)
-			})
-		} else {
-			const params = {
-				Bucket: process.env.S3_BUCKET_NAME,
-				Delimiter: "/",
-				Prefix: dir
-			}
-			s3.listObjectsV2(params, (err, files) => {
-				if (err) return reject(err)
-
-				const fileList = []
-				for (const entry in files.Contents) {
-					fileList.push(entry.Key)
-				}
-				resolve(fileList)
-			})
-		}
-	})
-}
-
-
-function write(path, data) {
-	return new Promise( (resolve, reject) => {
-		function cb(err, res) {
-			if (err) return reject(err)
-			resolve(res)
-		}
-
-		if (local) {
-			fs.writeFile(path, data, cb)
-		}
-		
-		else {
-			const params = {
-				Bucket: process.env.S3_BUCKET_NAME,
-				Key: path,
-				Body: Buffer.from(data, "UTF-8")
-			}
-			s3.upload(params, cb)
-		}
-	})
-}
-
-
-function saveAllCorpi() {
-	return new Promise( (resolve, reject) => {
-		var saved = 0
-		var failed = 0
-		for (const [userId, corpus] of corpi.entries()) {
-			write(`${config.corpusDir}/${userId}.txt`, corpus)
-				.then(saved++)
-				.catch(err => {
-					failed++
-					logError(err)
+				s3read(`${config.CORPUS_DIR}/${userId}.txt`).then(corpus => { // Maybe the user's corpus is in the S3 bucket
+					cacheWrite(userId, corpus)
+					resolve(corpus)
 				})
+				.catch(reject) // User is nowhere to be found (or something went wrong)
+			})
+	})
+}
+
+
+/**
+ * Add data to a user's corpus.
+ * 
+ * @param {string} userId - ID of the user whose corpus to add data to
+ * @param {string} data - data to add
+ * @return {Promise<void|Error} Resolve: nothing; Reject: Error
+ */
+function appendCorpus(userId, data) {
+	return new Promise( (resolve, reject) => {
+		if (fs.readdirSync(`./cache`).includes(`${userId}.txt`)) { // Corpus is in cache
+			fs.appendFile(`./cache/${userId}.txt`, data, err => { // Append the new data to it
+				(err) ? reject(err) : resolve()
+			})
+		} else {		
+			s3read(`${config.CORPUS_DIR}/${userId}.txt`) // Download the corpus from S3, add the new data to it, cache it
+				.then(corpus => cacheWrite(userId, corpus + data))
+				.catch(cacheWrite(userId, data)) // User doesn't exist; make them a new corpus from just the new data
+
+			resolve()
 		}
-		(failed) // not 0
-			? reject([saved, failed])
-			: resolve([saved, failed])
+	})
+}
+
+
+/**
+ * Writes a file to cache.
+ * 
+ * @param {string} filename - name of file to write to (minus extension)
+ * @param {string} data - data to write
+ * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ */
+function cacheWrite(filename, data) {
+	return new Promise( (resolve, reject) => {
+		fs.writeFile(`./cache/${filename}.txt`, data, err => {
+			if (err) return reject(err)
+			resolve()
+		})
+	})
+}
+
+
+/**
+ * Reads a file from cache.
+ * 
+ * @param {string} filename - name of file to read (minus extension)
+ * @return {Promise<string|Error>} Resolve: file's contents; Reject: Error
+ */
+function cacheRead(filename) {
+	return new Promise( (resolve, reject) => {
+		fs.readFile(`./cache/${filename}.txt`, "UTF-8", (err, data) => {
+			if (err) return reject(err)
+			if (data === "") return reject( { code: "ENOENT" } )
+			resolve(data)
+		})
 	})
 }
 
@@ -669,23 +712,6 @@ function saveAllCorpi() {
  */
 function blurtChance() {
 	return Math.random() * 100 <= 0.05 // 0.05% chance
-}
-
-
-/**
- * Randomly chooses a key from a collection
- * 
- * @param {Collection} collection
- * @return {any} random key from collection
- */
-function randomKey(collection) {
-	const index = Math.floor(Math.random() * collection.size)
-	let counter = 0
-	for (const key of collection.keys()) {
-		if (counter++ === index) {
-			return key
-		}
-	}
 }
 
 
@@ -709,13 +735,11 @@ function getUserFromMention(mention) {
 		mention = mention.slice(
 			(mention.charAt(2) === "!")
 				? 3
-				: 2
+				: 2 // TODO: make this not comically unreadable
 			, -1
 		)
-
 		return client.users.get(mention)
 	}
-
 	return null
 }
 
@@ -746,17 +770,17 @@ function has(val, obj) {
 
 
 function isAdmin(userId) {
-	return has(userId, config.admins)
+	return has(userId, config.ADMINS)
 }
 
 
 function isBanned(userId) {
-	return has(userId, config.banned)
+	return has(userId, config.BANNED)
 }
 
 
 function channelWhitelisted(channelId) {
-	return has(channelId, config.channels)
+	return has(channelId, config.CHANNEL_WHITELIST)
 }
 
 
@@ -782,18 +806,27 @@ function isEmpty(obj) {
  * @return {string} - "[Server - #channel]" format string
  */
 function location(message) {
-	return `[${message.guild.name} - #${message.channel.name}]`
+	return (message.channel.type == "dm")
+		? `[Direct message]`
+		: `[${message.guild.name} - #${message.channel.name}]`
 }
 
 
+/**
+ * Generates an object containing stats about
+ *   what channels are whitelisted.
+ * 
+ * @example
+ *     channelTable().then(console.table)
+ */
 function channelTable() {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.channels))
+		if (isEmpty(config.CHANNEL_WHITELIST))
 			return reject("No channels are whitelisted.")
 
 		const stats = {}
-		for (const i in config.channels) {
-			const channelId = config.channels[i]
+		for (const i in config.CHANNEL_WHITELIST) {
+			const channelId = config.CHANNEL_WHITELIST[i]
 			const channel = client.channels.get(channelId)
 			const stat = {}
 			stat["Server"] = channel.guild.name
@@ -805,14 +838,22 @@ function channelTable() {
 }
 
 
+/**
+ * Generates an object containing stats about
+ *   what nicknames Bipolar has and what
+ *   servers in which she has them.
+ * 
+ * @example
+ *     nicknameTable().then(console.table)
+ */
 function nicknameTable() {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.nicknames))
+		if (isEmpty(config.NICKNAMES))
 			return reject("No nicknames defined.")
 
 		const stats = {}
-		for (const i in config.nicknames) {
-			const pair = config.nicknames[i]
+		for (const i in config.NICKNAMES) {
+			const pair = config.NICKNAMES[i]
 			const server = client.guilds.get(pair[0])
 			const stat = {}
 			stat["Server"] = server.name
@@ -833,7 +874,7 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.users.get("206235904644349953").send(sendThis)
+	client.users.get("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
 		.catch(console.error)
 }
 
