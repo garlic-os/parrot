@@ -1,6 +1,6 @@
+"use strict"
 // Permissions code: 67584
 // Send messages, read message history
-
 
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
@@ -18,6 +18,17 @@ if (config.NODE_ENV === "production")
 else
 	process.on("unhandledRejection", up => { throw up })
 
+process.on("SIGTERM", () => {  // (Hopefully) save and cleaer cache before shutting down
+	console.info("Saving changes...")
+	saveCache()
+		.then(console.info("Changes saved."))
+		.finally( () => { // Regardless of whether it succeeds
+			console.info("Clearing cache...")
+			clearCache()
+				.then(console.info("Cache cleared."))
+		})
+})
+
 // Requirements
 require("console-stamp")(console, {
 	datePrefix: "",
@@ -29,12 +40,14 @@ require("console-stamp")(console, {
 const markov = require("./markov"), // Local markov.js file
       Discord = require("discord.js"),
       fs = require("fs"),
-      AWS = require("aws-sdk")
+      AWS = require("aws-sdk"),
+	  path = require("path")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
 	accessKeyId: config.AWS_ACCESS_KEY_ID,
-	secretAccessKey: config.AWS_SECRET_ACCESS_KEY
+	secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+	region: "us-east-1"
 })
 const s3 = new AWS.S3()
 
@@ -123,11 +136,13 @@ client.on("message", message => {
 			}
 
 			if (message.content.length > 0) {
-				// Record the message to the user's corpus
-				// Builds up messages from that user until they have
-				//   been silent for at least five seconds,
-				// then writes them all to cache in one fell swoop.
-				// Messages will be saved for good come the next autosave.
+				/**
+				 * Record the message to the user's corpus
+				 * Builds up messages from that user until they have
+				 *   been silent for at least five seconds,
+				 * then writes them all to cache in one fell swoop.
+				 * Messages will be saved for good come the next autosave.
+				 */
 				if (buffers.hasOwnProperty(authorId) && buffers[authorId].length > 0) {
 					buffers[authorId] += message.content + "\n"
 				} else {
@@ -206,10 +221,13 @@ function imitate(user) {
 function randomUser() {
 	return new Promise( (resolve, reject) => {
 		s3listUserIds().then(userIds => {
-			const randomIndex = ~~(Math.random() * --userIds.length)
-			const user = client.users.get(userIds[randomIndex])
-			if (!user) return reject("randomUser(): user not found")
-			resolve(user)
+			const key = ~~(Math.random() * userIds.length - 1)
+			const userId = userIds[key]
+			const user = client.users.get(userId)
+			if (user)
+				resolve(user)
+			else
+				reject("randomUser(): user not found")
 		})
 		.catch(reject)
 	})
@@ -442,6 +460,9 @@ function handleCommands(message) {
 						else
 							args[0] = client.users.get(args[0]) // Maybe it's a user ID
 
+						if (!args[0])
+							randomUser().then(user => args[0] = user) // Set args[0] to a random user
+
 					} else {
 						randomUser().then(user => args[0] = user)
 					}
@@ -567,11 +588,14 @@ function s3listUserIds() {
 	return new Promise( (resolve, reject) => {
 		const params = {
 			Bucket: process.env.S3_BUCKET_NAME,
-			Delimiter: config.CORPUS_DIR,
+			Prefix: config.CORPUS_DIR,
 		}
 		s3.listObjectsV2(params, (err, res) => {
 			if (err) return reject(err)
-			resolve(res.Contents.map(file => file.Key.slice(0, -4))) // Array of filenames from each entry in res, minus extensions
+			res = res.Contents.map(file => {
+				return path.basename(file.Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
+			})
+			resolve(res)
 		})
 	})
 }
@@ -606,6 +630,21 @@ function saveCache() {
 				resolve(savedCount)
 			}
 		}, 100)
+	})
+}
+
+
+/**
+ * Delete the cache folder.
+ * 
+ * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ */
+function clearCache() {
+	return new Promise( (resolve, reject) => {
+		fs.rmdir("./cache", err => {
+			if (err) return reject(err)
+			resolve()
+		})
 	})
 }
 
@@ -671,12 +710,11 @@ function appendCorpus(userId, data) {
 			fs.appendFile(`./cache/${userId}.txt`, data, err => { // Append the new data to it
 				(err) ? reject(err) : resolve()
 			})
-		} else {		
+		} else {
 			s3read(`${config.CORPUS_DIR}/${userId}.txt`) // Download the corpus from S3, add the new data to it, cache it
 				.then(corpus => cacheWrite(userId, corpus + data))
 				.catch(cacheWrite(userId, data)) // User doesn't exist; make them a new corpus from just the new data
-
-			resolve()
+				.finally(resolve)
 		}
 	})
 }

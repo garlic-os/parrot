@@ -28,3 +28,4 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 - "Forget" command to delete the data on that user (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limited to mitigate spam
 - Moar logging
+- Fix scraping; I broke it somehow
