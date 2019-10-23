@@ -697,7 +697,6 @@ function loadCorpus(userId) {
 		cacheRead(userId) // Maybe the user's corpus is in cache
 			.then(resolve)
 			.catch(err => {
-				console.debug("This code should not execute")
 				if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
 					return reject(err) // because it couldn't find the file
 
