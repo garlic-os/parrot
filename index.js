@@ -57,6 +57,14 @@ const init = []
 // Local directories have to exist before they can be accessed
 init.push(ensureDirectory("./cache"))
 
+// Cache a list of user IDs to cut down on S3 requests
+const userIdsCache = []
+init.push(s3listUserIds().then(userIds => {
+	for (const userId of userIds) {
+		userIdsCache.push(userId)
+	}
+}))
+
 // Reusable log messages
 const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
@@ -109,7 +117,7 @@ client.on("message", message => {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			if (!message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
 				randomUser().then(user => {
-					imitate(randomUser).then(sentence => {
+					imitate(user).then(sentence => {
 						message.channel.send(imitateEmbed(user, sentence, message.channel))
 							.then(log.imitate)
 					})
@@ -137,6 +145,8 @@ client.on("message", message => {
 
 			if (message.content.length > 0) {
 				/**
+				 * Learn
+				 * 
 				 * Record the message to the user's corpus
 				 * Builds up messages from that user until they have
 				 *   been silent for at least five seconds,
@@ -150,6 +160,9 @@ client.on("message", message => {
 					setTimeout( () => {
 						appendCorpus(authorId, buffers[authorId]).then( () => {
 							unsavedCache.push(authorId)
+							if (!userIdsCache.includes(authorId))
+								userIdsCache.push(authorId)
+
 							console.log(`Learned from ${message.author.tag}:`, buffers[authorId])
 							buffers[authorId] = ""
 						})
@@ -220,16 +233,12 @@ function imitate(user) {
 
 function randomUser() {
 	return new Promise( (resolve, reject) => {
-		s3listUserIds().then(userIds => {
-			const key = ~~(Math.random() * userIds.length - 1)
-			const userId = userIds[key]
-			const user = client.users.get(userId)
-			if (user)
-				resolve(user)
-			else
-				reject("randomUser(): user not found")
-		})
-		.catch(reject)
+		const index = ~~(Math.random() * userIdsCache.length - 1)
+		const user = client.users.get(userIdsCache[index])
+		if (user)
+			resolve(user)
+		else
+			reject("randomUser(): user not found")
 	})
 }
 
@@ -314,7 +323,11 @@ function scrape(channel, howManyMessages) {
 				for (let message of messages) {
 					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
 					appendCorpus(message.author.id, message.content + "\n")
-						.then(unsavedCache.push(message.author.id))
+						.then( () => {
+							unsavedCache.push(message.author.id)
+							if (!userIdsCache.includes(authorId))
+								userIdsCache.push(authorId)
+						})
 				}
 				activeLoops--
 			})
@@ -684,6 +697,7 @@ function loadCorpus(userId) {
 		cacheRead(userId) // Maybe the user's corpus is in cache
 			.then(resolve)
 			.catch(err => {
+				console.debug("This code should not execute")
 				if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
 					return reject(err) // because it couldn't find the file
 
@@ -811,7 +825,7 @@ function isMention(word) {
  */
 function has(val, obj) {
 	for (const i in obj) {
-		if (obj[i] == val)
+		if (obj[i] === val)
 			return true
 	}
 	return false
