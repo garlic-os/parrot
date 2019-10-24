@@ -113,16 +113,16 @@ client.on("message", message => {
 	   && message.author.id !== client.user.id) { // Not self
 
 		// Ping
-		if (message.isMentioned(client.user) && !message.author.bot) {
+		if (message.isMentioned(client.user)
+		   && !message.author.bot // Not a bot
+		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
-			if (!message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
-				randomUser().then(user => {
-					imitate(user).then(sentence => {
-						message.channel.send(imitateEmbed(user, sentence, message.channel))
-							.then(log.imitate)
-					})
+			randomUser().then(user => {
+				imitate(user).then(sentence => {
+					message.channel.send(imitateEmbed(user, sentence, message.channel))
+						.then(log.imitate)
 				})
-			}
+			})
 		}
 
 		// Command
@@ -163,7 +163,7 @@ client.on("message", message => {
 							if (!userIdsCache.includes(authorId))
 								userIdsCache.push(authorId)
 
-							console.log(`Learned from ${message.author.tag}:`, buffers[authorId])
+							console.log(`${location(message)} Learned from ${message.author.tag}:`, buffers[authorId])
 							buffers[authorId] = ""
 						})
 					}, 5000)
@@ -301,8 +301,9 @@ function scrape(channel, howManyMessages) {
 		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
 		let activeLoops = 0
 		let messagesAdded = 0
+		const scrapeBuffers = {}
 
-		function _loop(counter, fetchOptions) {
+		function _getBatchOfMessages(counter, fetchOptions) {
 			activeLoops++
 			channel.fetchMessages(fetchOptions).then(messages => {
 				// Sometimes the last message is just undefined. No idea why.
@@ -321,25 +322,29 @@ function scrape(channel, howManyMessages) {
 					: lastMessage.id
 
 				if (messages.size >= 100 && counter != 0) // Next request won't be empty and hasn't gotten enough messages
-					_loop(counter-1, fetchOptions)
+					_getBatchOfMessages(counter-1, fetchOptions)
 
 				for (let message of messages) {
 					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-					appendCorpus(message.author.id, message.content + "\n")
-						.then( () => {
-							unsavedCache.push(message.author.id)
-							if (!userIdsCache.includes(authorId))
-								userIdsCache.push(authorId)
-						})
+					scrapeBuffers[message.author.id] += message.content + "\n"
+					messagesAdded++
 				}
 				activeLoops--
 			})
 		}
-		_loop(howManyRequests, fetchOptions)
+		_getBatchOfMessages(howManyRequests, fetchOptions)
 
 		const whenDone = setInterval( () => {
 			if (activeLoops === 0) {
 				clearInterval(whenDone)
+
+				for (const userId in scrapeBuffers) {
+					appendCorpus(userId, scrapeBuffers[userId]).then( () => {
+						unsavedCache.push(message.author.id)
+						if (!userIdsCache.includes(authorId))
+							userIdsCache.push(authorId)
+					})
+				}
 				resolve(messagesAdded)
 			}
 		}, 100)
@@ -353,8 +358,6 @@ function scrape(channel, howManyMessages) {
 /**
  * Parses a message whose content is presumed to be a command
  *   and performs the corresponding action
- * 
- * here be dragons
  * 
  * @param {Message} messageObj - Discord message to be parsed
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
@@ -483,9 +486,13 @@ function handleCommands(message) {
 						randomUser().then(user => args[0] = user)
 					}
 
-					imitate(args[0]).then(sentence => {
-						message.channel.send(imitateEmbed(args[0], sentence, message.channel))
-					})					
+					if (args[0].id === client.user.id) {
+						message.channel.send(errorEmbed("No"))
+					} else {
+						imitate(args[0]).then(sentence => {
+							message.channel.send(imitateEmbed(args[0], sentence, message.channel))
+						})
+					}
 					break
 
 				case "embed":
