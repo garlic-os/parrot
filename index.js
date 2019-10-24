@@ -225,9 +225,9 @@ function imitate(user) {
 	return new Promise( (resolve, reject) => {
 		loadCorpus(user.id).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-			const quote = markov(corpus, wordCount)
-							.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
-			resolve(quote)
+			markov(corpus, wordCount).then(quote => {
+				resolve(quote).substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
+			})
 		})
 		.catch(reject)
 	})
