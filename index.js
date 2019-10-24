@@ -241,7 +241,7 @@ function randomUser() {
 		if (user)
 			resolve(user)
 		else
-			reject(`randomUser(${index}): user not found`)
+			reject(`randomUser(${userIdsCache[index]}): user not found`)
 	})
 }
 
