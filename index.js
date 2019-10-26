@@ -70,6 +70,7 @@ const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
 	, imitate: message => console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
 	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
+	, xok:     message => console.log(`${location(message)} Send the XOK message.`)
 	, help:    message => console.log(`${location(message)} Sent the Help message`)
 }
 
@@ -292,6 +293,15 @@ function errorEmbed(err) {
 }
 
 
+function xokEmbed() {
+	return new Discord.RichEmbed()
+		.attachFiles(["./img/xok.png"])
+		.setColor(config.EMBED_COLORS.error)
+		.setTitle("Error")
+		.setImage("attachment://xok.png")
+}
+
+
 /**
  * Scrapes [howManyMessages] messages from [channel].
  * Adds the messages to their corresponding user's corpus.
@@ -492,7 +502,7 @@ function handleCommands(message) {
 					}
 
 					if (args[0].id === client.user.id) {
-						message.channel.send(errorEmbed("No"))
+						message.channel.send(xokEmbed())
 					} else {
 						imitate(args[0]).then(sentence => {
 							message.channel.send(imitateEmbed(args[0], sentence, message.channel))
@@ -510,6 +520,12 @@ function handleCommands(message) {
 					if (!admin || !args[0]) break
 					message.channel.send(errorEmbed(args.join(" ")))
 						.then(log.error)
+					break
+					
+				case "xok":
+					if (!admin) break
+					message.channel.send(xokEmbed())
+						.then(log.xok)
 					break
 
 				case "save":
