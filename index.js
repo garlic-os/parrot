@@ -233,15 +233,20 @@ function imitate(user) {
 	})
 }
 
-
 function randomUser() {
 	return new Promise( (resolve, reject) => {
-		const index = ~~(Math.random() * userIdsCache.length - 1)
-		const user = client.users.get(userIdsCache[index])
-		if (user)
-			resolve(user)
-		else
-			reject(`randomUser(${userIdsCache[index]}): user not found`)
+		const maxRetries = 5
+		let index
+		let user
+
+		for (let i=0; i<maxRetries; i++) {
+			index = ~~(Math.random() * userIdsCache.length - 1)
+			user = client.users.get(userIdsCache[index])
+			if (user) return resolve(user)
+			else logError(`randomUser(${userIdsCache[index]}): user not found`)
+		}
+
+		reject(`randomUser() failed: tried ${maxRetries} times`)
 	})
 }
 
