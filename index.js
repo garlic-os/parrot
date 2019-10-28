@@ -277,7 +277,7 @@ function imitateEmbed(user, quote, channel) {
 	return new Discord.RichEmbed()
 		.setColor(config.EMBED_COLORS.normal)
 		.setThumbnail(user.displayAvatarURL)
-		.addField(channel.members.get(user.id).displayName, quote)
+		.addField(channel.guild.fetchMember(user.id).displayName, quote)
 }
 
 /**
