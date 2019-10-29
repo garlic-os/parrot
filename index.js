@@ -41,7 +41,8 @@ const markov = require("./markov"), // Local markov.js file
       Discord = require("discord.js"),
       fs = require("fs"),
       AWS = require("aws-sdk"),
-	  path = require("path")
+	  path = require("path"),
+	  https = require("https")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -65,6 +66,9 @@ init.push(s3listUserIds().then(userIds => {
 	}
 }))
 
+init.push(httpsDownload(config.BAD_WORDS_URL)
+	.then(rawData => config.BAD_WORDS = rawData.split("\n")))
+
 // Reusable log messages
 const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
@@ -84,19 +88,25 @@ const client = new Discord.Client()
 
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
-	updateNicknames()
+	updateNicknames(config.NICKNAMES)
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
-		.then(presence => console.info(`${config.NAME}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`))
+		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${statusCode(game.type)} ${game.name}`))
 	
-	channelTable().then(table => {
-		console.info("Channels:")
+	channelTable(config.SPEAKING_CHANNELS).then(table => {
+		console.info("Speaking in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	nicknameTable().then(table => {
+	channelTable(config.LEARNING_CHANNELS).then(table => {
+		console.info("Learning in:")
+		console.table(table)
+	})
+	.catch(console.warn)
+
+	nicknameTable(config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
@@ -109,7 +119,7 @@ client.on("message", message => {
 	const authorId = message.author.id
 
 	if (!isBanned(authorId) // Not banned from using Bipolar
-	   && (channelWhitelisted(message.channel.id) // Channel is either whitelisted or is a DM channel
+	   && (canSpeakIn(message.channel.id) // Channel is either whitelisted or is a DM channel
 		  || message.channel.type === "dm")
 	   && message.author.id !== client.user.id) { // Not self
 
@@ -144,7 +154,8 @@ client.on("message", message => {
 				})
 			}
 
-			if (message.content.length > 0) {
+			if (learningIn(message.channel.id)
+				&& message.content.length > 0) {
 				/**
 				 * Learn
 				 * 
@@ -159,13 +170,15 @@ client.on("message", message => {
 				} else {
 					buffers[authorId] = message.content + "\n"
 					setTimeout( () => {
-						appendCorpus(authorId, buffers[authorId]).then( () => {
-							unsavedCache.push(authorId)
-							if (!userIdsCache.includes(authorId))
-								userIdsCache.push(authorId)
+						cleanse(buffers[authorId]).then(buffer => {	
+							appendCorpus(authorId, buffer).then( () => {
+								unsavedCache.push(authorId)
+								if (!userIdsCache.includes(authorId))
+									userIdsCache.push(authorId)
 
-							console.log(`${location(message)} Learned from ${message.author.tag}:`, buffers[authorId])
-							buffers[authorId] = ""
+								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffers[authorId])
+								buffers[authorId] = ""
+							})
 						})
 					}, 5000)
 				}
@@ -227,12 +240,15 @@ function imitate(user) {
 		loadCorpus(user.id).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 			markov(corpus, wordCount).then(quote => {
-				resolve(quote.substring(0, 1024)) // Hard maximum of 1024 characters (embed field limit)
+				quote = quote.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
+				quote = quote.split(" ").filter(word => !badWords.includes(word)).join(" ") // Remove bad words
+				resolve(quote)
 			})
 		})
 		.catch(reject)
 	})
 }
+
 
 function randomUser() {
 	return new Promise( (resolve, reject) => {
@@ -242,7 +258,7 @@ function randomUser() {
 
 		for (let i=0; i<maxRetries; i++) {
 			index = ~~(Math.random() * userIdsCache.length - 1)
-			user = client.users.get(userIdsCache[index])
+			user = client.fetchUser(userIdsCache[index])
 			if (user) return resolve(user)
 			else logError(`randomUser(${userIdsCache[index]}): user not found`)
 		}
@@ -274,10 +290,12 @@ function defaultEmbed(str) {
  * @return {RichEmbed} Discord Rich Embed object
  */
 function imitateEmbed(user, quote, channel) {
+	// Use nickname, unless something goes wrong, then use username
+	const username = channel.guild.fetchMember(user.id).displayName || user.username
 	return new Discord.RichEmbed()
 		.setColor(config.EMBED_COLORS.normal)
 		.setThumbnail(user.displayAvatarURL)
-		.addField(channel.guild.fetchMember(user.id).displayName, quote)
+		.addField(username, quote)
 }
 
 /**
@@ -492,7 +510,7 @@ function handleCommands(message) {
 						else if (args[0] === "me") // You can say "me" instead of pinging yourself
 							args[0] = message.author
 						else
-							args[0] = client.users.get(args[0]) // Maybe it's a user ID
+							args[0] = client.fetchUser(args[0]) // Maybe it's a user ID
 
 						if (!args[0])
 							randomUser().then(user => args[0] = user) // Set args[0] to a random user
@@ -521,7 +539,7 @@ function handleCommands(message) {
 					message.channel.send(errorEmbed(args.join(" ")))
 						.then(log.error)
 					break
-					
+
 				case "xok":
 					if (!admin) break
 					message.channel.send(xokEmbed())
@@ -556,18 +574,18 @@ function handleCommands(message) {
  * 
  * @return {Promise<void>} Whether there were errors or not
  */
-function updateNicknames() {
+function updateNicknames(nicknameDict) {
 	return new Promise ( (resolve, reject) => {
 		var erred = false
 
-		for (const serverName in config.NICKNAMES) {
-			const pair = config.NICKNAMES[serverName]
-			const server = client.guilds.get(pair[0])
+		for (const serverName in nicknameDict) {
+			const [ serverId, nickname ] = nicknameDict[serverName]
+			const server = client.guilds.get(serverId)
 			if (!server) {
-				console.warn(`${config.NAME} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				console.warn(`${config.NAME} isn't in ${serverName} (${serverId})! Nickname cannot be set here.`)
 				continue
 			}
-			server.me.setNickname(pair[1])
+			server.me.setNickname(nickname)
 				.catch(err => {
 					erred = true
 					logError(err)
@@ -636,8 +654,8 @@ function s3listUserIds() {
 		}
 		s3.listObjectsV2(params, (err, res) => {
 			if (err) return reject(err)
-			res = res.Contents.map(file => {
-				return path.basename(file.Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
+			res = res.Contents.map( ({ Key }) => {
+				return path.basename(Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
 			})
 			resolve(res)
 		})
@@ -831,7 +849,7 @@ function getUserFromMention(mention) {
 				: 2 // TODO: make this not comically unreadable
 			, -1
 		)
-		return client.users.get(mention)
+		return client.fetchUser(mention)
 	}
 	return null
 }
@@ -872,8 +890,13 @@ function isBanned(userId) {
 }
 
 
-function channelWhitelisted(channelId) {
-	return has(channelId, config.CHANNEL_WHITELIST)
+function canSpeakIn(channelId) {
+	return has(channelId, config.SPEAKING_CHANNELS)
+}
+
+
+function learningIn(channelId) {
+	return has(channelId, config.LEARNING_CHANNELS)
 }
 
 
@@ -907,19 +930,23 @@ function location(message) {
 
 /**
  * Generates an object containing stats about
- *   what channels are whitelisted.
+ *   all the channels in the given dictionary.
+ * 
+ * @param {Object} channelDict - Dictionary of channels
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
  * 
  * @example
- *     channelTable().then(console.table)
+ *     channelTable(config.SPEAKING_CHANNELS)
+ *         .then(console.table)
  */
-function channelTable() {
+function channelTable(channelDict) {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.CHANNEL_WHITELIST))
+		if (isEmpty(channelDict))
 			return reject("No channels are whitelisted.")
 
 		const stats = {}
-		for (const i in config.CHANNEL_WHITELIST) {
-			const channelId = config.CHANNEL_WHITELIST[i]
+		for (const i in channelDict) {
+			const channelId = channelDict[i]
 			const channel = client.channels.get(channelId)
 			const stat = {}
 			stat["Server"] = channel.guild.name
@@ -933,25 +960,29 @@ function channelTable() {
 
 /**
  * Generates an object containing stats about
- *   what nicknames Bipolar has and what
- *   servers in which she has them.
+ *   all the nicknames Bipolar has.
+ * 
+ * @param {Object} nicknameDict - Dictionary of nicknames
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
  * 
  * @example
- *     nicknameTable().then(console.table)
+ *     nicknameTable(config.NICKNAMES)
+ *         .then(console.table)
  */
-function nicknameTable() {
+function nicknameTable(nicknameDict) {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.NICKNAMES))
+		if (isEmpty(nicknameDict))
 			return reject("No nicknames defined.")
 
 		const stats = {}
-		for (const i in config.NICKNAMES) {
-			const pair = config.NICKNAMES[i]
-			const server = client.guilds.get(pair[0])
+		for (const serverName in nicknameDict) {
+			const [ serverId, nickname ] = nicknameDict[serverName]
+			const server = client.guilds.get(serverId)
 			const stat = {}
 			stat["Server"] = server.name
-			stat["Nickname"] = server.me.nickname
-			stats[pair] = stat
+			stat["Intended"] = nickname
+			stat["De facto"] = server.me.nickname
+			stats[serverId] = stat
 		}
 		resolve(stats)
 	})
@@ -967,8 +998,43 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.users.get("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
+	client.fetchUser("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
 		.catch(console.error)
+}
+
+
+function httpsDownload(url) {
+	return new Promise( (resolve, reject) => {
+		https.get(url, res => {
+			if (res.statusCode === 200) {
+				let rawData = ""
+				res.setEncoding("utf8")
+				res.on("data", chunk => rawData += chunk)
+				res.on("end", () => resolve(rawData))
+			} else {
+				reject(`Failed to download URL: ${url}`)
+			}
+		})
+	})
+}
+
+
+/**
+ * Remove bad words from a phrase
+ * 
+ * @param {string} phrase - Input string
+ * @return {Promise<string|Error>} Resolve: filtered string; Reject: Error
+ */
+function cleanse(phrase) {
+	return new Promise( (resolve, reject) => {
+		let words = phrase.split(" ")
+		try {
+			words = words.filter(word => !config.BAD_WORDS.includes(word))
+			resolve(words.join(" "))
+		} catch (err) {
+			reject(err)
+		}
+	})
 }
 
 
