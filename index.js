@@ -34,7 +34,7 @@ require("console-stamp")(console, {
 // Requirements
 const markov  = require("./markov"),
       embeds  = require("./embeds"),
-	  help    = require("./help")(config.PREFIX),
+	  help    = require("./help"),
       Discord = require("discord.js"),
       fs      = require("fs"),
       AWS     = require("aws-sdk"),
