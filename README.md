@@ -20,6 +20,7 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 | `ADMINS` | A JSON-encoded dictionary of the users that are allowed to use Bipolar's admin commands. | `{"You, probably":"<USER ID HERE>"}` |
 | `BANNED` | A JSON-encoded dictionary of the users that aren't allowed to use Bipolar's commands. Bipolar will also stop learning from this user. | `{"Naughty boy":"<USER ID HERE>"}` |
 | `AUTOSAVE_INTERVAL_MS` | Number of milliseconds Bipolar will wait before saving all unsaved cache. | `600000` (10 minutes) |
+| `BAD_WORDS_URL` | URL to a newline-delimited list of words that Bipolar will filter before saving messages to a corpus | `https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/raw/master/en` |
 
 
 ## TODO
