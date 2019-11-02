@@ -18,15 +18,10 @@ if (config.NODE_ENV === "production")
 else
 	process.on("unhandledRejection", up => { throw up })
 
-process.on("SIGTERM", () => {  // (Hopefully) save and cleaer cache before shutting down
+process.on("SIGTERM", () => {  // (Hopefully) save and clear cache before shutting down
 	console.info("Saving changes...")
 	saveCache()
 		.then(console.info("Changes saved."))
-		.finally( () => { // Regardless of whether it succeeds
-			console.info("Clearing cache...")
-			clearCache()
-				.then(console.info("Cache cleared."))
-		})
 })
 
 // Requirements
@@ -37,11 +32,14 @@ require("console-stamp")(console, {
 })
 
 // Requirements
-const markov = require("./markov"), // Local markov.js file
+const markov  = require("./markov"),
+      embeds  = require("./embeds"),
+	  help    = require("./help"),
       Discord = require("discord.js"),
-      fs = require("fs"),
-      AWS = require("aws-sdk"),
-	  path = require("path")
+      fs      = require("fs"),
+      AWS     = require("aws-sdk"),
+	  path    = require("path"),
+	  https   = require("https")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -65,6 +63,11 @@ init.push(s3listUserIds().then(userIds => {
 	}
 }))
 
+if (config.BAD_WORDS_URL) {
+	init.push(httpsDownload(config.BAD_WORDS_URL)
+		.then(rawData => config["BAD_WORDS"] = rawData.split("\n")))
+}
+
 // Reusable log messages
 const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
@@ -79,24 +82,29 @@ const buffers = {},
 
 const client = new Discord.Client()
 
-
 // --- LISTENERS ---------------------------------------------
 
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
-	updateNicknames()
+	updateNicknames(config.NICKNAMES)
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
-		.then(presence => console.info(`${config.NAME}'s activity: ${statusCode(presence.game.type)} ${presence.game.name}`))
-	
-	channelTable().then(table => {
-		console.info("Channels:")
+		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${statusCode(game.type)} ${game.name}`))
+
+	channelTable(config.SPEAKING_CHANNELS).then(table => {
+		console.info("Speaking in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	nicknameTable().then(table => {
+	channelTable(config.LEARNING_CHANNELS).then(table => {
+		console.info("Learning in:")
+		console.table(table)
+	})
+	.catch(console.warn)
+
+	nicknameTable(config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
@@ -109,7 +117,7 @@ client.on("message", message => {
 	const authorId = message.author.id
 
 	if (!isBanned(authorId) // Not banned from using Bipolar
-	   && (channelWhitelisted(message.channel.id) // Channel is either whitelisted or is a DM channel
+	   && (canSpeakIn(message.channel.id) // Channel is either whitelisted or is a DM channel
 		  || message.channel.type === "dm")
 	   && message.author.id !== client.user.id) { // Not self
 
@@ -120,7 +128,7 @@ client.on("message", message => {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			randomUser().then(user => {
 				imitate(user).then(sentence => {
-					message.channel.send(imitateEmbed(user, sentence, message.channel))
+					message.channel.send(embeds.imitate(user, sentence, message.channel))
 						.then(log.imitate)
 				})
 			})
@@ -138,13 +146,14 @@ client.on("message", message => {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
 				randomUser().then(user => {
 					imitate(user).then(sentence => {
-						message.channel.send(imitateEmbed(user, sentence, message.channel))
+						message.channel.send(embeds.imitate(user, sentence, message.channel))
 							.then(log.imitate)
 					})
 				})
 			}
 
-			if (message.content.length > 0) {
+			if (learningIn(message.channel.id)
+				&& message.content.length > 0) {
 				/**
 				 * Learn
 				 * 
@@ -159,13 +168,17 @@ client.on("message", message => {
 				} else {
 					buffers[authorId] = message.content + "\n"
 					setTimeout( () => {
-						appendCorpus(authorId, buffers[authorId]).then( () => {
-							unsavedCache.push(authorId)
-							if (!userIdsCache.includes(authorId))
-								userIdsCache.push(authorId)
+						cleanse(buffers[authorId]).then(buffer => {
+							if (buffer.length === 0) return
+							appendCorpus(authorId, buffer).then( () => {
+								if (!unsavedCache.includes(authorId))
+									unsavedCache.push(authorId)
+								if (!userIdsCache.includes(authorId))
+									userIdsCache.push(authorId)
 
-							console.log(`${location(message)} Learned from ${message.author.tag}:`, buffers[authorId])
-							buffers[authorId] = ""
+								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
+								buffers[authorId] = ""
+							})
 						})
 					}, 5000)
 				}
@@ -227,12 +240,14 @@ function imitate(user) {
 		loadCorpus(user.id).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 			markov(corpus, wordCount).then(quote => {
-				resolve(quote.substring(0, 1024)) // Hard maximum of 1024 characters (embed field limit)
+				quote = quote.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
+				resolve(quote)
 			})
 		})
 		.catch(reject)
 	})
 }
+
 
 function randomUser() {
 	return new Promise( (resolve, reject) => {
@@ -242,63 +257,13 @@ function randomUser() {
 
 		for (let i=0; i<maxRetries; i++) {
 			index = ~~(Math.random() * userIdsCache.length - 1)
-			user = client.users.get(userIdsCache[index])
+			user = client.fetchUser(userIdsCache[index])
 			if (user) return resolve(user)
 			else logError(`randomUser(${userIdsCache[index]}): user not found`)
 		}
 
 		reject(`randomUser() failed: tried ${maxRetries} times`)
 	})
-}
-
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {User} str - messages to print
- * @return {RichEmbed} Discord Rich Embed object
- */
-function defaultEmbed(str) {
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.normal)
-		.addField(config.NAME, str)
-}
-
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {User} user - Shows this user's avatar and nickname
- * @param {string} quote - Shows this text
- * @param {Channel} channel - User's nickname is fetched from this channel
- * @return {RichEmbed} Discord Rich Embed object
- */
-function imitateEmbed(user, quote, channel) {
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.normal)
-		.setThumbnail(user.displayAvatarURL)
-		.addField(channel.guild.fetchMember(user.id).displayName, quote)
-}
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {string} err - Error to print
- * @return {RichEmbed} Discord Rich Embed object
- */
-function errorEmbed(err) {
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.error)
-		.addField("Error", err)
-}
-
-
-function xokEmbed() {
-	return new Discord.RichEmbed()
-		.attachFiles(["./img/xok.png"])
-		.setColor(config.EMBED_COLORS.error)
-		.setTitle("Error")
-		.setImage("attachment://xok.png")
 }
 
 
@@ -390,40 +355,6 @@ function handleCommands(message) {
 			const admin = isAdmin(message.author.id)
 			switch (command) {
 				case "help":
-					// "Help" command
-					const help = {
-						help: {
-							admin: false,
-							desc: `Help.`,
-							syntax: `${config.PREFIX}help`
-						},
-						imitate: {
-							admin: false,
-							desc: `Imitate a user.`,
-							syntax: `${config.PREFIX}imitate <ping a user>`
-						},
-						save: {
-							admin: true,
-							desc: `Upload all unsaved cache to S3.`,
-							syntax: `${config.PREFIX}save`
-						},
-						scrape: {
-							admin: true,
-							desc: `Save [howManyMessages] messages in [channel].`,
-							syntax: `${config.PREFIX}scrape <channelID> <howManyMessages>`
-						},
-						embed: {
-							admin: true,
-							desc: `Generate an embed.`,
-							syntax: `${config.PREFIX}embed <message>`
-						},
-						error: {
-							admin: true,
-							desc: `Generate an error embed.`,
-							syntax: `${config.PREFIX}error <message>`
-						}
-					}
-
 					const embed = new Discord.RichEmbed()
 						.setColor(config.EMBED_COLORS.normal)
 						.setTitle("Help")
@@ -448,7 +379,7 @@ function handleCommands(message) {
 
 				case "scrape":
 					if (!admin) {
-						message.channel.send(errorEmbed("You aren't allowed to use this command."))
+						message.channel.send(embeds.error("You aren't allowed to use this command."))
 							.then(log.error)
 						break
 					}
@@ -456,7 +387,7 @@ function handleCommands(message) {
 						? message.channel
 						: client.channels.get(args[0])
 					if (!channel) {
-						message.channel.send(errorEmbed(`Channel not accessible: ${args[0]}`))
+						message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
 							.then(log.error)
 						break
 					}
@@ -465,21 +396,21 @@ function handleCommands(message) {
 						? "Infinity" // lol
 						: parseInt(args[1])
 					if (isNaN(howManyMessages)) {
-						message.channel.send(errorEmbed(`Not a number: ${args[1]}`))
+						message.channel.send(embeds.error(`Not a number: ${args[1]}`))
 							.then(log.error)
 						break
 					}
 
-					message.channel.send(defaultEmbed(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
+					message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
 						.then(log.say)
 
 					scrape(channel, howManyMessages)
 						.then(messagesAdded => {
-							message.channel.send(defaultEmbed(`Added ${messagesAdded} messages.`))
+							message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
 								.then(log.say)
 						})
 						.catch(err => {
-							message.channel.send(errorEmbed(err))
+							message.channel.send(embeds.error(err))
 								.then(log.error)
 						})
 					break
@@ -492,7 +423,7 @@ function handleCommands(message) {
 						else if (args[0] === "me") // You can say "me" instead of pinging yourself
 							args[0] = message.author
 						else
-							args[0] = client.users.get(args[0]) // Maybe it's a user ID
+							args[0] = client.fetchUser(args[0]) // Maybe it's a user ID
 
 						if (!args[0])
 							randomUser().then(user => args[0] = user) // Set args[0] to a random user
@@ -502,42 +433,46 @@ function handleCommands(message) {
 					}
 
 					if (args[0].id === client.user.id) {
-						message.channel.send(xokEmbed())
+						message.channel.send(embeds.xok())
+							.then(log.xok)
 					} else {
 						imitate(args[0]).then(sentence => {
-							message.channel.send(imitateEmbed(args[0], sentence, message.channel))
+							message.channel.send(embeds.imitate(args[0], sentence, message.channel))
+								.then(log.say)
 						})
 					}
 					break
 
 				case "embed":
 					if (!admin || !args[0]) break
-					message.channel.send(defaultEmbed(args.join(" ")))
+					message.channel.send(embeds.standard(args.join(" ")))
 						.then(log.say)
 					break
 
 				case "error":
 					if (!admin || !args[0]) break
-					message.channel.send(errorEmbed(args.join(" ")))
+					message.channel.send(embeds.error(args.join(" ")))
 						.then(log.error)
 					break
-					
+
 				case "xok":
 					if (!admin) break
-					message.channel.send(xokEmbed())
+					message.channel.send(embeds.xok())
 						.then(log.xok)
 					break
 
 				case "save":
 					if (!admin) break
 					if (unsavedCache.length === 0) {
-						message.channel.send(errorEmbed("Nothing to save."))
+						message.channel.send(embeds.error("Nothing to save."))
+							.then(log.error)
 						break
 					}
-					message.channel.send(defaultEmbed("Saving..."))
+					message.channel.send(embeds.standard("Saving..."))
 					saveCache()
 						.then(savedCount => {
-							message.channel.send(defaultEmbed(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+							message.channel.send(embeds.standard(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+								.then(log.say)
 						})
 					break
 			}
@@ -554,20 +489,20 @@ function handleCommands(message) {
 /**
  * Sets the custom nicknames from the config file
  * 
- * @return {Promise<void>} Whether there were errors or not
+ * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: nothing (there was an error)
  */
-function updateNicknames() {
+function updateNicknames(nicknameDict) {
 	return new Promise ( (resolve, reject) => {
 		var erred = false
 
-		for (const serverName in config.NICKNAMES) {
-			const pair = config.NICKNAMES[serverName]
-			const server = client.guilds.get(pair[0])
+		for (const serverName in nicknameDict) {
+			const [ serverId, nickname ] = nicknameDict[serverName]
+			const server = client.guilds.get(serverId)
 			if (!server) {
-				console.warn(`${config.NAME} isn't in ${pair[0]}! Nickname cannot be set here.`)
+				console.warn(`${config.NAME} isn't in ${serverName} (${serverId})! Nickname cannot be set here.`)
 				continue
 			}
-			server.me.setNickname(pair[1])
+			server.me.setNickname(nickname)
 				.catch(err => {
 					erred = true
 					logError(err)
@@ -636,8 +571,8 @@ function s3listUserIds() {
 		}
 		s3.listObjectsV2(params, (err, res) => {
 			if (err) return reject(err)
-			res = res.Contents.map(file => {
-				return path.basename(file.Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
+			res = res.Contents.map( ({ Key }) => {
+				return path.basename(Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
 			})
 			resolve(res)
 		})
@@ -674,21 +609,6 @@ function saveCache() {
 				resolve(savedCount)
 			}
 		}, 100)
-	})
-}
-
-
-/**
- * Delete the cache folder.
- * 
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
- */
-function clearCache() {
-	return new Promise( (resolve, reject) => {
-		fs.rmdir("./cache", err => {
-			if (err) return reject(err)
-			resolve()
-		})
 	})
 }
 
@@ -831,7 +751,7 @@ function getUserFromMention(mention) {
 				: 2 // TODO: make this not comically unreadable
 			, -1
 		)
-		return client.users.get(mention)
+		return client.fetchUser(mention)
 	}
 	return null
 }
@@ -872,8 +792,13 @@ function isBanned(userId) {
 }
 
 
-function channelWhitelisted(channelId) {
-	return has(channelId, config.CHANNEL_WHITELIST)
+function canSpeakIn(channelId) {
+	return has(channelId, config.SPEAKING_CHANNELS)
+}
+
+
+function learningIn(channelId) {
+	return has(channelId, config.LEARNING_CHANNELS)
 }
 
 
@@ -907,19 +832,23 @@ function location(message) {
 
 /**
  * Generates an object containing stats about
- *   what channels are whitelisted.
+ *   all the channels in the given dictionary.
+ * 
+ * @param {Object} channelDict - Dictionary of channels
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
  * 
  * @example
- *     channelTable().then(console.table)
+ *     channelTable(config.SPEAKING_CHANNELS)
+ *         .then(console.table)
  */
-function channelTable() {
+function channelTable(channelDict) {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.CHANNEL_WHITELIST))
+		if (isEmpty(channelDict))
 			return reject("No channels are whitelisted.")
 
 		const stats = {}
-		for (const i in config.CHANNEL_WHITELIST) {
-			const channelId = config.CHANNEL_WHITELIST[i]
+		for (const i in channelDict) {
+			const channelId = channelDict[i]
 			const channel = client.channels.get(channelId)
 			const stat = {}
 			stat["Server"] = channel.guild.name
@@ -933,25 +862,29 @@ function channelTable() {
 
 /**
  * Generates an object containing stats about
- *   what nicknames Bipolar has and what
- *   servers in which she has them.
+ *   all the nicknames Bipolar has.
+ * 
+ * @param {Object} nicknameDict - Dictionary of nicknames
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
  * 
  * @example
- *     nicknameTable().then(console.table)
+ *     nicknameTable(config.NICKNAMES)
+ *         .then(console.table)
  */
-function nicknameTable() {
+function nicknameTable(nicknameDict) {
 	return new Promise( (resolve, reject) => {
-		if (isEmpty(config.NICKNAMES))
+		if (isEmpty(nicknameDict))
 			return reject("No nicknames defined.")
 
 		const stats = {}
-		for (const i in config.NICKNAMES) {
-			const pair = config.NICKNAMES[i]
-			const server = client.guilds.get(pair[0])
+		for (const serverName in nicknameDict) {
+			const [ serverId, nickname ] = nicknameDict[serverName]
+			const server = client.guilds.get(serverId)
 			const stat = {}
 			stat["Server"] = server.name
-			stat["Nickname"] = server.me.nickname
-			stats[pair] = stat
+			stat["Intended"] = nickname
+			stat["De facto"] = server.me.nickname
+			stats[serverId] = stat
 		}
 		resolve(stats)
 	})
@@ -967,8 +900,48 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.users.get("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
+	client.fetchUser("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
 		.catch(console.error)
+}
+
+
+function httpsDownload(url) {
+	return new Promise( (resolve, reject) => {
+		https.get(url, res => {
+			if (res.statusCode === 200) {
+				let rawData = ""
+				res.setEncoding("utf8")
+				res.on("data", chunk => rawData += chunk)
+				res.on("end", () => resolve(rawData))
+			} else {
+				reject(`Failed to download URL: ${url}`)
+			}
+		})
+	})
+}
+
+
+/**
+ * Remove bad words from a phrase
+ * 
+ * @param {string} phrase - Input string
+ * @return {Promise<string|Error>} Resolve: filtered string; Reject: Error
+ */
+function cleanse(phrase) {
+	return new Promise( (resolve, reject) => {
+		let words = phrase.split(" ")
+		try {
+			words = words.filter(word => { // Remove bad words
+				!(config["BAD_WORDS"]
+					.includes(word.toLowerCase().
+						replace("\n", ""))
+				)
+			})
+		} catch (err) {
+			reject(err)
+		}
+		resolve(words.join(" "))
+	})
 }
 
 
