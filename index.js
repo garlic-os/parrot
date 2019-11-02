@@ -33,7 +33,7 @@ require("console-stamp")(console, {
 
 // Requirements
 const markov  = require("./markov"),
-      embeds  = require("./embeds"),
+      embeds  = require("./embeds")(config.EMBED_COLORS, config.NAME),
 	  help    = require("./help"),
       Discord = require("discord.js"),
       fs      = require("fs"),
