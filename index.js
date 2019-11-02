@@ -18,15 +18,10 @@ if (config.NODE_ENV === "production")
 else
 	process.on("unhandledRejection", up => { throw up })
 
-process.on("SIGTERM", () => {  // (Hopefully) save and cleaer cache before shutting down
+process.on("SIGTERM", () => {  // (Hopefully) save and clear cache before shutting down
 	console.info("Saving changes...")
 	saveCache()
 		.then(console.info("Changes saved."))
-		.finally( () => { // Regardless of whether it succeeds
-			console.info("Clearing cache...")
-			clearCache()
-				.then(console.info("Cache cleared."))
-		})
 })
 
 // Requirements
@@ -37,12 +32,14 @@ require("console-stamp")(console, {
 })
 
 // Requirements
-const markov = require("./markov"), // Local markov.js file
+const markov  = require("./markov"),
+      embeds  = require("./embeds"),
+	  help    = require("./help")(config.PREFIX),
       Discord = require("discord.js"),
-      fs = require("fs"),
-      AWS = require("aws-sdk"),
-	  path = require("path"),
-	  https = require("https")
+      fs      = require("fs"),
+      AWS     = require("aws-sdk"),
+	  path    = require("path"),
+	  https   = require("https")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -66,8 +63,10 @@ init.push(s3listUserIds().then(userIds => {
 	}
 }))
 
-init.push(httpsDownload(config.BAD_WORDS_URL)
-	.then(rawData => config.BAD_WORDS = rawData.split("\n")))
+if (config.BAD_WORDS_URL) {
+	init.push(httpsDownload(config.BAD_WORDS_URL)
+		.then(rawData => config["BAD_WORDS"] = rawData.split("\n")))
+}
 
 // Reusable log messages
 const log = {
@@ -83,7 +82,6 @@ const buffers = {},
 
 const client = new Discord.Client()
 
-
 // --- LISTENERS ---------------------------------------------
 
 client.on("ready", () => {
@@ -93,7 +91,7 @@ client.on("ready", () => {
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
 		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${statusCode(game.type)} ${game.name}`))
-	
+
 	channelTable(config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
 		console.table(table)
@@ -130,7 +128,7 @@ client.on("message", message => {
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			randomUser().then(user => {
 				imitate(user).then(sentence => {
-					message.channel.send(imitateEmbed(user, sentence, message.channel))
+					message.channel.send(embeds.imitate(user, sentence, message.channel))
 						.then(log.imitate)
 				})
 			})
@@ -148,7 +146,7 @@ client.on("message", message => {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
 				randomUser().then(user => {
 					imitate(user).then(sentence => {
-						message.channel.send(imitateEmbed(user, sentence, message.channel))
+						message.channel.send(embeds.imitate(user, sentence, message.channel))
 							.then(log.imitate)
 					})
 				})
@@ -170,13 +168,15 @@ client.on("message", message => {
 				} else {
 					buffers[authorId] = message.content + "\n"
 					setTimeout( () => {
-						cleanse(buffers[authorId]).then(buffer => {	
+						cleanse(buffers[authorId]).then(buffer => {
+							if (buffer.length === 0) return
 							appendCorpus(authorId, buffer).then( () => {
-								unsavedCache.push(authorId)
+								if (!unsavedCache.includes(authorId))
+									unsavedCache.push(authorId)
 								if (!userIdsCache.includes(authorId))
 									userIdsCache.push(authorId)
 
-								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffers[authorId])
+								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
 								buffers[authorId] = ""
 							})
 						})
@@ -241,7 +241,6 @@ function imitate(user) {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 			markov(corpus, wordCount).then(quote => {
 				quote = quote.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
-				quote = quote.split(" ").filter(word => !badWords.includes(word)).join(" ") // Remove bad words
 				resolve(quote)
 			})
 		})
@@ -265,58 +264,6 @@ function randomUser() {
 
 		reject(`randomUser() failed: tried ${maxRetries} times`)
 	})
-}
-
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {User} str - messages to print
- * @return {RichEmbed} Discord Rich Embed object
- */
-function defaultEmbed(str) {
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.normal)
-		.addField(config.NAME, str)
-}
-
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {User} user - Shows this user's avatar and nickname
- * @param {string} quote - Shows this text
- * @param {Channel} channel - User's nickname is fetched from this channel
- * @return {RichEmbed} Discord Rich Embed object
- */
-function imitateEmbed(user, quote, channel) {
-	// Use nickname, unless something goes wrong, then use username
-	const username = channel.guild.fetchMember(user.id).displayName || user.username
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.normal)
-		.setThumbnail(user.displayAvatarURL)
-		.addField(username, quote)
-}
-
-/**
- * Generates a Discord Rich Embed object out of the supplied information
- * 
- * @param {string} err - Error to print
- * @return {RichEmbed} Discord Rich Embed object
- */
-function errorEmbed(err) {
-	return new Discord.RichEmbed()
-		.setColor(config.EMBED_COLORS.error)
-		.addField("Error", err)
-}
-
-
-function xokEmbed() {
-	return new Discord.RichEmbed()
-		.attachFiles(["./img/xok.png"])
-		.setColor(config.EMBED_COLORS.error)
-		.setTitle("Error")
-		.setImage("attachment://xok.png")
 }
 
 
@@ -408,40 +355,6 @@ function handleCommands(message) {
 			const admin = isAdmin(message.author.id)
 			switch (command) {
 				case "help":
-					// "Help" command
-					const help = {
-						help: {
-							admin: false,
-							desc: `Help.`,
-							syntax: `${config.PREFIX}help`
-						},
-						imitate: {
-							admin: false,
-							desc: `Imitate a user.`,
-							syntax: `${config.PREFIX}imitate <ping a user>`
-						},
-						save: {
-							admin: true,
-							desc: `Upload all unsaved cache to S3.`,
-							syntax: `${config.PREFIX}save`
-						},
-						scrape: {
-							admin: true,
-							desc: `Save [howManyMessages] messages in [channel].`,
-							syntax: `${config.PREFIX}scrape <channelID> <howManyMessages>`
-						},
-						embed: {
-							admin: true,
-							desc: `Generate an embed.`,
-							syntax: `${config.PREFIX}embed <message>`
-						},
-						error: {
-							admin: true,
-							desc: `Generate an error embed.`,
-							syntax: `${config.PREFIX}error <message>`
-						}
-					}
-
 					const embed = new Discord.RichEmbed()
 						.setColor(config.EMBED_COLORS.normal)
 						.setTitle("Help")
@@ -466,7 +379,7 @@ function handleCommands(message) {
 
 				case "scrape":
 					if (!admin) {
-						message.channel.send(errorEmbed("You aren't allowed to use this command."))
+						message.channel.send(embeds.error("You aren't allowed to use this command."))
 							.then(log.error)
 						break
 					}
@@ -474,7 +387,7 @@ function handleCommands(message) {
 						? message.channel
 						: client.channels.get(args[0])
 					if (!channel) {
-						message.channel.send(errorEmbed(`Channel not accessible: ${args[0]}`))
+						message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
 							.then(log.error)
 						break
 					}
@@ -483,21 +396,21 @@ function handleCommands(message) {
 						? "Infinity" // lol
 						: parseInt(args[1])
 					if (isNaN(howManyMessages)) {
-						message.channel.send(errorEmbed(`Not a number: ${args[1]}`))
+						message.channel.send(embeds.error(`Not a number: ${args[1]}`))
 							.then(log.error)
 						break
 					}
 
-					message.channel.send(defaultEmbed(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
+					message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
 						.then(log.say)
 
 					scrape(channel, howManyMessages)
 						.then(messagesAdded => {
-							message.channel.send(defaultEmbed(`Added ${messagesAdded} messages.`))
+							message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
 								.then(log.say)
 						})
 						.catch(err => {
-							message.channel.send(errorEmbed(err))
+							message.channel.send(embeds.error(err))
 								.then(log.error)
 						})
 					break
@@ -520,42 +433,46 @@ function handleCommands(message) {
 					}
 
 					if (args[0].id === client.user.id) {
-						message.channel.send(xokEmbed())
+						message.channel.send(embeds.xok())
+							.then(log.xok)
 					} else {
 						imitate(args[0]).then(sentence => {
-							message.channel.send(imitateEmbed(args[0], sentence, message.channel))
+							message.channel.send(embeds.imitate(args[0], sentence, message.channel))
+								.then(log.say)
 						})
 					}
 					break
 
 				case "embed":
 					if (!admin || !args[0]) break
-					message.channel.send(defaultEmbed(args.join(" ")))
+					message.channel.send(embeds.standard(args.join(" ")))
 						.then(log.say)
 					break
 
 				case "error":
 					if (!admin || !args[0]) break
-					message.channel.send(errorEmbed(args.join(" ")))
+					message.channel.send(embeds.error(args.join(" ")))
 						.then(log.error)
 					break
 
 				case "xok":
 					if (!admin) break
-					message.channel.send(xokEmbed())
+					message.channel.send(embeds.xok())
 						.then(log.xok)
 					break
 
 				case "save":
 					if (!admin) break
 					if (unsavedCache.length === 0) {
-						message.channel.send(errorEmbed("Nothing to save."))
+						message.channel.send(embeds.error("Nothing to save."))
+							.then(log.error)
 						break
 					}
-					message.channel.send(defaultEmbed("Saving..."))
+					message.channel.send(embeds.standard("Saving..."))
 					saveCache()
 						.then(savedCount => {
-							message.channel.send(defaultEmbed(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+							message.channel.send(embeds.standard(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+								.then(log.say)
 						})
 					break
 			}
@@ -572,7 +489,7 @@ function handleCommands(message) {
 /**
  * Sets the custom nicknames from the config file
  * 
- * @return {Promise<void>} Whether there were errors or not
+ * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: nothing (there was an error)
  */
 function updateNicknames(nicknameDict) {
 	return new Promise ( (resolve, reject) => {
@@ -692,21 +609,6 @@ function saveCache() {
 				resolve(savedCount)
 			}
 		}, 100)
-	})
-}
-
-
-/**
- * Delete the cache folder.
- * 
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
- */
-function clearCache() {
-	return new Promise( (resolve, reject) => {
-		fs.rmdir("./cache", err => {
-			if (err) return reject(err)
-			resolve()
-		})
 	})
 }
 
@@ -1029,11 +931,16 @@ function cleanse(phrase) {
 	return new Promise( (resolve, reject) => {
 		let words = phrase.split(" ")
 		try {
-			words = words.filter(word => !config.BAD_WORDS.includes(word))
-			resolve(words.join(" "))
+			words = words.filter(word => { // Remove bad words
+				!(config["BAD_WORDS"]
+					.includes(word.toLowerCase().
+						replace("\n", ""))
+				)
+			})
 		} catch (err) {
 			reject(err)
 		}
+		resolve(words.join(" "))
 	})
 }
 
