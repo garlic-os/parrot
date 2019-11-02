@@ -929,6 +929,8 @@ function httpsDownload(url) {
  */
 function cleanse(phrase) {
 	return new Promise( (resolve, reject) => {
+		if (!config["BAD_WORDS"]) return resolve(phrase)
+	
 		let words = phrase.split(" ")
 		try {
 			words = words.filter(word => { // Remove bad words
