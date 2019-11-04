@@ -4,7 +4,7 @@
 
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
-const config = {}
+const config = require("./defaults")
 for (const key in process.env) {
 	try {
 		config[key] = JSON.parse(process.env[key])
@@ -33,13 +33,12 @@ require("console-stamp")(console, {
 
 // Requirements
 const markov  = require("./markov"),
-      embeds  = require("./embeds")(config.EMBED_COLORS, config.NAME),
+      embeds  = require("./embeds")(config.EMBED_COLORS),
 	  help    = require("./help"),
       Discord = require("discord.js"),
       fs      = require("fs"),
       AWS     = require("aws-sdk"),
-	  path    = require("path"),
-	  https   = require("https")
+	  path    = require("path")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -56,24 +55,25 @@ const init = []
 init.push(ensureDirectory("./cache"))
 
 // Cache a list of user IDs to cut down on S3 requests
-const userIdsCache = []
+const userIdCache = []
 init.push(s3listUserIds().then(userIds => {
 	for (const userId of userIds) {
-		userIdsCache.push(userId)
+		userIdCache.push(userId)
 	}
 }))
 
 if (config.BAD_WORDS_URL) {
 	init.push(httpsDownload(config.BAD_WORDS_URL)
-		.then(rawData => config["BAD_WORDS"] = rawData.split("\n")))
+		.then(rawData => config.BAD_WORDS = rawData.split("\n")))
 }
 
 // Reusable log messages
 const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
+	, embed:   message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
 	, imitate: message => console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
 	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
-	, xok:     message => console.log(`${location(message)} Send the XOK message.`)
+	, xok:     message => console.log(`${location(message)} Send the XOK message`)
 	, help:    message => console.log(`${location(message)} Sent the Help message`)
 }
 
@@ -126,9 +126,14 @@ client.on("message", message => {
 		   && !message.author.bot // Not a bot
 		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
-			randomUser().then(user => {
-				imitate(user).then(sentence => {
-					message.channel.send(embeds.imitate(user, sentence, message.channel))
+			const userId = randomUserId()
+			generateQuote(userId).then(sentence => {
+				if (!sentence || sentence.length === 0) {
+					message.channel.send(embeds.error("Who are you? What's going on? Where am I?"))
+						.then(log.error)
+				}
+				embeds.imitate(userId, sentence, message.channel).then(embed => {
+					message.channel.send(embed)
 						.then(log.imitate)
 				})
 			})
@@ -144,9 +149,10 @@ client.on("message", message => {
 			// Maybe imitate someone anyway
 			if (blurtChance()) {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-				randomUser().then(user => {
-					imitate(user).then(sentence => {
-						message.channel.send(embeds.imitate(user, sentence, message.channel))
+				const userId = randomUserId()
+				generateQuote(userId).then(sentence => {
+					embeds.imitate(userId, sentence, message.channel).then(embed => {
+						message.channel.send(embed)
 							.then(log.imitate)
 					})
 				})
@@ -165,22 +171,25 @@ client.on("message", message => {
 				 */
 				if (buffers.hasOwnProperty(authorId) && buffers[authorId].length > 0) {
 					buffers[authorId] += message.content + "\n"
+
 				} else {
 					buffers[authorId] = message.content + "\n"
 					setTimeout( () => {
 						cleanse(buffers[authorId]).then(buffer => {
 							if (buffer.length === 0) return
+
 							appendCorpus(authorId, buffer).then( () => {
 								if (!unsavedCache.includes(authorId))
 									unsavedCache.push(authorId)
-								if (!userIdsCache.includes(authorId))
-									userIdsCache.push(authorId)
+
+								if (!userIdCache.includes(authorId))
+									userIdCache.push(authorId)
 
 								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
 								buffers[authorId] = ""
 							})
 						})
-					}, 5000)
+					}, 5000) // Five seconds
 				}
 			}
 		}
@@ -207,15 +216,16 @@ ${guild.name} (ID: ${guild.id})
 
 // --- LOGIN -------------------------------------------------
 
-// When all initalization promises have resolved
-Promise.all([init]).then( () => {
+// When all initalization steps have finished
+Promise.all(init).then( () => {
 	console.info("Logging in...")
 	client.login(process.env.DISCORD_BOT_TOKEN)
 
 	// Autosave
 	setInterval( () => {
 		saveCache()
-	}, config.AUTOSAVE_INTERVAL_MS)
+			.then(console.info("Saved cache."))
+	}, 3600000) // One hour
 })
 .catch( () => {
 	console.error("One or more initialization steps have failed:")
@@ -230,14 +240,14 @@ Promise.all([init]).then( () => {
 
 
 /**
- * Generates a sentence based off [user]'s corpus
+ * Generates a sentence based off [userId]'s corpus
  * 
- * @param {User} user - User to generate a sentence from
- * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading [user]'s corpus
+ * @param {string} userId - ID corresponding to a user to generate a sentence from
+ * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading user's corpus
  */
-function imitate(user) {
+function generateQuote(userId) {
 	return new Promise( (resolve, reject) => {
-		loadCorpus(user.id).then(corpus => {
+		loadCorpus(userId).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 			markov(corpus, wordCount).then(quote => {
 				quote = quote.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
@@ -249,41 +259,30 @@ function imitate(user) {
 }
 
 
-function randomUser() {
-	return new Promise( (resolve, reject) => {
-		const maxRetries = 5
-		let index
-		let user
-
-		for (let i=0; i<maxRetries; i++) {
-			index = ~~(Math.random() * userIdsCache.length - 1)
-			user = client.fetchUser(userIdsCache[index])
-			if (user) return resolve(user)
-			else logError(`randomUser(${userIdsCache[index]}): user not found`)
-		}
-
-		reject(`randomUser() failed: tried ${maxRetries} times`)
-	})
+function randomUserId() {
+	const index = ~~(Math.random() * userIdCache.length - 1)
+	return userIdCache[index]
 }
 
 
 /**
  * Scrapes [howManyMessages] messages from [channel].
  * Adds the messages to their corresponding user's corpus.
+ * 
+ * Here be dragons.
  *
  * @param {Channel} channel - what channel to scrape
- * @param {number} howManyMessages - number of messages to scan (a negative number will scan all messages)
+ * @param {number} howManyMessages - number of messages to scrape
  * @return {Promise<number|Error>} number of messages added
  */
-function scrape(channel, howManyMessages) {
+function scrape(channel, goal) {
 	return new Promise( (resolve, reject) => { try {
-		const howManyRequests = Math.ceil(howManyMessages / 100)
 		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
 		let activeLoops = 0
 		let messagesAdded = 0
 		const scrapeBuffers = {}
 
-		function _getBatchOfMessages(counter, fetchOptions) {
+		function _getBatchOfMessages(fetchOptions) {
 			activeLoops++
 			channel.fetchMessages(fetchOptions).then(messages => {
 				// Sometimes the last message is just undefined. No idea why.
@@ -301,29 +300,32 @@ function scrape(channel, howManyMessages) {
 					? lastMessage[1].id
 					: lastMessage.id
 
-				if (messages.size >= 100 && counter != 0) // Next request won't be empty and hasn't gotten enough messages
-					_getBatchOfMessages(counter-1, fetchOptions)
+				if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+					_getBatchOfMessages(fetchOptions)
 
 				for (let message of messages) {
+					if (messagesAdded >= goal) break
 					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-					scrapeBuffers[message.author.id] += message.content + "\n"
+					const authorId = message.author.id
+					scrapeBuffers[authorId] += message.content + "\n"
 					messagesAdded++
+
+					if (!unsavedCache.includes(authorId))
+						unsavedCache.push(authorId)
+
+					if (!userIdCache.includes(authorId))
+						userIdCache.push(authorId)
 				}
 				activeLoops--
 			})
 		}
-		_getBatchOfMessages(howManyRequests, fetchOptions)
+		_getBatchOfMessages(fetchOptions)
 
 		const whenDone = setInterval( () => {
 			if (activeLoops === 0) {
 				clearInterval(whenDone)
-
 				for (const userId in scrapeBuffers) {
-					appendCorpus(userId, scrapeBuffers[userId]).then( () => {
-						unsavedCache.push(message.author.id)
-						if (!userIdsCache.includes(authorId))
-							userIdsCache.push(authorId)
-					})
+					appendCorpus(userId, scrapeBuffers[userId])
 				}
 				resolve(messagesAdded)
 			}
@@ -402,12 +404,12 @@ function handleCommands(message) {
 					}
 
 					message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
-						.then(log.say)
+						.then(log.embed)
 
 					scrape(channel, howManyMessages)
 						.then(messagesAdded => {
 							message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
-								.then(log.say)
+								.then(log.embed)
 						})
 						.catch(err => {
 							message.channel.send(embeds.error(err))
@@ -416,31 +418,33 @@ function handleCommands(message) {
 					break
 
 				case "imitate":
+					function _sendQuote(userId) {
+						if (userId === client.user.id) { // Bipolar can't imitate herself
+							message.channel.send(embeds.xok)
+								.then(log.xok)
+						} else {
+							generateQuote(userId).then(sentence => {
+								embeds.imitate(userId, sentence, message.channel).then(embed => {
+									message.channel.send(embed)
+										.then(log.imitate)
+								})
+							})
+						}
+					}
+
+					let userId
+
 					if (args[0]) {
-						// Try to convert args[0] to a user
-						if (isMention(args[0]))
-							args[0] = getUserFromMention(args[0])
-						else if (args[0] === "me") // You can say "me" instead of pinging yourself
-							args[0] = message.author
-						else
-							args[0] = client.fetchUser(args[0]) // Maybe it's a user ID
+						userId = (args[0] === "me")
+							? message.author.id
+							: mentionToUserId(args[0])
 
-						if (!args[0])
-							randomUser().then(user => args[0] = user) // Set args[0] to a random user
+						userId = userId || randomUserId()
 
 					} else {
-						randomUser().then(user => args[0] = user)
+						userId = randomUserId()
 					}
-
-					if (args[0].id === client.user.id) {
-						message.channel.send(embeds.xok())
-							.then(log.xok)
-					} else {
-						imitate(args[0]).then(sentence => {
-							message.channel.send(embeds.imitate(args[0], sentence, message.channel))
-								.then(log.say)
-						})
-					}
+					_sendQuote(userId)
 					break
 
 				case "embed":
@@ -457,7 +461,7 @@ function handleCommands(message) {
 
 				case "xok":
 					if (!admin) break
-					message.channel.send(embeds.xok())
+					message.channel.send(embeds.xok)
 						.then(log.xok)
 					break
 
@@ -740,29 +744,20 @@ function statusCode(code) {
 
 
 /**
- * @param {string} mention
- * @return {User} User if exists, null if not
+ * @param {string} mention - a string like "<@1234567891234567>"
+ * @return {string} user ID
  */
-function getUserFromMention(mention) {
-	if (mention && mention.startsWith("<@") && mention.endsWith(">")) {
-		mention = mention.slice(
+function mentionToUserId(mention) {
+	if (mention.startsWith("<@") && mention.endsWith(">")) {
+		return mention.slice(
 			(mention.charAt(2) === "!")
 				? 3
 				: 2 // TODO: make this not comically unreadable
 			, -1
 		)
-		return client.fetchUser(mention)
+	} else {
+		return null
 	}
-	return null
-}
-
-
-/**
- * @param {string} word - a word that may or may not be a mention
- * @return {Boolean} whether word is a mention or not
- */
-function isMention(word) {
-	return word.startsWith("<@") && word.endsWith(">")
 }
 
 
@@ -900,14 +895,15 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.fetchUser("206235904644349953").send(sendThis) // yes, i hardcoded my own user id. im sorry
+	client.fetchUser("206235904644349953") // yes, i hardcoded my own user id. im sorry
+		.then(me => me.send(sendThis))
 		.catch(console.error)
 }
 
 
 function httpsDownload(url) {
 	return new Promise( (resolve, reject) => {
-		https.get(url, res => {
+		require("https").get(url, res => {
 			if (res.statusCode === 200) {
 				let rawData = ""
 				res.setEncoding("utf8")
@@ -929,12 +925,12 @@ function httpsDownload(url) {
  */
 function cleanse(phrase) {
 	return new Promise( (resolve, reject) => {
-		if (!config["BAD_WORDS"]) return resolve(phrase)
-	
+		if (!config.BAD_WORDS) return resolve(phrase)
+
 		let words = phrase.split(" ")
 		try {
 			words = words.filter(word => { // Remove bad words
-				!(config["BAD_WORDS"]
+				!(config.BAD_WORDS
 					.includes(word.toLowerCase().
 						replace("\n", ""))
 				)
