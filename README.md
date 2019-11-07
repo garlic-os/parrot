@@ -25,9 +25,6 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 
 ## TODO
 - Keep data per server separate
-- Environment variable default values
 - "Forget" command to delete the data on that user (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limiting to mitigate spam
-- Moar logging
-- Fix scraping; I broke it somehow
 - Make Bipolar stop DM'ing me "Specified key is not defined" every five hours
