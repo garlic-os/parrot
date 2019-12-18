@@ -1,6 +1,5 @@
 module.exports = {
 	PREFIX: "|",
-	NAME: "Bipolar",
 	EMBED_COLORS: {
 		"normal": "#A755B5",
 		"error": "#FF3636"
@@ -9,5 +8,6 @@ module.exports = {
 	LEARNING_CHANNELS: {},
 	NICKNAMES: {},
 	ADMINS: {},
-	BANNED: {}
+	BANNED: {},
+	DISABLE_LOGGING: false
 }

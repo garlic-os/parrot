@@ -1,4 +1,5 @@
 "use strict"
+
 // Permissions code: 67584
 // Send messages, read message history
 
@@ -13,32 +14,42 @@ for (const key in process.env) {
 	}
 }
 
+// Log errors when in production; crash when not in production
 if (config.NODE_ENV === "production")
 	process.on("unhandledRejection", logError)
 else
 	process.on("unhandledRejection", up => { throw up })
 
-process.on("SIGTERM", () => {  // (Hopefully) save and clear cache before shutting down
+// Overwrite console methods with empty ones and don't require
+//   console-stamp if logging is disabled
+if (config.DISABLE_LOGS) {
+	const methods = ["log", "debug", "warn", "info", "table"]
+    for (const method of methods) {
+        console[method] = () => {}
+    }
+} else {
+	require("console-stamp")(console, {
+		datePrefix: "",
+		dateSuffix: "",
+		pattern: " "
+	})
+}
+
+// (Hopefully) save and clear cache before shutting down
+process.on("SIGTERM", () => {
 	console.info("Saving changes...")
 	saveCache()
 		.then(console.info("Changes saved."))
 })
 
 // Requirements
-require("console-stamp")(console, {
-	datePrefix: "",
-	dateSuffix: "",
-	pattern: " "
-})
-
-// Requirements
-const markov  = require("./markov"),
-      embeds  = require("./embeds")(config.EMBED_COLORS),
-	  help    = require("./help"),
+const fs      = require("fs"),
+	  path    = require("path"),
       Discord = require("discord.js"),
-      fs      = require("fs"),
       AWS     = require("aws-sdk"),
-	  path    = require("path")
+	  markov  = require("./markov"),
+      embeds  = require("./embeds")(config.EMBED_COLORS),
+	  help    = require("./help")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -48,7 +59,8 @@ AWS.config.update({
 })
 const s3 = new AWS.S3()
 
-// List of promises
+// Array of promises that all have to complete before
+//   Bipolar can log in
 const init = []
 
 // Local directories have to exist before they can be accessed
@@ -62,6 +74,7 @@ init.push(s3listUserIds().then(userIds => {
 	}
 }))
 
+// Set BAD_WORDS if BAD_WORDS_URL is defined
 if (config.BAD_WORDS_URL) {
 	init.push(httpsDownload(config.BAD_WORDS_URL)
 		.then(rawData => config.BAD_WORDS = rawData.split("\n")))
@@ -90,7 +103,7 @@ client.on("ready", () => {
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
-		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${statusCode(game.type)} ${game.name}`))
+		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${status(game.type)} ${game.name}`))
 
 	channelTable(config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
@@ -108,7 +121,7 @@ client.on("ready", () => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
-	.catch(console.info)
+	.catch(console.warn)
 
 })
 
@@ -249,8 +262,9 @@ function generateQuote(userId) {
 	return new Promise( (resolve, reject) => {
 		loadCorpus(userId).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-			markov(corpus, wordCount).then(quote => {
-				quote = quote.substring(0, 1024) // Hard maximum of 1024 characters (embed field limit)
+			const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
+			markov(corpus, wordCount, coherenece).then(quote => {
+				quote = quote.substring(0, 1024) // Hard cap of 1024 characters (embed field limit)
 				resolve(quote)
 			})
 		})
@@ -285,6 +299,13 @@ function scrape(channel, goal) {
 		function _getBatchOfMessages(fetchOptions) {
 			activeLoops++
 			channel.fetchMessages(fetchOptions).then(messages => {
+				for (const userId in scrapeBuffers) {
+					if (scrapeBuffers[userId].length > 1000) {
+						appendCorpus(userId, scrapeBuffers[userId])
+						scrapeBuffers[userId] = ""
+					}
+				}
+
 				// Sometimes the last message is just undefined. No idea why.
 				let lastMessages = messages.last()
 				let toLast = 2
@@ -306,15 +327,17 @@ function scrape(channel, goal) {
 				for (let message of messages) {
 					if (messagesAdded >= goal) break
 					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-					const authorId = message.author.id
-					scrapeBuffers[authorId] += message.content + "\n"
-					messagesAdded++
+					if (message.content) { // Make sure that it's not undefined
+						const authorId = message.author.id
+						scrapeBuffers[authorId] += message.content + "\n"
+						messagesAdded++
 
-					if (!unsavedCache.includes(authorId))
-						unsavedCache.push(authorId)
+						if (!unsavedCache.includes(authorId))
+							unsavedCache.push(authorId)
 
-					if (!userIdCache.includes(authorId))
-						userIdCache.push(authorId)
+						if (!userIdCache.includes(authorId))
+							userIdCache.push(authorId)
+					}
 				}
 				activeLoops--
 			})
@@ -338,8 +361,58 @@ function scrape(channel, goal) {
 
 
 /**
+ * Remove "undefined" from the beginning of any given corpus that has it.
+ * 
+ * @param {Array} userIds - array of user IDs to sort through; if undefined, all available corpi are scanned
+ * @return {Promise<Array>} this never rejects lol. Resolve: array of user IDs where an "undefined" was removed
+ */
+function filterUndefineds(userIds) {
+	async function filter(userId) {
+		return new Promise( (resolve, reject) => {
+			let corpus
+			let inCache = false
+			try {
+				corpus = await cacheRead(userId)
+				inCache = true
+			} catch (e) {
+				corpus = await s3read(userId)
+			}
+			if (corpus.startsWith("undefined")) {
+				corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
+
+				if (inCache)
+					cacheWrite(userId, corpus)
+				else
+					s3Write(userId, corpus)
+
+				resolve(userId)
+			} else {
+				reject()
+			}
+		})
+	}
+
+	return new Promise( (resolve, reject) => {
+		userIds = userIds || s3listUserIds()
+
+		const found = []
+		const promises = []
+		for (const userId of userIds) {
+			promises.push(filter(userId)
+				.then(found.push))
+				.catch()
+		}
+		Promise.all(promises)
+			.then(resolve(found))
+	})
+}
+
+
+/**
  * Parses a message whose content is presumed to be a command
- *   and performs the corresponding action
+ *   and performs the corresponding action.
+ * 
+ * Here be dragons.
  * 
  * @param {Message} messageObj - Discord message to be parsed
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
@@ -361,12 +434,16 @@ function handleCommands(message) {
 						.setColor(config.EMBED_COLORS.normal)
 						.setTitle("Help")
 					
+					// Individual command
 					if (help.hasOwnProperty(args[0])) {
 						if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
+							message.author.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
+								.then(log.error)
 							break
 						} else {
 							embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
 						}
+					// All commands
 					} else {
 						for (const [command, properties] of Object.entries(help)) {
 							if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
@@ -374,8 +451,7 @@ function handleCommands(message) {
 						}
 					}
 					message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
-						.then(log.help)
-						.catch(reject)
+						.then(log.embed)
 					break
 
 
@@ -385,27 +461,30 @@ function handleCommands(message) {
 							.then(log.error)
 						break
 					}
-					const channel = (args[0] === "here")
+					const channel = (args[0].toLowerCase() === "here")
 						? message.channel
 						: client.channels.get(args[0])
+
 					if (!channel) {
 						message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
 							.then(log.error)
 						break
 					}
 
-					const howManyMessages = (args[1] === "all")
+					const howManyMessages = (args[1].toLowerCase() === "all")
 						? "Infinity" // lol
 						: parseInt(args[1])
+				
 					if (isNaN(howManyMessages)) {
 						message.channel.send(embeds.error(`Not a number: ${args[1]}`))
 							.then(log.error)
 						break
 					}
 
+					// Resolve a starting message and a promise for an ending message
 					message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
 						.then(log.embed)
-
+		
 					scrape(channel, howManyMessages)
 						.then(messagesAdded => {
 							message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
@@ -418,33 +497,29 @@ function handleCommands(message) {
 					break
 
 				case "imitate":
-					function _sendQuote(userId) {
-						if (userId === client.user.id) { // Bipolar can't imitate herself
-							message.channel.send(embeds.xok)
-								.then(log.xok)
-						} else {
-							generateQuote(userId).then(sentence => {
-								embeds.imitate(userId, sentence, message.channel).then(embed => {
-									message.channel.send(embed)
-										.then(log.imitate)
-								})
-							})
-						}
-					}
-
 					let userId
 
 					if (args[0]) {
-						userId = (args[0] === "me")
+						// If arg is "me", use the sender's own ID
+						// Else, try to find a user ID from a mention
+						// If there turns out there is no mention, use a random ID instead
+						userId = (args[0].toLowerCase() === "me")
 							? message.author.id
-							: mentionToUserId(args[0])
-
-						userId = userId || randomUserId()
-
+							: mentionToUserId(args[0]) || randomUserId()
 					} else {
 						userId = randomUserId()
 					}
-					_sendQuote(userId)
+
+					if (userId === client.user.id) { // Bipolar can't imitate herself
+						message.channel.send(embeds.xok)
+							.then(log.xok)
+						break
+					}
+
+					generateQuote(userId).then(sentence => {
+						message.channel.send(embeds.imitate(userId, sentence, message.channel))
+							.then(log.imitate)
+					})
 					break
 
 				case "embed":
@@ -473,12 +548,23 @@ function handleCommands(message) {
 						break
 					}
 					message.channel.send(embeds.standard("Saving..."))
-					saveCache()
-						.then(savedCount => {
-							message.channel.send(embeds.standard(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
-								.then(log.say)
-						})
+					saveCache().then(savedCount => {
+						message.channel.send(embeds.standard(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
+							.then(log.say)
+					})
 					break
+
+				case "filter":
+					if (!admin) break
+					filterUndefineds(args).then(found => {
+						userTable(found).then(table => {
+							console.info("Users filtered:")
+							console.table(table)
+						})
+						.catch(console.warn)
+						message.channel.send(embed.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
+							.then(log.say)
+					})
 			}
 			resolve(command)
 
@@ -513,8 +599,7 @@ function updateNicknames(nicknameDict) {
 				})
 		}
 
-		if (erred) return reject()
-		resolve()
+		(erred) ? reject() : resolve()
 
 	})
 }
@@ -523,14 +608,14 @@ function updateNicknames(nicknameDict) {
 /**
  * Downloads a file from S3_BUCKET_NAME.
  * 
- * @param {string} path - path to file to download from the S3 bucket
+ * @param {string} userId - ID of corpus to download from the S3 bucket
  * @return {Promise<Buffer|Error>} Resolve: Buffer from bucket; Reject: error
  */
-function s3read(path) {
+function s3read(userId) {
 	return new Promise( (resolve, reject) => {
 		const params = {
 			Bucket: process.env.S3_BUCKET_NAME, 
-			Key: path
+			Key: `${config.CORPUS_DIR}/${userId}.txt`
 		}
 		s3.getObject(params, (err, data) => {
 			if (err) return reject(err)
@@ -543,22 +628,22 @@ function s3read(path) {
 	})
 }
 
+
 /**
- * Uploads (and overwrites) a file to S3_BUCKET_NAME.
+ * Uploads (and overwrites) a corpus in S3_BUCKET_NAME.
  * 
- * @param {string} path - path to upload to
+ * @param {string} userId - user ID's corpus to upload/overwrite
  * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
  */
-function s3write(path, data) {
+function s3write(userId, data) {
 	return new Promise( (resolve, reject) => {
 		const params = {
 			Bucket: process.env.S3_BUCKET_NAME,
-			Key: path,
+			Key: `${config.CORPUS_DIR}/${userId}.txt`,
 			Body: Buffer.from(data, "UTF-8")
 		}
 		s3.upload(params, (err, res) => {
-			if (err) return reject(err)
-			resolve(res)
+			(err) ? reject(err) : resolve(res)
 		})
 	})
 }
@@ -598,7 +683,7 @@ function saveCache() {
 			operations++
 			const userId = unsavedCache.pop()
 			loadCorpus(userId).then(corpus => {
-				s3write(`${config.CORPUS_DIR}/${userId}.txt`, corpus)
+				s3write(userId, corpus)
 					.then( () => {
 						savedCount++
 						operations--
@@ -628,8 +713,7 @@ function ensureDirectory(dir) {
 		fs.stat(dir, err => {
 			if (err && err.code === "ENOENT") {
 				fs.mkdir(dir, { recursive: true }, err => {
-					if (err) return reject(err)
-					resolve(dir)
+					(err) ? reject(err) : resolve(dir)
 				})
 			} else if (err)
 				return reject(err)
@@ -655,7 +739,7 @@ function loadCorpus(userId) {
 				if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
 					return reject(err) // because it couldn't find the file
 
-				s3read(`${config.CORPUS_DIR}/${userId}.txt`).then(corpus => { // Maybe the user's corpus is in the S3 bucket
+				s3read(userId).then(corpus => { // Maybe the user's corpus is in the S3 bucket
 					cacheWrite(userId, corpus)
 					resolve(corpus)
 				})
@@ -679,10 +763,17 @@ function appendCorpus(userId, data) {
 				(err) ? reject(err) : resolve()
 			})
 		} else {
-			s3read(`${config.CORPUS_DIR}/${userId}.txt`) // Download the corpus from S3, add the new data to it, cache it
-				.then(corpus => cacheWrite(userId, corpus + data))
-				.catch(cacheWrite(userId, data)) // User doesn't exist; make them a new corpus from just the new data
-				.finally(resolve)
+			if (userIdCache.includes(userId)) {
+				s3read(userId) // Download the corpus from S3, add the new data to it, cache it
+					.then(corpus => {
+						corpus += data
+						cacheWrite(userId, corpus)
+						resolve(corpus)
+					})
+			} else {
+				cacheWrite(userId, data) // User doesn't exist; make them a new corpus from just the new data
+				resolve(data)
+			}
 		}
 	})
 }
@@ -698,8 +789,7 @@ function appendCorpus(userId, data) {
 function cacheWrite(filename, data) {
 	return new Promise( (resolve, reject) => {
 		fs.writeFile(`./cache/${filename}.txt`, data, err => {
-			if (err) return reject(err)
-			resolve()
+			(err) ? reject(err) : resolve()
 		})
 	})
 }
@@ -714,9 +804,12 @@ function cacheWrite(filename, data) {
 function cacheRead(filename) {
 	return new Promise( (resolve, reject) => {
 		fs.readFile(`./cache/${filename}.txt`, "UTF-8", (err, data) => {
-			if (err) return reject(err)
-			if (data === "") return reject( { code: "ENOENT" } )
-			resolve(data)
+			if (err)
+				reject(err)
+			else if (data === "")
+				reject( { code: "ENOENT" } )
+			else
+				resolve(data)
 		})
 	})
 }
@@ -738,7 +831,7 @@ function blurtChance() {
  * @param {number} code - status code
  * @return {string} status name
  */
-function statusCode(code) {
+function status(code) {
 	return ["Playing", "Streaming", "Listening", "Watching"][code]
 }
 
@@ -748,16 +841,14 @@ function statusCode(code) {
  * @return {string} user ID
  */
 function mentionToUserId(mention) {
-	if (mention.startsWith("<@") && mention.endsWith(">")) {
-		return mention.slice(
+	return (mention.startsWith("<@") && mention.endsWith(">"))
+		? mention.slice(
 			(mention.charAt(2) === "!")
 				? 3
 				: 2 // TODO: make this not comically unreadable
 			, -1
 		)
-	} else {
-		return null
-	}
+		: null
 }
 
 
@@ -838,6 +929,9 @@ function location(message) {
  */
 function channelTable(channelDict) {
 	return new Promise( (resolve, reject) => {
+		if (config.DISABLE_LOGS)
+			return resolve({})
+		
 		if (isEmpty(channelDict))
 			return reject("No channels are whitelisted.")
 
@@ -868,6 +962,9 @@ function channelTable(channelDict) {
  */
 function nicknameTable(nicknameDict) {
 	return new Promise( (resolve, reject) => {
+		if (config.DISABLE_LOGS)
+			return resolve({})
+		
 		if (isEmpty(nicknameDict))
 			return reject("No nicknames defined.")
 
@@ -886,6 +983,29 @@ function nicknameTable(nicknameDict) {
 }
 
 
+function userTable(userIds) {
+	return new Promise( async (resolve, reject) => {
+		if (config.DISABLE_LOGS)
+			return resolve({})
+		
+		if (!userIds || userIds.length === 0)
+			return reject("No user IDs defined.")
+
+		// If it's a single value, wrap it in an array
+		if (!Array.isArray(userIds)) userIds = [userIds]
+
+		const stats = {}
+		for (const userId of userIds) {
+			const user = await client.fetchUser(userId)
+			const stat = {}
+			stat["Username"] = user.tag
+			stats[userId] = stat
+		}
+		resolve(stats)
+	})
+}
+
+
 /**
  * DM's garlicOS and logs error
  */
@@ -895,7 +1015,7 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.fetchUser("206235904644349953") // yes, i hardcoded my own user id. im sorry
+	client.fetchUser("206235904644349953") // Yes, I hardcoded my own user ID. I'm sorry.
 		.then(me => me.send(sendThis))
 		.catch(console.error)
 }
@@ -931,8 +1051,11 @@ function cleanse(phrase) {
 		try {
 			words = words.filter(word => { // Remove bad words
 				!(config.BAD_WORDS
-					.includes(word.toLowerCase().
-						replace("\n", ""))
+					.includes(
+						word
+						.toLowerCase()
+						.replace("\n", "")
+					)
 				)
 			})
 		} catch (err) {

@@ -1,4 +1,4 @@
-const Discord = require("discord.js")
+const RichEmbed = require("discord.js").RichEmbed
 
 module.exports = embedColors => {
 	return {
@@ -9,7 +9,7 @@ module.exports = embedColors => {
 		 * @return {RichEmbed} Discord Rich Embed object
 		 */
 		standard: str => {
-			return new Discord.RichEmbed()
+			return new RichEmbed()
 				.setColor(embedColors.normal)
 				.addField(process.env.NAME, str)
 		},
@@ -26,7 +26,7 @@ module.exports = embedColors => {
 		imitate: (userId, quote, channel) => {
 			return new Promise( (resolve, reject) => {
 				channel.guild.fetchMember(userId).then(member => {
-					resolve(new Discord.RichEmbed()
+					resolve(new RichEmbed()
 						.setColor(embedColors.normal)
 						.setThumbnail(member.user.displayAvatarURL)
 						.addField(member.displayName, quote)
@@ -43,13 +43,13 @@ module.exports = embedColors => {
 		 * @return {RichEmbed} Discord Rich Embed object
 		 */
 		error: err => {
-			return new Discord.RichEmbed()
+			return new RichEmbed()
 				.setColor(embedColors.error)
 				.addField("Error", err)
 		},
 
 
-		xok: new Discord.RichEmbed()
+		xok: new RichEmbed()
 			.attachFiles(["./img/xok.png"])
 			.setColor(embedColors.error)
 			.setTitle("Error")
