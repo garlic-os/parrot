@@ -8,5 +8,6 @@ module.exports = {
 	LEARNING_CHANNELS: {},
 	NICKNAMES: {},
 	ADMINS: {},
-	BANNED: {}
+	BANNED: {},
+	DISABLE_LOGGING: false
 }
