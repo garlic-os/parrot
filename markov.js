@@ -5,7 +5,7 @@
  * 
  * I have heavily modified it to be better for one-time use,
  *   since Bipolar will typically only use a Markov once before
- *   throwing it away and regenerating it.
+ *   throwing it away and regenerating it with new data.
  * 
  * @param {string} corpus - big body of text to make a new, similar-sounding sentence from
  * @param {integer} [outputSize] - number of words to generate (default: 20)
