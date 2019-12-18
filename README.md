@@ -21,10 +21,11 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 | `BANNED` | A JSON-encoded dictionary of the users that aren't allowed to use Bipolar's commands. Bipolar will also stop learning from this user. | `{"Naughty boy":"<USER ID HERE>"}` |
 | `AUTOSAVE_INTERVAL_MS` | Number of milliseconds Bipolar will wait before saving all unsaved cache. | `600000` (10 minutes) |
 | `BAD_WORDS_URL` | URL to a newline-delimited list of words that Bipolar will filter before saving messages to a corpus | `https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/raw/master/en` |
+| `DISABLE_LOGGING` | Silence in the console. Keep Bipolar from outputting any logs. | (`true`/`false`) |
 
 
 ## TODO
 - Keep data per server separate
 - "Forget" command to delete the data on that user (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limiting to mitigate spam
-- Make Bipolar stop DM'ing me "Specified key is not defined" every five hours
+- ~~Make Bipolar stop DM'ing me "Specified key is not defined" every five hours~~ Fixed in the latest update! (Probably!)
