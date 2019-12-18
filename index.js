@@ -103,7 +103,7 @@ client.on("ready", () => {
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
-		.then( ({ game }) => console.info(`${config.NAME}'s activity: ${status(game.type)} ${game.name}`))
+		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
 	channelTable(config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
@@ -263,7 +263,7 @@ function generateQuote(userId) {
 		loadCorpus(userId).then(corpus => {
 			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 			const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
-			markov(corpus, wordCount, coherenece).then(quote => {
+			markov(corpus, wordCount, coherence).then(quote => {
 				quote = quote.substring(0, 1024) // Hard cap of 1024 characters (embed field limit)
 				resolve(quote)
 			})
@@ -367,8 +367,8 @@ function scrape(channel, goal) {
  * @return {Promise<Array>} this never rejects lol. Resolve: array of user IDs where an "undefined" was removed
  */
 function filterUndefineds(userIds) {
-	async function filter(userId) {
-		return new Promise( (resolve, reject) => {
+	function filter(userId) {
+		return new Promise( async (resolve, reject) => {
 			let corpus
 			let inCache = false
 			try {
@@ -589,7 +589,7 @@ function updateNicknames(nicknameDict) {
 			const [ serverId, nickname ] = nicknameDict[serverName]
 			const server = client.guilds.get(serverId)
 			if (!server) {
-				console.warn(`${config.NAME} isn't in ${serverName} (${serverId})! Nickname cannot be set here.`)
+				console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
 				continue
 			}
 			server.me.setNickname(nickname)
