@@ -1,7 +1,7 @@
 # Bipolar
 _Imitate everyone individually._
 
-A totally-original Markov-chain-based Discord bot that keeps a separate Markov chain for any number of users.
+A totally-original Markov-chain-based Discord bot that keeps a separate Markov chain for each user. Can imitate a theoretically unlimited number of users.
 
 ## Environment variables
 | Name | Description | Example |
