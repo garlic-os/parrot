@@ -11,7 +11,7 @@ module.exports = embedColors => {
 		standard: str => {
 			return new RichEmbed()
 				.setColor(embedColors.normal)
-				.addField(process.env.NAME, str)
+				.addField("Bipolar", str)
 		},
 
 
@@ -23,17 +23,13 @@ module.exports = embedColors => {
 		 * @param {Channel} channel - User's nickname is fetched from this channel
 		 * @return {RichEmbed} Discord Rich Embed object
 		 */
-		imitate: (userId, quote, channel) => {
-			return new Promise( (resolve, reject) => {
-				channel.guild.fetchMember(userId).then(member => {
-					resolve(new RichEmbed()
-						.setColor(embedColors.normal)
-						.setThumbnail(member.user.displayAvatarURL)
-						.addField(member.displayName, quote)
-					)
-				})
-				.catch(reject)
-			})
+		imitate: async (userId, quote, channel) => {
+			const member = await channel.guild.fetchMember(userId)
+			const embed = new RichEmbed()
+				.setColor(embedColors.normal)
+				.setThumbnail(member.user.displayAvatarURL)
+				.addField(member.displayName, quote)
+			return embed
 		},
 
 		/**
@@ -49,6 +45,11 @@ module.exports = embedColors => {
 		},
 
 
+		/**
+		 * A joke embed with xok
+		 * 
+		 * Only made once at startup because it's always the same
+		 */
 		xok: new RichEmbed()
 			.attachFiles(["./img/xok.png"])
 			.setColor(embedColors.error)
