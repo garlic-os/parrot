@@ -39,7 +39,7 @@ if (config.DISABLE_LOGS) {
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
 	saveCache()
-		.then(console.info("Changes saved."))
+		.then(count => console.info(log.save(count)))
 })
 
 // Requirements
@@ -55,12 +55,12 @@ const fs      = require("fs"),
 AWS.config.update({
 	accessKeyId: config.AWS_ACCESS_KEY_ID,
 	secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
-	region: "us-east-1"
+	region: config.AWS_REGION
 })
 const s3 = new AWS.S3()
 
-// Array of promises that all have to complete before
-//   Bipolar can log in
+// Array of promises
+// Do all these things before logging in
 const init = []
 
 // Local directories have to exist before they can be accessed
@@ -88,6 +88,7 @@ const log = {
 	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
 	, xok:     message => console.log(`${location(message)} Send the XOK message`)
 	, help:    message => console.log(`${location(message)} Sent the Help message`)
+	, save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
 }
 
 const buffers = {},
@@ -126,7 +127,7 @@ client.on("ready", () => {
 })
 
 
-client.on("message", message => {
+client.on("message", async message => {
 	const authorId = message.author.id
 
 	if (!isBanned(authorId) // Not banned from using Bipolar
@@ -140,16 +141,7 @@ client.on("message", message => {
 		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
 			const userId = randomUserId()
-			generateQuote(userId).then(sentence => {
-				if (!sentence || sentence.length === 0) {
-					message.channel.send(embeds.error("Who are you? What's going on? Where am I?"))
-						.then(log.error)
-				}
-				embeds.imitate(userId, sentence, message.channel).then(embed => {
-					message.channel.send(embed)
-						.then(log.imitate)
-				})
-			})
+			imitate(userId, message.channel)
 		}
 
 		// Command
@@ -163,12 +155,7 @@ client.on("message", message => {
 			if (blurtChance()) {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
 				const userId = randomUserId()
-				generateQuote(userId).then(sentence => {
-					embeds.imitate(userId, sentence, message.channel).then(embed => {
-						message.channel.send(embed)
-							.then(log.imitate)
-					})
-				})
+				imitate(userId, message.channel)
 			}
 
 			if (learningIn(message.channel.id)
@@ -187,21 +174,19 @@ client.on("message", message => {
 
 				} else {
 					buffers[authorId] = message.content + "\n"
-					setTimeout( () => {
-						cleanse(buffers[authorId]).then(buffer => {
-							if (buffer.length === 0) return
+					setTimeout( async () => {
+						const buffer = await cleanse(buffers[authorId])
+						if (buffer.length === 0) return
 
-							appendCorpus(authorId, buffer).then( () => {
-								if (!unsavedCache.includes(authorId))
-									unsavedCache.push(authorId)
+						await appendCorpus(authorId, buffer)
+						if (!unsavedCache.includes(authorId))
+							unsavedCache.push(authorId)
 
-								if (!userIdCache.includes(authorId))
-									userIdCache.push(authorId)
+						if (!userIdCache.includes(authorId))
+							userIdCache.push(authorId)
 
-								console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
-								buffers[authorId] = ""
-							})
-						})
+						console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
+						buffers[authorId] = ""
 					}, 5000) // Five seconds
 				}
 			}
@@ -235,9 +220,9 @@ Promise.all(init).then( () => {
 	client.login(process.env.DISCORD_BOT_TOKEN)
 
 	// Autosave
-	setInterval( () => {
-		saveCache()
-			.then(console.info("Saved cache."))
+	setInterval( async () => {
+		const savedCount = await saveCache()
+		console.info(log.save(savedCount))
 	}, 3600000) // One hour
 })
 .catch( () => {
@@ -258,18 +243,24 @@ Promise.all(init).then( () => {
  * @param {string} userId - ID corresponding to a user to generate a sentence from
  * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading user's corpus
  */
-function generateQuote(userId) {
-	return new Promise( (resolve, reject) => {
-		loadCorpus(userId).then(corpus => {
-			const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-			const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
-			markov(corpus, wordCount, coherence).then(quote => {
-				quote = quote.substring(0, 1024) // Hard cap of 1024 characters (embed field limit)
-				resolve(quote)
-			})
-		})
-		.catch(reject)
-	})
+async function generateSentence(userId) {
+	const corpus = await loadCorpus(userId)
+	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
+	const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
+	let sentence = await markov(corpus, wordCount, coherence)
+	sentence = sentence.substring(0, 1024) // Hard cap of 1024 characters (embed field limit)
+	if (!sentence || sentence.length === 0) {
+		logError("A sentence was 0 characters long. That is not supposed to happen.")
+	}
+	return sentence
+}
+
+
+async function imitate(userId, channel) {
+	const sentence = await generateSentence(userId)
+	const embed = await embeds.imitate(userId, sentence, channel)
+	channel.send(embed)
+		.then(log.imitate)
 }
 
 
@@ -290,121 +281,110 @@ function randomUserId() {
  * @return {Promise<number|Error>} number of messages added
  */
 function scrape(channel, goal) {
-	return new Promise( (resolve, reject) => { try {
-		const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
-		let activeLoops = 0
-		let messagesAdded = 0
-		const scrapeBuffers = {}
+	const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
+	let activeLoops = 0
+	let messagesAdded = 0
+	const scrapeBuffers = {}
 
-		function _getBatchOfMessages(fetchOptions) {
-			activeLoops++
-			channel.fetchMessages(fetchOptions).then(messages => {
-				for (const userId in scrapeBuffers) {
-					if (scrapeBuffers[userId].length > 1000) {
-						appendCorpus(userId, scrapeBuffers[userId])
-						scrapeBuffers[userId] = ""
-					}
-				}
-
-				// Sometimes the last message is just undefined. No idea why.
-				let lastMessages = messages.last()
-				let toLast = 2
-				while (!lastMessages[0]) {
-					lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-					toLast++
-				}
-
-				const lastMessage = lastMessages[0]
-
-				// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-				fetchOptions.before = (Array.isArray(lastMessage))
-					? lastMessage[1].id
-					: lastMessage.id
-
-				if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-					_getBatchOfMessages(fetchOptions)
-
-				for (let message of messages) {
-					if (messagesAdded >= goal) break
-					if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-					if (message.content) { // Make sure that it's not undefined
-						const authorId = message.author.id
-						scrapeBuffers[authorId] += message.content + "\n"
-						messagesAdded++
-
-						if (!unsavedCache.includes(authorId))
-							unsavedCache.push(authorId)
-
-						if (!userIdCache.includes(authorId))
-							userIdCache.push(authorId)
-					}
-				}
-				activeLoops--
-			})
-		}
-		_getBatchOfMessages(fetchOptions)
-
-		const whenDone = setInterval( () => {
-			if (activeLoops === 0) {
-				clearInterval(whenDone)
-				for (const userId in scrapeBuffers) {
-					appendCorpus(userId, scrapeBuffers[userId])
-				}
-				resolve(messagesAdded)
+	async function _getBatchOfMessages(fetchOptions) {
+		activeLoops++
+		const messages = await channel.fetchMessages(fetchOptions)
+		for (const userId in scrapeBuffers) {
+			if (scrapeBuffers[userId].length > 1000) {
+				appendCorpus(userId, scrapeBuffers[userId])
+				scrapeBuffers[userId] = ""
 			}
-		}, 100)
-	
-	} catch (err) {
-		reject(err)
-	}})
+		}
+
+		// Sometimes the last message is just undefined. No idea why.
+		let lastMessages = messages.last()
+		let toLast = 2
+		while (!lastMessages[0]) {
+			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+			toLast++
+		}
+
+		const lastMessage = lastMessages[0]
+
+		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
+		fetchOptions.before = (Array.isArray(lastMessage))
+			? lastMessage[1].id
+			: lastMessage.id
+
+		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+			_getBatchOfMessages(fetchOptions)
+
+		for (let message of messages) {
+			if (messagesAdded >= goal) break
+			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+			if (message.content) { // Make sure that it's not undefined
+				const authorId = message.author.id
+				scrapeBuffers[authorId] += message.content + "\n"
+				messagesAdded++
+
+				if (!unsavedCache.includes(authorId))
+					unsavedCache.push(authorId)
+
+				if (!userIdCache.includes(authorId))
+					userIdCache.push(authorId)
+			}
+		}
+		activeLoops--
+	}
+	_getBatchOfMessages(fetchOptions)
+
+	const whenDone = setInterval( () => {
+		if (activeLoops === 0) {
+			clearInterval(whenDone)
+			for (const userId in scrapeBuffers) {
+				appendCorpus(userId, scrapeBuffers[userId])
+			}
+			resolve(messagesAdded)
+		}
+	}, 100)
 }
 
 
 /**
  * Remove "undefined" from the beginning of any given corpus that has it.
  * 
- * @param {Array} userIds - array of user IDs to sort through; if undefined, all available corpi are scanned
+ * @param {Array} userIds - array of user IDs to sort through
  * @return {Promise<Array>} this never rejects lol. Resolve: array of user IDs where an "undefined" was removed
  */
-function filterUndefineds(userIds) {
-	function filter(userId) {
-		return new Promise( async (resolve, reject) => {
-			let corpus
-			let inCache = false
-			try {
-				corpus = await cacheRead(userId)
-				inCache = true
-			} catch (e) {
-				corpus = await s3read(userId)
-			}
-			if (corpus.startsWith("undefined")) {
-				corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
+async function filterUndefineds(userIds) {
+	async function filter(userId) {
+		let corpus
+		let inCache = false
+		try {
+			corpus = await cacheRead(userId)
+			inCache = true
+		} catch (e) {
+			corpus = await s3read(userId)
+		}
 
-				if (inCache)
-					cacheWrite(userId, corpus)
-				else
-					s3Write(userId, corpus)
+		if (corpus.startsWith("undefined")) {
+			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
 
-				resolve(userId)
-			} else {
-				reject()
-			}
-		})
+			(inCache)
+				? cacheWrite(userId, corpus)
+				: s3Write(userId, corpus)
+
+			return userId
+		}
 	}
 
-	return new Promise( (resolve, reject) => {
-		userIds = userIds || s3listUserIds()
-
-		const found = []
-		const promises = []
-		for (const userId of userIds) {
-			promises.push(filter(userId)
-				.then(found.push))
-				.catch()
-		}
-		Promise.all(promises)
-			.then(resolve(found))
-	})
+	const found = []
+	const promises = []
+	for (const userId of userIds) {
+		promises.push(
+			filter(userId).then(userId => {
+				if (userId) found.push(userId)
+			})
+		)
+	}
+	console.debug('[*]', promises.length)
+	await Promise.all(promises)
+	return found
 }
 
 
@@ -417,162 +397,161 @@ function filterUndefineds(userIds) {
  * @param {Message} messageObj - Discord message to be parsed
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
  */
-function handleCommands(message) {
-	return new Promise ( (resolve, reject) => {
-		if (message.author.bot) return resolve(null)
+async function handleCommands(message) {
+	if (message.author.bot) return resolve(null)
 
-		console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
+	console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
 
-		const args = message.content.slice(config.PREFIX.length).split(/ +/)
-		const command = args.shift().toLowerCase()
+	const args = message.content.slice(config.PREFIX.length).split(/ +/)
+	const command = args.shift().toLowerCase()
 
-		try {
-			const admin = isAdmin(message.author.id)
-			switch (command) {
-				case "help":
-					const embed = new Discord.RichEmbed()
-						.setColor(config.EMBED_COLORS.normal)
-						.setTitle("Help")
-					
-					// Individual command
-					if (help.hasOwnProperty(args[0])) {
-						if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
-							message.author.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
-								.then(log.error)
-							break
-						} else {
-							embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
-						}
-					// All commands
-					} else {
-						for (const [command, properties] of Object.entries(help)) {
-							if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
-								embed.addField(command, properties.desc + "\n" + properties.syntax)
-						}
-					}
-					message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
-						.then(log.embed)
-					break
-
-
-				case "scrape":
-					if (!admin) {
-						message.channel.send(embeds.error("You aren't allowed to use this command."))
-							.then(log.error)
-						break
-					}
-					const channel = (args[0].toLowerCase() === "here")
-						? message.channel
-						: client.channels.get(args[0])
-
-					if (!channel) {
-						message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
-							.then(log.error)
-						break
-					}
-
-					const howManyMessages = (args[1].toLowerCase() === "all")
-						? "Infinity" // lol
-						: parseInt(args[1])
-				
-					if (isNaN(howManyMessages)) {
-						message.channel.send(embeds.error(`Not a number: ${args[1]}`))
-							.then(log.error)
-						break
-					}
-
-					// Resolve a starting message and a promise for an ending message
-					message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
-						.then(log.embed)
-		
-					scrape(channel, howManyMessages)
-						.then(messagesAdded => {
-							message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
-								.then(log.embed)
-						})
-						.catch(err => {
-							message.channel.send(embeds.error(err))
-								.then(log.error)
-						})
-					break
-
-				case "imitate":
-					let userId
-
-					if (args[0]) {
-						// If arg is "me", use the sender's own ID
-						// Else, try to find a user ID from a mention
-						// If there turns out there is no mention, use a random ID instead
-						userId = (args[0].toLowerCase() === "me")
-							? message.author.id
-							: mentionToUserId(args[0]) || randomUserId()
-					} else {
-						userId = randomUserId()
-					}
-
-					if (userId === client.user.id) { // Bipolar can't imitate herself
-						message.channel.send(embeds.xok)
-							.then(log.xok)
-						break
-					}
-
-					generateQuote(userId).then(sentence => {
-						message.channel.send(embeds.imitate(userId, sentence, message.channel))
-							.then(log.imitate)
-					})
-					break
-
-				case "embed":
-					if (!admin || !args[0]) break
-					message.channel.send(embeds.standard(args.join(" ")))
-						.then(log.say)
-					break
-
-				case "error":
-					if (!admin || !args[0]) break
-					message.channel.send(embeds.error(args.join(" ")))
+	const admin = isAdmin(message.author.id)
+	switch (command) {
+		case "help":
+			const embed = new Discord.RichEmbed()
+				.setColor(config.EMBED_COLORS.normal)
+				.setTitle("Help")
+			
+			// Individual command
+			if (help.hasOwnProperty(args[0])) {
+				if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
+					message.author.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
 						.then(log.error)
 					break
-
-				case "xok":
-					if (!admin) break
-					message.channel.send(embeds.xok)
-						.then(log.xok)
-					break
-
-				case "save":
-					if (!admin) break
-					if (unsavedCache.length === 0) {
-						message.channel.send(embeds.error("Nothing to save."))
-							.then(log.error)
-						break
-					}
-					message.channel.send(embeds.standard("Saving..."))
-					saveCache().then(savedCount => {
-						message.channel.send(embeds.standard(`Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`))
-							.then(log.say)
-					})
-					break
-
-				case "filter":
-					if (!admin) break
-					filterUndefineds(args).then(found => {
-						userTable(found).then(table => {
-							console.info("Users filtered:")
-							console.table(table)
-						})
-						.catch(console.warn)
-						message.channel.send(embed.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
-							.then(log.say)
-					})
+				} else {
+					embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
+				}
+			// All commands
+			} else {
+				for (const [command, properties] of Object.entries(help)) {
+					if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
+						embed.addField(command, properties.desc + "\n" + properties.syntax)
+				}
 			}
-			resolve(command)
+			message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
+				.then(log.embed)
+			break
 
-		} catch (err) {
-			reject(err)
-		}
+
+		case "scrape":
+			if (!admin) {
+				message.channel.send(embeds.error("You aren't allowed to use this command."))
+					.then(log.error)
+				break
+			}
+			const channel = (args[0].toLowerCase() === "here")
+				? message.channel
+				: client.channels.get(args[0])
+
+			if (!channel) {
+				message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
+					.then(log.error)
+				break
+			}
+
+			const howManyMessages = (args[1].toLowerCase() === "all")
+				? "Infinity" // lol
+				: parseInt(args[1])
 		
-	})
+			if (isNaN(howManyMessages)) {
+				message.channel.send(embeds.error(`Not a number: ${args[1]}`))
+					.then(log.error)
+				break
+			}
+
+			// Resolve a starting message and a promise for an ending message
+			message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
+				.then(log.embed)
+
+			scrape(channel, howManyMessages)
+				.then(messagesAdded => {
+					message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
+						.then(log.embed)
+				})
+				.catch(err => {
+					message.channel.send(embeds.error(err))
+						.then(log.error)
+				})
+			break
+
+		case "imitate":
+			let userId
+
+			if (args[0]) {
+				// If arg is "me", use the sender's own ID
+				// Else, try to find a user ID from a mention
+				// If there turns out there is no mention, use a random ID instead
+				userId = (args[0].toLowerCase() === "me")
+					? message.author.id
+					: mentionToUserId(args[0]) || randomUserId()
+			} else {
+				userId = randomUserId()
+			}
+
+			if (userId === client.user.id) { // Bipolar can't imitate herself
+				message.channel.send(embeds.xok)
+					.then(log.xok)
+				break
+			}
+
+			imitate(userId, message.channel)
+			break
+
+		case "embed":
+			if (!admin || !args[0]) break
+			message.channel.send(embeds.standard(args.join(" ")))
+				.then(log.say)
+			break
+
+		case "error":
+			if (!admin || !args[0]) break
+			message.channel.send(embeds.error(args.join(" ")))
+				.then(log.error)
+			break
+
+		case "xok":
+			if (!admin) break
+			message.channel.send(embeds.xok)
+				.then(log.xok)
+			break
+
+		case "save":
+			if (!admin) break
+			if (unsavedCache.length === 0) {
+				message.channel.send(embeds.error("Nothing to save."))
+					.then(log.error)
+				break
+			}
+			message.channel.send(embeds.standard("Saving..."))
+			const savedCount = await saveCache()
+			message.channel.send(embeds.standard(log.save(savedCount)))
+				.then(log.say)
+			break
+
+		case "filter":
+		case "cleanse":
+			if (!admin) break
+
+			const userIds = (args.length > 0)
+				? args
+				: userIdCache
+
+			console.debug("[*] userIdCache.length:", userIdCache.length)
+
+			const found = await filterUndefineds(userIds)
+
+			if (found.length > 0) {
+				userTable(found).then(table => {
+					console.info("Users filtered:")
+					console.table(table)
+				})
+				.catch(console.warn)
+			}
+
+			message.channel.send(embeds.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
+				.then(log.say)
+	}
+	return command
 }
 
 
@@ -581,27 +560,24 @@ function handleCommands(message) {
  * 
  * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: nothing (there was an error)
  */
-function updateNicknames(nicknameDict) {
-	return new Promise ( (resolve, reject) => {
-		var erred = false
+async function updateNicknames(nicknameDict) {
+	const errors = []
 
-		for (const serverName in nicknameDict) {
-			const [ serverId, nickname ] = nicknameDict[serverName]
-			const server = client.guilds.get(serverId)
-			if (!server) {
-				console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
-				continue
-			}
-			server.me.setNickname(nickname)
-				.catch(err => {
-					erred = true
-					logError(err)
-				})
+	for (const serverName in nicknameDict) {
+		const [ serverId, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverId)
+		if (!server) {
+			console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
+			continue
 		}
+		server.me.setNickname(nickname)
+			.catch(errors.push)
+	}
 
-		(erred) ? reject() : resolve()
-
-	})
+	if (errors.length > 0)
+		throw errors
+	else
+		return
 }
 
 
@@ -660,10 +636,11 @@ function s3listUserIds() {
 		}
 		s3.listObjectsV2(params, (err, res) => {
 			if (err) return reject(err)
-			res = res.Contents.map( ({ Key }) => {
-				return path.basename(Key.replace(/\.[^/.]+$/, "")) // Remove file extension and preceding path
+			const userIds = res.Contents.map( ({ Key }) => {
+				// Remove file extension and preceding path
+				return path.basename(Key.replace(/\.[^/.]+$/, ""))
 			})
-			resolve(res)
+			resolve(userIds)
 		})
 	})
 }
@@ -673,32 +650,22 @@ function s3listUserIds() {
  * Uploads all unsaved cache to S3
  *   and empties the list of unsaved files.
  * 
- * @return {Promise<void|Error>} Resolve: nothing; Reject: s3write() error
+ * @return {Promise<void|Error>} Resolve: number of files saved; Reject: s3write() error
  */
-function saveCache() {
-	return new Promise( (resolve, reject) => {
-		let savedCount = 0
-		let operations = 0
-		while (unsavedCache.length > 0) {
-			operations++
-			const userId = unsavedCache.pop()
-			loadCorpus(userId).then(corpus => {
-				s3write(userId, corpus)
-					.then( () => {
-						savedCount++
-						operations--
-					})
-					.catch(reject)
-			})
-		}
+async function saveCache() {
+	let savedCount = 0
+	const promises = []
+	while (unsavedCache.length > 0) {
+		const userId = unsavedCache.pop()
+		const corpus = await loadCorpus(userId)
+		promises.push(
+			s3write(userId, corpus)
+				.then(savedCount++)
+		)
+	}
 
-		const whenDone = setInterval( () => {
-			if (operations === 0) {
-				clearInterval(whenDone)
-				resolve(savedCount)
-			}
-		}, 100)
-	})
+	await Promise.all(promises)
+	return savedCount
 }
 
 
@@ -709,15 +676,14 @@ function saveCache() {
  * @return {Promise<string|Error>} Directory if it already exists or was successfully made; error if something goes wrong
  */
 function ensureDirectory(dir) {
-	return new Promise ( (resolve, reject) => {
+	return new Promise( (resolve, reject) => {
 		fs.stat(dir, err => {
 			if (err && err.code === "ENOENT") {
 				fs.mkdir(dir, { recursive: true }, err => {
 					(err) ? reject(err) : resolve(dir)
 				})
-			} else if (err)
-				return reject(err)
-			resolve(dir)
+			}
+			else (err) ? reject(err) : resolve(dir)
 		})
 	})
 }
@@ -731,21 +697,19 @@ function ensureDirectory(dir) {
  * @param {string} userId - user ID whose corpus to load
  * @return {Promise<corpus|Error>} Resolve: [userId]'s corpus; Reject: Error
  */
-function loadCorpus(userId) {
-	return new Promise( (resolve, reject) => {
-		cacheRead(userId) // Maybe the user's corpus is in cache
-			.then(resolve)
-			.catch(err => {
-				if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
-					return reject(err) // because it couldn't find the file
+async function loadCorpus(userId) {
+	try {
+		return await cacheRead(userId) // Maybe the user's corpus is in cache
+	} catch (err) {
+		if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
+			throw err              //   because it couldn't find the file
 
-				s3read(userId).then(corpus => { // Maybe the user's corpus is in the S3 bucket
-					cacheWrite(userId, corpus)
-					resolve(corpus)
-				})
-				.catch(reject) // User is nowhere to be found (or something went wrong)
-			})
-	})
+		// Maybe the user's corpus is in the S3 bucket
+		// If not, the user is nowhere to be found (or something went wrong)
+		const corpus = await s3read(userId)
+		cacheWrite(userId, corpus)
+		return corpus
+	}
 }
 
 
@@ -760,20 +724,19 @@ function appendCorpus(userId, data) {
 	return new Promise( (resolve, reject) => {
 		if (fs.readdirSync(`./cache`).includes(`${userId}.txt`)) { // Corpus is in cache
 			fs.appendFile(`./cache/${userId}.txt`, data, err => { // Append the new data to it
-				(err) ? reject(err) : resolve()
+				if (err) reject(err)
+			})
+		} else if (userIdCache.includes(userId)) {
+			// Download the corpus from S3, add the new data to it, then cache it
+			s3read(userId).then(corpus => {
+				corpus += data
+				cacheWrite(userId, corpus)
+				resolve(corpus)
 			})
 		} else {
-			if (userIdCache.includes(userId)) {
-				s3read(userId) // Download the corpus from S3, add the new data to it, cache it
-					.then(corpus => {
-						corpus += data
-						cacheWrite(userId, corpus)
-						resolve(corpus)
-					})
-			} else {
-				cacheWrite(userId, data) // User doesn't exist; make them a new corpus from just the new data
-				resolve(data)
-			}
+			// User doesn't exist; make them a new corpus from just the new data
+			cacheWrite(userId, data)
+			resolve(data)
 		}
 	})
 }
@@ -804,12 +767,9 @@ function cacheWrite(filename, data) {
 function cacheRead(filename) {
 	return new Promise( (resolve, reject) => {
 		fs.readFile(`./cache/${filename}.txt`, "UTF-8", (err, data) => {
-			if (err)
-				reject(err)
-			else if (data === "")
-				reject( { code: "ENOENT" } )
-			else
-				resolve(data)
+			if (err) return reject(err)
+			if (data === "") return reject( { code: "ENOENT" } )
+			resolve(data)
 		})
 	})
 }
@@ -837,6 +797,8 @@ function status(code) {
 
 
 /**
+ * TODO: make this not comically unreadable
+ * 
  * @param {string} mention - a string like "<@1234567891234567>"
  * @return {string} user ID
  */
@@ -845,7 +807,7 @@ function mentionToUserId(mention) {
 		? mention.slice(
 			(mention.charAt(2) === "!")
 				? 3
-				: 2 // TODO: make this not comically unreadable
+				: 2
 			, -1
 		)
 		: null
@@ -927,25 +889,23 @@ function location(message) {
  *     channelTable(config.SPEAKING_CHANNELS)
  *         .then(console.table)
  */
-function channelTable(channelDict) {
-	return new Promise( (resolve, reject) => {
-		if (config.DISABLE_LOGS)
-			return resolve({})
-		
-		if (isEmpty(channelDict))
-			return reject("No channels are whitelisted.")
+async function channelTable(channelDict) {
+	if (config.DISABLE_LOGS)
+		return {}
+	
+	if (isEmpty(channelDict))
+		throw "No channels are whitelisted."
 
-		const stats = {}
-		for (const i in channelDict) {
-			const channelId = channelDict[i]
-			const channel = client.channels.get(channelId)
-			const stat = {}
-			stat["Server"] = channel.guild.name
-			stat["Name"] = "#" + channel.name
-			stats[channelId] = stat
-		}
-		resolve(stats)
-	})
+	const stats = {}
+	for (const i in channelDict) {
+		const channelId = channelDict[i]
+		const channel = client.channels.get(channelId)
+		const stat = {}
+		stat["Server"] = channel.guild.name
+		stat["Name"] = "#" + channel.name
+		stats[channelId] = stat
+	}
+	return stats
 }
 
 
@@ -960,49 +920,45 @@ function channelTable(channelDict) {
  *     nicknameTable(config.NICKNAMES)
  *         .then(console.table)
  */
-function nicknameTable(nicknameDict) {
-	return new Promise( (resolve, reject) => {
-		if (config.DISABLE_LOGS)
-			return resolve({})
-		
-		if (isEmpty(nicknameDict))
-			return reject("No nicknames defined.")
+async function nicknameTable(nicknameDict) {
+	if (config.DISABLE_LOGS)
+		return {}
+	
+	if (isEmpty(nicknameDict))
+		throw "No nicknames defined."
 
-		const stats = {}
-		for (const serverName in nicknameDict) {
-			const [ serverId, nickname ] = nicknameDict[serverName]
-			const server = client.guilds.get(serverId)
-			const stat = {}
-			stat["Server"] = server.name
-			stat["Intended"] = nickname
-			stat["De facto"] = server.me.nickname
-			stats[serverId] = stat
-		}
-		resolve(stats)
-	})
+	const stats = {}
+	for (const serverName in nicknameDict) {
+		const [ serverId, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverId)
+		const stat = {}
+		stat["Server"] = server.name
+		stat["Intended"] = nickname
+		stat["De facto"] = server.me.nickname
+		stats[serverId] = stat
+	}
+	return stats
 }
 
 
-function userTable(userIds) {
-	return new Promise( async (resolve, reject) => {
-		if (config.DISABLE_LOGS)
-			return resolve({})
-		
-		if (!userIds || userIds.length === 0)
-			return reject("No user IDs defined.")
+async function userTable(userIds) {
+	if (config.DISABLE_LOGS)
+		return {}
+	
+	if (!userIds || userIds.length === 0)
+		throw "No user IDs defined."
 
-		// If it's a single value, wrap it in an array
-		if (!Array.isArray(userIds)) userIds = [userIds]
+	// If userIds a single value, wrap it in an array
+	if (!Array.isArray(userIds)) userIds = [userIds]
 
-		const stats = {}
-		for (const userId of userIds) {
-			const user = await client.fetchUser(userId)
-			const stat = {}
-			stat["Username"] = user.tag
-			stats[userId] = stat
-		}
-		resolve(stats)
-	})
+	const stats = {}
+	for (const userId of userIds) {
+		const user = await client.fetchUser(userId)
+		const stat = {}
+		stat["Username"] = user.tag
+		stats[userId] = stat
+	}
+	return stats
 }
 
 
@@ -1015,7 +971,8 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	client.fetchUser("206235904644349953") // Yes, I hardcoded my own user ID. I'm sorry.
+	// Yes, I hardcoded my own user ID. I'm sorry.
+	client.fetchUser("206235904644349953")
 		.then(me => me.send(sendThis))
 		.catch(console.error)
 }
@@ -1043,26 +1000,16 @@ function httpsDownload(url) {
  * @param {string} phrase - Input string
  * @return {Promise<string|Error>} Resolve: filtered string; Reject: Error
  */
-function cleanse(phrase) {
-	return new Promise( (resolve, reject) => {
-		if (!config.BAD_WORDS) return resolve(phrase)
+async function cleanse(phrase) {
+	if (!config.BAD_WORDS) return phrase
 
-		let words = phrase.split(" ")
-		try {
-			words = words.filter(word => { // Remove bad words
-				!(config.BAD_WORDS
-					.includes(
-						word
-						.toLowerCase()
-						.replace("\n", "")
-					)
-				)
-			})
-		} catch (err) {
-			reject(err)
-		}
-		resolve(words.join(" "))
+	let words = phrase.split(" ")
+	words = words.filter(word => {
+		word = word.toLowerCase().replace("\n", "")
+		return !config.BAD_WORDS.includes(word)
 	})
+
+	return words.join(" ")
 }
 
 
