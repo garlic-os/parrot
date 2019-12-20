@@ -10,6 +10,7 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 | `S3_BUCKET_NAME` | The name of the S3 bucket Bipolar will look for files in. | `my-s3-bucket` | `undefined` (**Required**) |
 | `AWS_ACCESS_KEY_ID` | The token you get when you make an AWS user. This user needs R/W access to the S3 bucket you will use. | `R4AE78IHSJNVUFFRUPQN` | `undefined` (**Required**) |
 | `AWS_SECRET_ACCESS_KEY` | Like part 2 for above?? idk completely how this works tbh but you need them both. | `S35s9WTHRgsoz5Ehh7cacGjjToLie7jcdS4vwpFs` | `undefined` (**Required**) |
+| `AWS_REGION` | The region your S3 bucket is in. | `us-east-1` | `undefined` (**Required**) |
 | `PREFIX` | Command prefix. | `\|` (e.g. `\|imitate me`) | `\|` |
 | `CORPUS_DIR` | The S3 directory that Bipolar will store corpi in. | `bipolar/corpus` | `undefined` (**Required**) |
 | `EMBED_COLORS` | A JSON-encoded dictionary of colors for `normal` and `error`. | `{"normal":"#A755B5", "error":"#FF3636"}` | `{"normal":"#A755B5", "error":"#FF3636"}` |
