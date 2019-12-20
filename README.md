@@ -27,4 +27,4 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 - Keep data per server separate
 - "Forget" command to delete the data on that user (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limiting to mitigate spam
-- ~~Make Bipolar stop DM'ing me "Specified key is not defined" every five hours~~ Fixed in the latest update! (Probably!)
+- I probably need to split `index.js` into more files again
