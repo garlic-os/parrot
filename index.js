@@ -39,7 +39,7 @@ if (config.DISABLE_LOGS) {
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
 	saveCache()
-		.then(count => console.info(log.save(count)))
+		.then(savedCount => console.info(log.save(savedCount)))
 })
 
 // Requirements
@@ -463,6 +463,7 @@ async function handleCommands(message) {
 			message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
 				.then(log.embed)
 
+
 			scrape(channel, howManyMessages)
 				.then(messagesAdded => {
 					message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
@@ -483,8 +484,10 @@ async function handleCommands(message) {
 				// If there turns out there is no mention, use a random ID instead
 				userId = (args[0].toLowerCase() === "me")
 					? message.author.id
-					: mentionToUserId(args[0]) || randomUserId()
-			} else {
+					: mentionToUserId(args[0])
+			}
+			
+			if (!args[0] || !userId) {
 				userId = randomUserId()
 			}
 
