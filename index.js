@@ -258,9 +258,14 @@ async function generateSentence(userId) {
 
 async function imitate(userId, channel) {
 	const sentence = await generateSentence(userId)
-	const embed = await embeds.imitate(userId, sentence, channel)
-	channel.send(embed)
-		.then(log.imitate)
+	try {
+		const embed = await embeds.imitate(userId, sentence, channel)
+		channel.send(embed)
+			.then(log.imitate)
+	} catch (err) {
+		channel.send(embeds.error(err))
+			.then(log.error)
+	}
 }
 
 
