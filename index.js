@@ -483,18 +483,17 @@ async function handleCommands(message) {
 			break
 
 		case "imitate":
-			let userId
+			let userId = args[0]
 
 			if (args[0]) {
 				// If args[0] is "me", use the sender's ID.
-				// Otherwise, if it can be a number, use it as an ID.
+				// Otherwise, if it is a number, use it as an ID.
 				// If it can't be a number, maybe it's a <@ping>. Try to convert it.
 				// If it's not actually a ping, use a random ID.
 				if (args[0].toLowerCase() === "me") {
 					userId = message.author.id
 				} else {
-					userId = parseInt(args[0])
-					if (isNaN(userId))
+					if (isNaN(args[0]))
 						userId = mentionToUserId(args[0]) || randomUserId()
 				}
 			} else {
