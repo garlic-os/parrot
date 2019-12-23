@@ -34,18 +34,11 @@ module.exports = embedColors => {
 				avatarURL = member.user.displayAvatarURL
 				name = member.displayName
 			} catch (err) {
-				try {
-					// If Bipolar can't get the user from the server,
-					// maybe she knows the user from somewhere else.
-					const user = await client.fetchUser(userId)
-					avatarURL = user.avatarURL
-					name = user.username
-				} catch (err) {
-					// If all else fails, use the user's ID for their name
-					// and Bipolar's own profile picture.
-					avatarURL = client.user.avatarURL
-					name = userId
-				}
+				// If Bipolar can't get the user from the server,
+				// use the user's ID for their name
+				// and Bipolar's own profile picture.
+				avatarURL = client.user.avatarURL
+				name = userId
 			}
 
 			const embed = new RichEmbed()
