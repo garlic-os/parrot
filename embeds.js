@@ -37,7 +37,7 @@ module.exports = embedColors => {
 				// If Bipolar can't get the user from the server,
 				// use the user's ID for their name
 				// and Bipolar's own profile picture.
-				avatarURL = client.user.avatarURL
+				avatarURL = "https://images.discordapp.net/avatars/627605570127659064/d6f4203145b24bead2ec5230fbebb016.png?size=1024"
 				name = userId
 			}
 
