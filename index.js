@@ -367,6 +367,8 @@ async function filterUndefineds(userIds) {
 			corpus = await s3read(userId)
 		}
 
+		console.debug('[*] corpus preview:', corpus.substring(0, 25))
+
 		if (corpus.startsWith("undefined")) {
 			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
 
@@ -484,19 +486,23 @@ async function handleCommands(message) {
 			let userId
 
 			if (args[0]) {
-				// If arg is "me", use the sender's own ID
-				// Else, try to find a user ID from a mention
-				// If there turns out there is no mention, use a random ID instead
-				userId = (args[0].toLowerCase() === "me")
-					? message.author.id
-					: mentionToUserId(args[0])
-			}
-			
-			if (!args[0] || !userId) {
+				// If args[0] is "me", use the sender's ID.
+				// Otherwise, if it can be a number, use it as an ID.
+				// If it can't be a number, maybe it's a <@ping>. Try to convert it.
+				// If it's not actually a ping, use a random ID.
+				if (args[0].toLowerCase() === "me") {
+					userId = message.author.id
+				} else {
+					userId = parseInt(args[0])
+					if (isNaN(userId))
+						userId = mentionToUserId(args[0]) || randomUserId()
+				}
+			} else {
 				userId = randomUserId()
 			}
 
-			if (userId === client.user.id) { // Bipolar can't imitate herself
+			// Bipolar can't imitate herself
+			if (userId === client.user.id) {
 				message.channel.send(embeds.xok)
 					.then(log.xok)
 				break
@@ -536,15 +542,13 @@ async function handleCommands(message) {
 				.then(log.say)
 			break
 
-		case "filter":
+		/*case "filter":
 		case "cleanse":
 			if (!admin) break
 
 			const userIds = (args.length > 0)
 				? args
 				: userIdCache
-
-			console.debug("[*] userIdCache.length:", userIdCache.length)
 
 			const found = await filterUndefineds(userIds)
 
@@ -558,6 +562,7 @@ async function handleCommands(message) {
 
 			message.channel.send(embeds.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
 				.then(log.say)
+			break*/
 	}
 	return command
 }
