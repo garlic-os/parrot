@@ -24,11 +24,34 @@ module.exports = embedColors => {
 		 * @return {RichEmbed} Discord Rich Embed object
 		 */
 		imitate: async (userId, quote, channel) => {
-			const member = await channel.guild.fetchMember(userId)
+			let avatarURL
+			let name
+
+			try {
+				// Try to get the information from the server the user is in,
+				// so that Bipolar can use the user's nickname.
+				const member = await channel.guild.fetchMember(userId)
+				avatarURL = member.user.displayAvatarURL
+				name = member.displayName
+			} catch (err) {
+				try {
+					// If Bipolar can't get the user from the server,
+					// maybe she knows the user from somewhere else.
+					const user = await client.fetchUser(userId)
+					avatarURL = user.avatarURL
+					name = user.username
+				} catch (err) {
+					// If all else fails, use the user's ID for their name
+					// and Bipolar's own profile picture.
+					avatarURL = client.user.avatarURL
+					name = userId
+				}
+			}
+
 			const embed = new RichEmbed()
 				.setColor(embedColors.normal)
-				.setThumbnail(member.user.displayAvatarURL)
-				.addField(member.displayName, quote)
+				.setThumbnail(avatarURL)
+				.addField(name, quote)
 			return embed
 		},
 
