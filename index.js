@@ -84,9 +84,15 @@ if (config.BAD_WORDS_URL) {
 const log = {
 	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
 	, embed:   message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
-	, imitate: message => console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
+	, imitate: message => {
+		const text = message.content
+		if (process.env.PLAIN_TEXT)
+			console.log(`${location(message)} Imitated ${text.substring(0, text.indexOf(" "))}, saying: ${text.substring(text.indexOf(`like "`), text.indexOf(`"\nhttps`))}`)
+		else
+			console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
+	}
 	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
-	, xok:     message => console.log(`${location(message)} Send the XOK message`)
+	, xok:     message => console.log(`${location(message)} Sent the XOK message`)
 	, help:    message => console.log(`${location(message)} Sent the Help message`)
 	, save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
 }
@@ -367,8 +373,6 @@ async function filterUndefineds(userIds) {
 			corpus = await s3read(userId)
 		}
 
-		console.debug('[*] corpus preview:', corpus.substring(0, 25))
-
 		if (corpus.startsWith("undefined")) {
 			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
 
@@ -389,7 +393,6 @@ async function filterUndefineds(userIds) {
 			})
 		)
 	}
-	console.debug('[*]', promises.length)
 	await Promise.all(promises)
 	return found
 }
@@ -570,7 +573,7 @@ async function handleCommands(message) {
 /**
  * Sets the custom nicknames from the config file
  * 
- * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: nothing (there was an error)
+ * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: array of errors
  */
 async function updateNicknames(nicknameDict) {
 	const errors = []
@@ -599,21 +602,18 @@ async function updateNicknames(nicknameDict) {
  * @param {string} userId - ID of corpus to download from the S3 bucket
  * @return {Promise<Buffer|Error>} Resolve: Buffer from bucket; Reject: error
  */
-function s3read(userId) {
-	return new Promise( (resolve, reject) => {
-		const params = {
-			Bucket: process.env.S3_BUCKET_NAME, 
-			Key: `${config.CORPUS_DIR}/${userId}.txt`
-		}
-		s3.getObject(params, (err, data) => {
-			if (err) return reject(err)
+async function s3read(userId) {
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME, 
+		Key: `${config.CORPUS_DIR}/${userId}.txt`
+	}
 
-			if (data.Body === undefined || data.Body === null)
-				return reject(`Empty response at path: ${path}`)
+	const res = await s3.getObject(params).promise()
 
-			resolve(data.Body.toString()) // Convert Buffer to string
-		})
-	})
+	if (res.Body === undefined || res.Body === null)
+		throw `Empty response at path: ${path}`
+
+	return res.Body.toString() // Convert Buffer to string
 }
 
 
@@ -623,37 +623,30 @@ function s3read(userId) {
  * @param {string} userId - user ID's corpus to upload/overwrite
  * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
  */
-function s3write(userId, data) {
-	return new Promise( (resolve, reject) => {
-		const params = {
-			Bucket: process.env.S3_BUCKET_NAME,
-			Key: `${config.CORPUS_DIR}/${userId}.txt`,
-			Body: Buffer.from(data, "UTF-8")
-		}
-		s3.upload(params, (err, res) => {
-			(err) ? reject(err) : resolve(res)
-		})
-	})
+async function s3write(userId, data) {
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME,
+		Key: `${config.CORPUS_DIR}/${userId}.txt`,
+		Body: Buffer.from(data, "UTF-8")
+	}
+	return await s3.upload(params).promise()
 }
 
 
 /**
  * Compiles a list of all the IDs inside 
  */
-function s3listUserIds() {
-	return new Promise( (resolve, reject) => {
-		const params = {
-			Bucket: process.env.S3_BUCKET_NAME,
-			Prefix: config.CORPUS_DIR,
-		}
-		s3.listObjectsV2(params, (err, res) => {
-			if (err) return reject(err)
-			const userIds = res.Contents.map( ({ Key }) => {
-				// Remove file extension and preceding path
-				return path.basename(Key.replace(/\.[^/.]+$/, ""))
-			})
-			resolve(userIds)
-		})
+async function s3listUserIds() {
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME,
+		Prefix: config.CORPUS_DIR,
+	}
+	
+	const res = await s3.listObjectsV2(params).promise()
+
+	return res.Contents.map( ({ Key }) => {
+		// Remove file extension and preceding path
+		return path.basename(Key.replace(/\.[^/.]+$/, ""))
 	})
 }
 
