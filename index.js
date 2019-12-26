@@ -269,6 +269,7 @@ async function imitate(userId, channel) {
 		channel.send(embed)
 			.then(log.imitate)
 	} catch (err) {
+		logError(err)
 		channel.send(embeds.error(err))
 			.then(log.error)
 	}
@@ -480,6 +481,7 @@ async function handleCommands(message) {
 						.then(log.embed)
 				})
 				.catch(err => {
+					logError(err)
 					message.channel.send(embeds.error(err))
 						.then(log.error)
 				})
@@ -544,7 +546,7 @@ async function handleCommands(message) {
 				.then(log.say)
 			break
 
-		/*case "filter":
+		case "filter":
 		case "cleanse":
 			if (!admin) break
 
@@ -564,7 +566,7 @@ async function handleCommands(message) {
 
 			message.channel.send(embeds.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
 				.then(log.say)
-			break*/
+			break
 	}
 	return command
 }
