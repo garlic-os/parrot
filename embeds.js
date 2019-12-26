@@ -41,6 +41,20 @@ module.exports = embedColors => {
 				name = userId
 			}
 
+			avatarURL = avatarURL.replace("?size=2048", "?size=256")
+
+			if (process.env.PLAIN_TEXT) {
+				avatarURL = avatarURL.replace("?size=256", "?size=64")
+				for (const word of quote.split(" ")) {
+					const inTextUserId = mentionToUserId(word)
+					if (inTextUserId) {
+						const inTextMember = await channel.guild.fetchMember(inTextUserId)
+						quote = quote.replace(word, `@${inTextMember.user.tag}`)
+					}
+				}
+				return `${name} be like "${quote}"\n${avatarURL}`
+			}
+
 			const embed = new RichEmbed()
 				.setColor(embedColors.normal)
 				.setThumbnail(avatarURL)
@@ -72,4 +86,16 @@ module.exports = embedColors => {
 			.setTitle("Error")
 			.setImage("attachment://xok.png")
 	}
+}
+
+
+function mentionToUserId(mention) {
+	return (mention.startsWith("<@") && mention.endsWith(">"))
+		? mention.slice(
+			(mention.charAt(2) === "!")
+				? 3
+				: 2
+			, -1
+		)
+		: null
 }
