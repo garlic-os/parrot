@@ -11,7 +11,7 @@ module.exports = embedColors => {
 		standard: str => {
 			return new RichEmbed()
 				.setColor(embedColors.normal)
-				.addField("Bipolar", str)
+				.addField("Schism", str)
 		},
 
 
@@ -29,14 +29,14 @@ module.exports = embedColors => {
 
 			try {
 				// Try to get the information from the server the user is in,
-				// so that Bipolar can use the user's nickname.
+				// so that Schism can use the user's nickname.
 				const member = await channel.guild.fetchMember(userId)
 				avatarURL = member.user.displayAvatarURL
 				name = member.displayName
 			} catch (err) {
-				// If Bipolar can't get the user from the server,
+				// If Schism can't get the user from the server,
 				// use the user's ID for their name
-				// and Bipolar's own profile picture.
+				// and Schism's own profile picture.
 				avatarURL = "https://discordapp.com/assets/322c936a8c8be1b803cd94861bdfa868.png"
 				name = userId
 			}
