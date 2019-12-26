@@ -52,7 +52,7 @@ module.exports = embedColors => {
 						quote = quote.replace(word, `@${inTextMember.user.tag}`)
 					}
 				}
-				return `${name} be like "${quote}"\n${avatarURL}`
+				return `${name} be like:\n_${quote}_\n${avatarURL}`
 			}
 
 			const embed = new RichEmbed()
