@@ -1,10 +1,12 @@
+"use strict"
+
 /**
  * A generator that makes Markov chain sentences.
  * I didn't make this, but the lengths they
  *   managed to go in the name of efficiency is insane.
  * 
  * I have heavily modified it to be better for one-time use,
- *   since Bipolar will typically only use a Markov once before
+ *   since Schism will typically only use a Markov once before
  *   throwing it away and regenerating it with new data.
  * 
  * @param {string} corpus - big body of text to make a new, similar-sounding sentence from
