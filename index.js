@@ -269,7 +269,7 @@ async function imitate(userId, channel) {
 		channel.send(embed)
 			.then(log.imitate)
 	} catch (err) {
-		logError(err)
+		logError(`${err}\nuserId: ${userId}`)
 		channel.send(embeds.error(err))
 			.then(log.error)
 	}
