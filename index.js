@@ -49,7 +49,6 @@ const log = {
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag}.`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
   , blurt:   message => console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-  , learned: message => console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
 }
 
 
@@ -186,7 +185,7 @@ client.on("message", async message => {
 						if (!userIDCache.includes(authorID))
 							userIDCache.push(authorID)
 
-						log.learned(message)
+						console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
