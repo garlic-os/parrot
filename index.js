@@ -870,6 +870,12 @@ async function channelTable(channelDict) {
 	for (const i in channelDict) {
 		const channelID = channelDict[i]
 		const channel = client.channels.get(channelID)
+
+		if (!channel) {
+			logError(`channelTable() non-fatal error: could not find a channel with the ID ${channelID}`)
+			continue
+		}
+
 		const stat = {}
 		stat["Server"] = channel.guild.name
 		stat["Name"] = "#" + channel.name
@@ -900,6 +906,12 @@ async function nicknameTable(nicknameDict) {
 	for (const serverName in nicknameDict) {
 		const [ serverID, nickname ] = nicknameDict[serverName]
 		const server = client.guilds.get(serverID)
+
+		if (!server) {
+			logError(`nicknameTable() non-fatal error: could not find a server with the ID ${serverID}`)
+			continue
+		}
+
 		const stat = {}
 		stat["Server"] = server.name
 		stat["Intended"] = nickname
@@ -933,6 +945,12 @@ async function userTable(userIDs) {
 	const stats = {}
 	for (const userID of userIDs) {
 		const user = await client.fetchUser(userID)
+
+		if (!user) {
+			logError(`userTable() non-fatal error: could not find a user with the ID ${userID}`)
+			continue
+		}
+
 		const stat = {}
 		stat["Username"] = user.tag
 		stats[userID] = stat
