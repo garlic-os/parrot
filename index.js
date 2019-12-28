@@ -35,22 +35,41 @@ if (config.DISABLE_LOGS) {
 	})
 }
 
+
+const log = {
+    say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
+  , imitate: {
+    	text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
+    	hook: hookRes => console.log(`${location(hookRes)} Under the name "${hookRes.author.username}", said: ${hookRes.content}`)
+	}
+  , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
+  , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
+  , help:    message => console.log(`${location(message)} Sent the Help message.`)
+  , save:    count   => console.log(`Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`)
+  , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag}.`)
+  , command: message => console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
+  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
+  , learned: message => console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
+}
+
+
 // (Hopefully) save and clear cache before shutting down
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
 	cache.save()
-		.then(savedCount => console.info(log.save(savedCount)))
+		.then(savedCount => log.save(savedCount))
 })
 
 // Requirements
 const fs      = require("fs")
     , Discord = require("discord.js")
-	, cache   = require("./schism/cache")
-    , embeds  = require("./schism/embeds")(config.EMBED_COLORS)
-	, help    = require("./schism/help")
-	, log     = require("./schism/log")
-	, markov  = require("./schism/markov")
-	, s3      = require("./schism/s3")(config)
+	, cache   = require("./cache")
+    , embeds  = require("./embeds")(config.EMBED_COLORS)
+	, help    = require("./help")
+	, log     = require("./log")(config.DISABLE_LOGS)
+	, markov  = require("./markov")
+	, s3      = require("./s3")(config)
+
 
 // Array of promises
 // Do all these things before logging in
@@ -88,19 +107,19 @@ client.on("ready", () => {
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
-	log.channelTable(config.SPEAKING_CHANNELS).then(table => {
+	log.channelTable(client, config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	log.channelTable(config.LEARNING_CHANNELS).then(table => {
+	log.channelTable(client, config.LEARNING_CHANNELS).then(table => {
 		console.info("Learning in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	log.nicknameTable(config.NICKNAMES).then(table => {
+	log.nicknameTable(client, config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
@@ -433,7 +452,7 @@ async function handleCommands(message) {
 				}
 			}
 			message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
-				.then(log.say)
+				.then(log.help)
 			break
 
 
@@ -550,7 +569,7 @@ async function handleCommands(message) {
 			const found = await filterUndefineds(userIDs)
 
 			if (found.length > 0) {
-				log.userTable(found).then(table => {
+				log.userTable(client, found).then(table => {
 					console.info("Users filtered:")
 					console.table(table)
 				})
@@ -830,6 +849,138 @@ async function disablePings(sentence) {
 	}
 	return words.join(" ")
 }
+
+	
+/**
+ * Generate an object containing stats about
+ *   all the channels in the given dictionary.
+ * 
+ * @param {Object} channelDict - Dictionary of channels
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * 
+ * @example
+ *     channelTable(config.SPEAKING_CHANNELS)
+ *         .then(console.table)
+ */
+async function channelTable(channelDict) {
+	if (config.DISABLE_LOGS) return {}
+	
+	if (isEmpty(channelDict))
+		throw "No channels are whitelisted."
+
+	const stats = {}
+	for (const i in channelDict) {
+		const channelID = channelDict[i]
+		const channel = client.channels.get(channelID)
+		const stat = {}
+		stat["Server"] = channel.guild.name
+		stat["Name"] = "#" + channel.name
+		stats[channelID] = stat
+	}
+	return stats
+}
+
+
+/**
+ * Generate an object containing stats about
+ *   all the nicknames Schism has.
+ * 
+ * @param {Object} nicknameDict - Dictionary of nicknames
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * 
+ * @example
+ *     nicknameTable(config.NICKNAMES)
+ *         .then(console.table)
+ */
+async function nicknameTable(nicknameDict) {
+	if (config.DISABLE_LOGS) return {}
+	
+	if (isEmpty(nicknameDict))
+		throw "No nicknames defined."
+
+	const stats = {}
+	for (const serverName in nicknameDict) {
+		const [ serverID, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverID)
+		const stat = {}
+		stat["Server"] = server.name
+		stat["Intended"] = nickname
+		stat["De facto"] = server.me.nickname
+		stats[serverID] = stat
+	}
+	return stats
+}
+
+
+/**
+ * Generate an object containing stats about
+ *   the supplied array of user IDs.
+ * 
+ * @param {string[]} userIDs - Array of user IDs
+ * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * 
+ * @example
+ *     userTable(["2547230987459237549", "0972847639849352398"])
+ *         .then(console.table)
+ */
+async function userTable(userIDs) {
+	if (config.DISABLE_LOGS) return {}
+	
+	if (!userIDs || userIDs.length === 0)
+		throw "No user IDs defined."
+
+	// If userIDs a single value, wrap it in an array
+	if (!Array.isArray(userIDs)) userIDs = [userIDs]
+
+	const stats = {}
+	for (const userID of userIDs) {
+		const user = await client.fetchUser(userID)
+		const stat = {}
+		stat["Username"] = user.tag
+		stats[userID] = stat
+	}
+	return stats
+}
+
+
+/**
+ * Utility function that produces a string containing the
+ *   place the message came from.
+ * 
+ * @param {Message} message - message object, like from channel.send() or on-message
+ * @return {string} "[Server - #channel]" format string
+ */
+function location(message) {
+	if (message.hasOwnProperty("channel")) {
+		const type = message.channel.type
+		if (type === "text") {
+			return `[${message.guild.name} - #${message.channel.name}]`
+		} else if (type === "dm") {
+			return `[Direct message]`
+		} else {
+			return `[Unknown: ${type}]`
+		}
+	} else {
+		const channel = client.channels.get(message.channel_id)
+		return `[${channel.guild.name} - #${channel.name}]`
+	}
+}
+
+
+/**
+ * Is [obj] empty?
+ * 
+ * @param {Object} obj
+ * @return {Boolean} empty or not
+ */
+function isEmpty(obj) {
+	for (const key in obj) {
+		if (obj.hasOwnProperty(key))
+			return false
+	}
+	return true
+}
+
 
 
 // --- /FUNCTIONS -------------------------------------------
