@@ -39,18 +39,18 @@ if (config.DISABLE_LOGS) {
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
 	cache.save()
-		.then(savedCount => log.save(savedCount))
+		.then(savedCount => console.info(log.save(savedCount)))
 })
 
 // Requirements
 const fs      = require("fs")
     , Discord = require("discord.js")
-	, cache   = require("./cache")
-    , embeds  = require("./embeds")(config.EMBED_COLORS)
-	, help    = require("./help")
-	, log     = require("./log")
-	, markov  = require("./markov")
-	, s3      = require("./s3")(config)
+	, cache   = require("./schism/cache")
+    , embeds  = require("./schism/embeds")(config.EMBED_COLORS)
+	, help    = require("./schism/help")
+	, log     = require("./schism/log")
+	, markov  = require("./schism/markov")
+	, s3      = require("./schism/s3")(config)
 
 // Array of promises
 // Do all these things before logging in
@@ -402,7 +402,7 @@ async function filterUndefineds(userIDs) {
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
  */
 async function handleCommands(message) {
-	if (message.author.bot) return resolve(null)
+	if (message.author.bot) return null
 
 	log.command(message)
 
