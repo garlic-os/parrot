@@ -67,10 +67,10 @@ const init = []
 init.push(ensureDirectory("./cache"))
 
 // Cache a list of user IDs to cut down on S3 requests
-const userIdCache = []
-init.push(s3listUserIds().then(userIds => {
-	for (const userId of userIds) {
-		userIdCache.push(userId)
+const userIDCache = []
+init.push(s3listUserIDs().then(userIDs => {
+	for (const userID of userIDs) {
+		userIDCache.push(userID)
 	}
 }))
 
@@ -82,14 +82,10 @@ if (config.BAD_WORDS_URL) {
 
 // Reusable log messages
 const log = {
-	  say:     message => console.log(`${location(message)} Said: ${message.content}`)
-	, embed:   message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
-	, imitate: message => {
-		const text = message.content
-		if (process.env.PLAIN_TEXT)
-			console.log(`${location(message)} Imitated ${text.substring(0, text.indexOf(" "))}, saying: ${text.substring(text.indexOf(`like "`), text.indexOf(`"\nhttps`))}`)
-		else
-			console.log(`${location(message)} Imitated ${message.embeds[0].fields[0].name}, saying: ${message.embeds[0].fields[0].value}`)
+	  say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
+	, imitate: {
+		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
+		hook: hookRes => console.log(`${location(hookRes)} Under the name "${hookRes.author.username}", said: ${hookRes.content}`)
 	}
 	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
 	, xok:     message => console.log(`${location(message)} Sent the XOK message`)
@@ -101,6 +97,7 @@ const buffers = {},
       unsavedCache = []
 
 const client = new Discord.Client()
+const hooks = parseHooksDict(config.HOOKS)
 
 // --- LISTENERS ---------------------------------------------
 
@@ -128,15 +125,16 @@ client.on("ready", () => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
-	.catch(console.warn)
+	.catch(console.info)
 
 })
 
 
 client.on("message", async message => {
-	const authorId = message.author.id
+	const authorID = message.author.id
 
-	if (!isBanned(authorId) // Not banned from using Bipolar
+	if (!isBanned(authorID) // Not banned from using Schism
+	   && !isHook(authorID)
 	   && (canSpeakIn(message.channel.id) // Channel is either whitelisted or is a DM channel
 		  || message.channel.type === "dm")
 	   && message.author.id !== client.user.id) { // Not self
@@ -146,8 +144,8 @@ client.on("message", async message => {
 		   && !message.author.bot // Not a bot
 		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
 			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
-			const userId = randomUserId()
-			imitate(userId, message.channel)
+			const userID = randomUserID()
+			imitate(userID, message.channel)
 		}
 
 		// Command
@@ -160,8 +158,8 @@ client.on("message", async message => {
 			// Maybe imitate someone anyway
 			if (blurtChance()) {
 				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
-				const userId = randomUserId()
-				imitate(userId, message.channel)
+				const userID = randomUserID()
+				imitate(userID, message.channel)
 			}
 
 			if (learningIn(message.channel.id)
@@ -175,24 +173,24 @@ client.on("message", async message => {
 				 * then writes them all to cache in one fell swoop.
 				 * Messages will be saved for good come the next autosave.
 				 */
-				if (buffers.hasOwnProperty(authorId) && buffers[authorId].length > 0) {
-					buffers[authorId] += message.content + "\n"
+				if (buffers.hasOwnProperty(authorID) && buffers[authorID].length > 0) {
+					buffers[authorID] += message.content + "\n"
 
 				} else {
-					buffers[authorId] = message.content + "\n"
+					buffers[authorID] = message.content + "\n"
 					setTimeout( async () => {
-						const buffer = await cleanse(buffers[authorId])
+						const buffer = await cleanse(buffers[authorID])
 						if (buffer.length === 0) return
 
-						await appendCorpus(authorId, buffer)
-						if (!unsavedCache.includes(authorId))
-							unsavedCache.push(authorId)
+						await appendCorpus(authorID, buffer)
+						if (!unsavedCache.includes(authorID))
+							unsavedCache.push(authorID)
 
-						if (!userIdCache.includes(authorId))
-							userIdCache.push(authorId)
+						if (!userIDCache.includes(authorID))
+							userIDCache.push(authorID)
 
 						console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
-						buffers[authorId] = ""
+						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
 			}
@@ -244,17 +242,17 @@ Promise.all(init).then( () => {
 
 
 /**
- * Generates a sentence based off [userId]'s corpus
+ * Generates a sentence based off [userID]'s corpus
  * 
- * @param {string} userId - ID corresponding to a user to generate a sentence from
+ * @param {string} userID - ID corresponding to a user to generate a sentence from
  * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading user's corpus
  */
-async function generateSentence(userId) {
-	const corpus = await loadCorpus(userId)
+async function generateSentence(userID) {
+	const corpus = await loadCorpus(userID)
 	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 	const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
 	let sentence = await markov(corpus, wordCount, coherence)
-	sentence = sentence.substring(0, 1024) // Hard cap of 1024 characters (embed field limit)
+	sentence = sentence.substring(0, 512) // Hard cap of 512 characters (any longer is just too big)
 	if (!sentence || sentence.length === 0) {
 		logError("A sentence was 0 characters long. That is not supposed to happen.")
 	}
@@ -262,23 +260,41 @@ async function generateSentence(userId) {
 }
 
 
-async function imitate(userId, channel) {
-	const sentence = await generateSentence(userId)
+async function imitate(userID, channel) {
+	const sentence = await disablePings(await generateSentence(userID))
+
+	let avatarURL
+	let name
 	try {
-		const embed = await embeds.imitate(userId, sentence, channel)
-		channel.send(embed)
-			.then(log.imitate)
+		// Try to get the information from the server the user is in,
+		// so that Schism can use the user's nickname.
+		const member = await channel.guild.fetchMember(userID)
+		avatarURL = member.user.displayAvatarURL
+		name = member.displayName
 	} catch (err) {
-		logError(`${err}\nuserId: ${userId}`)
-		channel.send(embeds.error(err))
-			.then(log.error)
+		// If Schism can't get the user from the server,
+		// use the user's ID for their name
+		// and the default avatar.
+		avatarURL = "https://discordapp.com/assets/322c936a8c8be1b803cd94861bdfa868.png"
+		name = userID
+	}
+
+	const hook = hooks[channel.id]
+	if (hook) {
+		await hook.edit(`Not ${name}`, avatarURL)
+		hook.send(sentence)
+			.then(log.imitate.hook)
+	} else {
+		avatarURL = avatarURL.replace("?size=2048", "?size=64")
+		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
+			.then(message => log.imitate.text([message, name, sentence]))
 	}
 }
 
 
-function randomUserId() {
-	const index = ~~(Math.random() * userIdCache.length - 1)
-	return userIdCache[index]
+function randomUserID() {
+	const index = ~~(Math.random() * userIDCache.length - 1)
+	return userIDCache[index]
 }
 
 
@@ -301,10 +317,10 @@ function scrape(channel, goal) {
 	async function _getBatchOfMessages(fetchOptions) {
 		activeLoops++
 		const messages = await channel.fetchMessages(fetchOptions)
-		for (const userId in scrapeBuffers) {
-			if (scrapeBuffers[userId].length > 1000) {
-				appendCorpus(userId, scrapeBuffers[userId])
-				scrapeBuffers[userId] = ""
+		for (const userID in scrapeBuffers) {
+			if (scrapeBuffers[userID].length > 1000) {
+				appendCorpus(userID, scrapeBuffers[userID])
+				scrapeBuffers[userID] = ""
 			}
 		}
 
@@ -330,15 +346,15 @@ function scrape(channel, goal) {
 			if (messagesAdded >= goal) break
 			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
 			if (message.content) { // Make sure that it's not undefined
-				const authorId = message.author.id
-				scrapeBuffers[authorId] += message.content + "\n"
+				const authorID = message.author.id
+				scrapeBuffers[authorID] += message.content + "\n"
 				messagesAdded++
 
-				if (!unsavedCache.includes(authorId))
-					unsavedCache.push(authorId)
+				if (!unsavedCache.includes(authorID))
+					unsavedCache.push(authorID)
 
-				if (!userIdCache.includes(authorId))
-					userIdCache.push(authorId)
+				if (!userIDCache.includes(authorID))
+					userIDCache.push(authorID)
 			}
 		}
 		activeLoops--
@@ -348,8 +364,8 @@ function scrape(channel, goal) {
 	const whenDone = setInterval( () => {
 		if (activeLoops === 0) {
 			clearInterval(whenDone)
-			for (const userId in scrapeBuffers) {
-				appendCorpus(userId, scrapeBuffers[userId])
+			for (const userID in scrapeBuffers) {
+				appendCorpus(userID, scrapeBuffers[userID])
 			}
 			resolve(messagesAdded)
 		}
@@ -360,37 +376,37 @@ function scrape(channel, goal) {
 /**
  * Remove "undefined" from the beginning of any given corpus that has it.
  * 
- * @param {Array} userIds - array of user IDs to sort through
+ * @param {Array} userIDs - array of user IDs to sort through
  * @return {Promise<Array>} this never rejects lol. Resolve: array of user IDs where an "undefined" was removed
  */
-async function filterUndefineds(userIds) {
-	async function filter(userId) {
+async function filterUndefineds(userIDs) {
+	async function filter(userID) {
 		let corpus
 		let inCache = false
 		try {
-			corpus = await cacheRead(userId)
+			corpus = await cacheRead(userID)
 			inCache = true
 		} catch (e) {
-			corpus = await s3read(userId)
+			corpus = await s3read(userID)
 		}
 
 		if (corpus.startsWith("undefined")) {
 			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
 
 			(inCache)
-				? cacheWrite(userId, corpus)
-				: s3Write(userId, corpus)
+				? cacheWrite(userID, corpus)
+				: s3Write(userID, corpus)
 
-			return userId
+			return userID
 		}
 	}
 
 	const found = []
 	const promises = []
-	for (const userId of userIds) {
+	for (const userID of userIDs) {
 		promises.push(
-			filter(userId).then(userId => {
-				if (userId) found.push(userId)
+			filter(userID).then(userID => {
+				if (userID) found.push(userID)
 			})
 		)
 	}
@@ -402,8 +418,6 @@ async function filterUndefineds(userIds) {
 /**
  * Parses a message whose content is presumed to be a command
  *   and performs the corresponding action.
- * 
- * Here be dragons.
  * 
  * @param {Message} messageObj - Discord message to be parsed
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
@@ -440,7 +454,7 @@ async function handleCommands(message) {
 				}
 			}
 			message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
-				.then(log.embed)
+				.then(log.say)
 			break
 
 
@@ -472,13 +486,13 @@ async function handleCommands(message) {
 
 			// Resolve a starting message and a promise for an ending message
 			message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
-				.then(log.embed)
+				.then(log.say)
 
 
 			scrape(channel, howManyMessages)
 				.then(messagesAdded => {
 					message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
-						.then(log.embed)
+						.then(log.say)
 				})
 				.catch(err => {
 					logError(err)
@@ -488,7 +502,7 @@ async function handleCommands(message) {
 			break
 
 		case "imitate":
-			let userId = args[0]
+			let userID = args[0]
 
 			if (args[0]) {
 				// If args[0] is "me", use the sender's ID.
@@ -496,23 +510,23 @@ async function handleCommands(message) {
 				// If it can't be a number, maybe it's a <@ping>. Try to convert it.
 				// If it's not actually a ping, use a random ID.
 				if (args[0].toLowerCase() === "me") {
-					userId = message.author.id
+					userID = message.author.id
 				} else {
 					if (isNaN(args[0]))
-						userId = mentionToUserId(args[0]) || randomUserId()
+						userID = mentionToUserID(args[0]) || randomUserID()
 				}
 			} else {
-				userId = randomUserId()
+				userID = randomUserID()
 			}
 
-			// Bipolar can't imitate herself
-			if (userId === client.user.id) {
+			// Schism can't imitate herself
+			if (userID === client.user.id) {
 				message.channel.send(embeds.xok)
 					.then(log.xok)
 				break
 			}
 
-			imitate(userId, message.channel)
+			imitate(userID, message.channel)
 			break
 
 		case "embed":
@@ -550,11 +564,11 @@ async function handleCommands(message) {
 		case "cleanse":
 			if (!admin) break
 
-			const userIds = (args.length > 0)
+			const userIDs = (args.length > 0)
 				? args
-				: userIdCache
+				: userIDCache
 
-			const found = await filterUndefineds(userIds)
+			const found = await filterUndefineds(userIDs)
 
 			if (found.length > 0) {
 				userTable(found).then(table => {
@@ -581,10 +595,10 @@ async function updateNicknames(nicknameDict) {
 	const errors = []
 
 	for (const serverName in nicknameDict) {
-		const [ serverId, nickname ] = nicknameDict[serverName]
-		const server = client.guilds.get(serverId)
+		const [ serverID, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverID)
 		if (!server) {
-			console.warn(`Nickname configured for a server that Bipolar is not in. Nickname could not be set in ${serverName} (${serverId}).`)
+			console.warn(`Nickname configured for a server that Schism is not in. Nickname could not be set in ${serverName} (${serverID}).`)
 			continue
 		}
 		server.me.setNickname(nickname)
@@ -601,13 +615,13 @@ async function updateNicknames(nicknameDict) {
 /**
  * Downloads a file from S3_BUCKET_NAME.
  * 
- * @param {string} userId - ID of corpus to download from the S3 bucket
+ * @param {string} userID - ID of corpus to download from the S3 bucket
  * @return {Promise<Buffer|Error>} Resolve: Buffer from bucket; Reject: error
  */
-async function s3read(userId) {
+async function s3read(userID) {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: `${config.CORPUS_DIR}/${userId}.txt`
+		Key: `${config.CORPUS_DIR}/${userID}.txt`
 	}
 
 	const res = await s3.getObject(params).promise()
@@ -622,13 +636,13 @@ async function s3read(userId) {
 /**
  * Uploads (and overwrites) a corpus in S3_BUCKET_NAME.
  * 
- * @param {string} userId - user ID's corpus to upload/overwrite
+ * @param {string} userID - user ID's corpus to upload/overwrite
  * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
  */
-async function s3write(userId, data) {
+async function s3write(userID, data) {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
-		Key: `${config.CORPUS_DIR}/${userId}.txt`,
+		Key: `${config.CORPUS_DIR}/${userID}.txt`,
 		Body: Buffer.from(data, "UTF-8")
 	}
 	return await s3.upload(params).promise()
@@ -638,7 +652,7 @@ async function s3write(userId, data) {
 /**
  * Compiles a list of all the IDs inside 
  */
-async function s3listUserIds() {
+async function s3listUserIDs() {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Prefix: config.CORPUS_DIR,
@@ -663,10 +677,10 @@ async function saveCache() {
 	let savedCount = 0
 	const promises = []
 	while (unsavedCache.length > 0) {
-		const userId = unsavedCache.pop()
-		const corpus = await loadCorpus(userId)
+		const userID = unsavedCache.pop()
+		const corpus = await loadCorpus(userID)
 		promises.push(
-			s3write(userId, corpus)
+			s3write(userID, corpus)
 				.then(savedCount++)
 		)
 	}
@@ -697,24 +711,24 @@ function ensureDirectory(dir) {
 
 
 /**
- * Try to load the corpus corresponding to [userId] from cache.
+ * Try to load the corpus corresponding to [userID] from cache.
  * If the corpus isn't in cache, try to download it from S3.
  * If it isn't there either, give up.
  * 
- * @param {string} userId - user ID whose corpus to load
- * @return {Promise<corpus|Error>} Resolve: [userId]'s corpus; Reject: Error
+ * @param {string} userID - user ID whose corpus to load
+ * @return {Promise<corpus|Error>} Resolve: [userID]'s corpus; Reject: Error
  */
-async function loadCorpus(userId) {
+async function loadCorpus(userID) {
 	try {
-		return await cacheRead(userId) // Maybe the user's corpus is in cache
+		return await cacheRead(userID) // Maybe the user's corpus is in cache
 	} catch (err) {
 		if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
 			throw err              //   because it couldn't find the file
 
 		// Maybe the user's corpus is in the S3 bucket
 		// If not, the user is nowhere to be found (or something went wrong)
-		const corpus = await s3read(userId)
-		cacheWrite(userId, corpus)
+		const corpus = await s3read(userID)
+		cacheWrite(userID, corpus)
 		return corpus
 	}
 }
@@ -723,26 +737,26 @@ async function loadCorpus(userId) {
 /**
  * Add data to a user's corpus.
  * 
- * @param {string} userId - ID of the user whose corpus to add data to
+ * @param {string} userID - ID of the user whose corpus to add data to
  * @param {string} data - data to add
  * @return {Promise<void|Error} Resolve: nothing; Reject: Error
  */
-function appendCorpus(userId, data) {
+function appendCorpus(userID, data) {
 	return new Promise( (resolve, reject) => {
-		if (fs.readdirSync(`./cache`).includes(`${userId}.txt`)) { // Corpus is in cache
-			fs.appendFile(`./cache/${userId}.txt`, data, err => { // Append the new data to it
+		if (fs.readdirSync(`./cache`).includes(`${userID}.txt`)) { // Corpus is in cache
+			fs.appendFile(`./cache/${userID}.txt`, data, err => { // Append the new data to it
 				if (err) reject(err)
 			})
-		} else if (userIdCache.includes(userId)) {
+		} else if (userIDCache.includes(userID)) {
 			// Download the corpus from S3, add the new data to it, then cache it
-			s3read(userId).then(corpus => {
+			s3read(userID).then(corpus => {
 				corpus += data
-				cacheWrite(userId, corpus)
+				cacheWrite(userID, corpus)
 				resolve(corpus)
 			})
 		} else {
 			// User doesn't exist; make them a new corpus from just the new data
-			cacheWrite(userId, data)
+			cacheWrite(userID, data)
 			resolve(data)
 		}
 	})
@@ -809,7 +823,7 @@ function status(code) {
  * @param {string} mention - a string like "<@1234567891234567>"
  * @return {string} user ID
  */
-function mentionToUserId(mention) {
+function mentionToUserID(mention) {
 	return (mention.startsWith("<@") && mention.endsWith(">"))
 		? mention.slice(
 			(mention.charAt(2) === "!")
@@ -837,23 +851,32 @@ function has(val, obj) {
 }
 
 
-function isAdmin(userId) {
-	return has(userId, config.ADMINS)
+function isAdmin(userID) {
+	return has(userID, config.ADMINS)
 }
 
 
-function isBanned(userId) {
-	return has(userId, config.BANNED)
+function isBanned(userID) {
+	return has(userID, config.BANNED)
 }
 
 
-function canSpeakIn(channelId) {
-	return has(channelId, config.SPEAKING_CHANNELS)
+function isHook(userID) {
+	for (const key in config.HOOKS) {
+		if (config.HOOKS[key].hookID === userID)
+			return true
+	}
+	return false
 }
 
 
-function learningIn(channelId) {
-	return has(channelId, config.LEARNING_CHANNELS)
+function canSpeakIn(channelID) {
+	return has(channelID, config.SPEAKING_CHANNELS)
+}
+
+
+function learningIn(channelID) {
+	return has(channelID, config.LEARNING_CHANNELS)
 }
 
 
@@ -876,12 +899,22 @@ function isEmpty(obj) {
  * Shortcut to a reusable message location string
  * 
  * @param {Message} message
- * @return {string} - "[Server - #channel]" format string
+ * @return {string} "[Server - #channel]" format string
  */
 function location(message) {
-	return (message.channel.type == "dm")
-		? `[Direct message]`
-		: `[${message.guild.name} - #${message.channel.name}]`
+	if (message.hasOwnProperty("channel")) {
+		const type = message.channel.type
+		if (type === "text") {
+			return `[${message.guild.name} - #${message.channel.name}]`
+		} else if (type === "dm") {
+			return `[Direct message]`
+		} else {
+			return `[Unknown: ${type}]`
+		}
+	} else {
+		const channel = client.channels.get(message.channel_id)
+		return `[${channel.guild.name} - #${channel.name}]`
+	}
 }
 
 
@@ -905,12 +938,12 @@ async function channelTable(channelDict) {
 
 	const stats = {}
 	for (const i in channelDict) {
-		const channelId = channelDict[i]
-		const channel = client.channels.get(channelId)
+		const channelID = channelDict[i]
+		const channel = client.channels.get(channelID)
 		const stat = {}
 		stat["Server"] = channel.guild.name
 		stat["Name"] = "#" + channel.name
-		stats[channelId] = stat
+		stats[channelID] = stat
 	}
 	return stats
 }
@@ -918,7 +951,7 @@ async function channelTable(channelDict) {
 
 /**
  * Generates an object containing stats about
- *   all the nicknames Bipolar has.
+ *   all the nicknames Schism has.
  * 
  * @param {Object} nicknameDict - Dictionary of nicknames
  * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
@@ -936,41 +969,43 @@ async function nicknameTable(nicknameDict) {
 
 	const stats = {}
 	for (const serverName in nicknameDict) {
-		const [ serverId, nickname ] = nicknameDict[serverName]
-		const server = client.guilds.get(serverId)
+		const [ serverID, nickname ] = nicknameDict[serverName]
+		const server = client.guilds.get(serverID)
 		const stat = {}
 		stat["Server"] = server.name
 		stat["Intended"] = nickname
 		stat["De facto"] = server.me.nickname
-		stats[serverId] = stat
+		stats[serverID] = stat
 	}
 	return stats
 }
 
 
-async function userTable(userIds) {
+async function userTable(userIDs) {
 	if (config.DISABLE_LOGS)
 		return {}
 	
-	if (!userIds || userIds.length === 0)
+	if (!userIDs || userIDs.length === 0)
 		throw "No user IDs defined."
 
-	// If userIds a single value, wrap it in an array
-	if (!Array.isArray(userIds)) userIds = [userIds]
+	// If userIDs a single value, wrap it in an array
+	if (!Array.isArray(userIDs)) userIDs = [userIDs]
 
 	const stats = {}
-	for (const userId of userIds) {
-		const user = await client.fetchUser(userId)
+	for (const userID of userIDs) {
+		const user = await client.fetchUser(userID)
 		const stat = {}
 		stat["Username"] = user.tag
-		stats[userId] = stat
+		stats[userID] = stat
 	}
 	return stats
 }
 
 
 /**
- * DM's garlicOS and logs error
+ * DMs the admins and logs an error
+ * 
+ * @param {string} err - an error
  */
 function logError(err) {
 	console.error(err)
@@ -978,10 +1013,12 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	// Yes, I hardcoded my own user ID. I'm sorry.
-	client.fetchUser("206235904644349953")
-		.then(me => me.send(sendThis))
-		.catch(console.error)
+	for (const key in config.ADMINS) {
+		const userId = config.ADMINS[key]
+		client.fetchUser(userId)
+			.then(user => user.send(sendThis))
+			.catch(console.error)
+	}
 }
 
 
@@ -1016,6 +1053,55 @@ async function cleanse(phrase) {
 		return !config.BAD_WORDS.includes(word)
 	})
 
+	return words.join(" ")
+}
+
+
+/**
+ * Turns this:
+ *     "server - #channel": {
+ *         "channelID": "876587263845753",
+ *         "hookID": "1254318729468795",
+ *         "token": 9397013nv87y13iuyfn.88FJSI77489n.hIDSeHGH353"
+ *     },
+ *     "other server - #channeln't": {
+ *         . . .
+ *     }
+ * 
+ * Into this:
+ *     "876587263845753": [DiscordWebhookClient],
+ *     "other channelid": [DiscordWebhookClient]
+ * 
+ * @param {Object} hooksDict - object to be parsed
+ * @return {Object} parsed object
+ */
+function parseHooksDict(hooksDict) {
+	const hooks = {}
+	for (const key in hooksDict) {
+		const { channelID, hookID, token } = hooksDict[key]
+		const hook = new Discord.WebhookClient(hookID, token)
+		hooks[channelID] = hook
+	}
+	return hooks
+}
+
+
+/**
+ * Parses <@6813218746128746>-type strings into @user#1234-type strings.
+ * This makes it so that the string won't actually ping any users.
+ * 
+ * @param {string} sentence - sentence to disable pings in
+ * @return {string} sentence that won't ping anyone
+ */
+async function disablePings(sentence) {
+	const words = sentence.split(" ")
+	for (let i=0; i<words.length; i++) {
+		const userID = mentionToUserID(words[i])
+		if (userID) {
+			const user = await client.fetchUser(userID)
+			words[i] = "@" + user.tag
+		}
+	}
 	return words.join(" ")
 }
 

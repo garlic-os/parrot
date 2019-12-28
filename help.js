@@ -1,3 +1,5 @@
+"use strict"
+
 const prefix = process.env.PREFIX
 
 module.exports = {
