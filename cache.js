@@ -63,7 +63,7 @@ module.exports = {
 	 * 
 	 * @return {Promise<void|Error>} Resolve: number of files saved; Reject: s3.write() error
 	 */
-	saveCache: async () => {
+	save: async () => {
 		let savedCount = 0
 		const promises = []
 		while (unsavedCache.length > 0) {
