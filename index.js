@@ -66,7 +66,6 @@ const fs      = require("fs")
 	, cache   = require("./cache")
     , embeds  = require("./embeds")(config.EMBED_COLORS)
 	, help    = require("./help")
-	, log     = require("./log")(config.DISABLE_LOGS)
 	, markov  = require("./markov")
 	, s3      = require("./s3")(config)
 
@@ -107,19 +106,19 @@ client.on("ready", () => {
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
-	log.channelTable(client, config.SPEAKING_CHANNELS).then(table => {
+	channelTable(config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	log.channelTable(client, config.LEARNING_CHANNELS).then(table => {
+	channelTable(config.LEARNING_CHANNELS).then(table => {
 		console.info("Learning in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	log.nicknameTable(client, config.NICKNAMES).then(table => {
+	nicknameTable(config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
@@ -569,7 +568,7 @@ async function handleCommands(message) {
 			const found = await filterUndefineds(userIDs)
 
 			if (found.length > 0) {
-				log.userTable(client, found).then(table => {
+				userTable(found).then(table => {
 					console.info("Users filtered:")
 					console.table(table)
 				})
