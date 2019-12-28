@@ -66,8 +66,8 @@ module.exports = {
 	save: async () => {
 		let savedCount = 0
 		const promises = []
-		while (unsavedCache.length > 0) {
-			const userID = unsavedCache.pop()
+		while (unsaved.length > 0) {
+			const userID = unsaved.pop()
 			const corpus = await loadCorpus(userID)
 			promises.push(
 				s3write(userID, corpus)
