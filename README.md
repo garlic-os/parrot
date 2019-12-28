@@ -16,7 +16,7 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 | `EMBED_COLORS` | A JSON-encoded dictionary of colors for `normal` and `error`. | `{"normal":"#A755B5", "error":"#FF3636"}` | `{"normal":"#A755B5", "error":"#FF3636"}` |
 | `SPEAKING_CHANNELS` | A JSON-encoded dictionary of the channels Schism is allowed to speak in. | `{"random server name or whatever you want - #general":"<CHANNEL ID HERE>"}` | `{}` (**Required**) |
 | `LEARNING_CHANNELS` | A JSON-encoded dictionary of the channels Schism is allowed to learn from. | `{"random server name or whatever you want - #general":"<CHANNEL ID HERE>"}` | `{}` (**Required**) |
-| `NICKNAMES` | A JSON-encoded dictionary of any server-specific nicknames Bipolar has. | `"a server": ["<SERVER ID HERE>", "Schismn't"]` | `{}` (Optional) |
+| `NICKNAMES` | A JSON-encoded dictionary of any server-specific nicknames Schism has. | `"a server": ["<SERVER ID HERE>", "Schismn't"]` | `{}` (Optional) |
 | `ADMINS` | A JSON-encoded dictionary of the users that are allowed to use Schism's admin commands. | `{"You, probably":"<USER ID HERE>"}` | `{}` (Recommended, but optional) |
 | `BANNED` | A JSON-encoded dictionary of the users that aren't allowed to use Schism's commands. Schism will also stop learning from this user. | `{"Naughty boy":"<USER ID HERE>"}` | `{}` (Optional) |
 | `BAD_WORDS_URL` | URL to a newline-delimited list of words that Schism will filter before saving messages to a corpus | `https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/raw/master/en` | `undefined` (Optional) |
