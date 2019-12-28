@@ -38,37 +38,30 @@ if (config.DISABLE_LOGS) {
 // (Hopefully) save and clear cache before shutting down
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
-	saveCache()
-		.then(savedCount => console.info(log.save(savedCount)))
+	cache.save()
+		.then(savedCount => log.save(savedCount))
 })
 
 // Requirements
-const fs      = require("fs"),
-	  path    = require("path"),
-      Discord = require("discord.js"),
-      AWS     = require("aws-sdk"),
-	  markov  = require("./markov"),
-      embeds  = require("./embeds")(config.EMBED_COLORS),
-	  help    = require("./help")
-
-// Configure AWS-SDK to access an S3 bucket
-AWS.config.update({
-	accessKeyId: config.AWS_ACCESS_KEY_ID,
-	secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
-	region: config.AWS_REGION
-})
-const s3 = new AWS.S3()
+const fs      = require("fs")
+    , Discord = require("discord.js")
+	, cache   = require("./cache")
+    , embeds  = require("./embeds")(config.EMBED_COLORS)
+	, help    = require("./help")
+	, log     = require("./log")
+	, markov  = require("./markov")
+	, s3      = require("./s3")(config)
 
 // Array of promises
 // Do all these things before logging in
 const init = []
 
 // Local directories have to exist before they can be accessed
-init.push(ensureDirectory("./cache"))
+init.push(cache.ensureDirectory("./cache"))
 
 // Cache a list of user IDs to cut down on S3 requests
 const userIDCache = []
-init.push(s3listUserIDs().then(userIDs => {
+init.push(s3.listUserIDs().then(userIDs => {
 	for (const userID of userIDs) {
 		userIDCache.push(userID)
 	}
@@ -80,21 +73,7 @@ if (config.BAD_WORDS_URL) {
 		.then(rawData => config.BAD_WORDS = rawData.split("\n")))
 }
 
-// Reusable log messages
-const log = {
-	  say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
-	, imitate: {
-		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
-		hook: hookRes => console.log(`${location(hookRes)} Under the name "${hookRes.author.username}", said: ${hookRes.content}`)
-	}
-	, error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
-	, xok:     message => console.log(`${location(message)} Sent the XOK message`)
-	, help:    message => console.log(`${location(message)} Sent the Help message`)
-	, save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
-}
-
-const buffers = {},
-      unsavedCache = []
+const buffers = {}
 
 const client = new Discord.Client()
 const hooks = parseHooksDict(config.HOOKS)
@@ -109,19 +88,19 @@ client.on("ready", () => {
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
-	channelTable(config.SPEAKING_CHANNELS).then(table => {
+	log.channelTable(config.SPEAKING_CHANNELS).then(table => {
 		console.info("Speaking in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	channelTable(config.LEARNING_CHANNELS).then(table => {
+	log.channelTable(config.LEARNING_CHANNELS).then(table => {
 		console.info("Learning in:")
 		console.table(table)
 	})
 	.catch(console.warn)
 
-	nicknameTable(config.NICKNAMES).then(table => {
+	log.nicknameTable(config.NICKNAMES).then(table => {
 		console.info("Nicknames:")
 		console.table(table)
 	})
@@ -143,7 +122,7 @@ client.on("message", async message => {
 		if (message.isMentioned(client.user)
 		   && !message.author.bot // Not a bot
 		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
-			console.log(`${location(message)} Pinged by ${message.author.tag}.`)
+			log.pinged(message)
 			const userID = randomUserID()
 			imitate(userID, message.channel)
 		}
@@ -157,7 +136,7 @@ client.on("message", async message => {
 		else {
 			// Maybe imitate someone anyway
 			if (blurtChance()) {
-				console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
+				log.blurt(message)
 				const userID = randomUserID()
 				imitate(userID, message.channel)
 			}
@@ -183,13 +162,13 @@ client.on("message", async message => {
 						if (buffer.length === 0) return
 
 						await appendCorpus(authorID, buffer)
-						if (!unsavedCache.includes(authorID))
-							unsavedCache.push(authorID)
+						if (!cache.unsaved.includes(authorID))
+							cache.unsaved.push(authorID)
 
 						if (!userIDCache.includes(authorID))
 							userIDCache.push(authorID)
 
-						console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
+						log.learned(message)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
@@ -225,8 +204,8 @@ Promise.all(init).then( () => {
 
 	// Autosave
 	setInterval( async () => {
-		const savedCount = await saveCache()
-		console.info(log.save(savedCount))
+		const savedCount = await cache.save()
+		log.save(savedCount)
 	}, 3600000) // One hour
 })
 .catch( () => {
@@ -350,8 +329,8 @@ function scrape(channel, goal) {
 				scrapeBuffers[authorID] += message.content + "\n"
 				messagesAdded++
 
-				if (!unsavedCache.includes(authorID))
-					unsavedCache.push(authorID)
+				if (!cache.unsaved.includes(authorID))
+					cache.unsaved.push(authorID)
 
 				if (!userIDCache.includes(authorID))
 					userIDCache.push(authorID)
@@ -384,18 +363,18 @@ async function filterUndefineds(userIDs) {
 		let corpus
 		let inCache = false
 		try {
-			corpus = await cacheRead(userID)
+			corpus = await cache.read(userID)
 			inCache = true
 		} catch (e) {
-			corpus = await s3read(userID)
+			corpus = await s3.read(userID)
 		}
 
 		if (corpus.startsWith("undefined")) {
 			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
 
 			(inCache)
-				? cacheWrite(userID, corpus)
-				: s3Write(userID, corpus)
+				? cache.write(userID, corpus)
+				: s3.write(userID, corpus)
 
 			return userID
 		}
@@ -425,7 +404,7 @@ async function filterUndefineds(userIDs) {
 async function handleCommands(message) {
 	if (message.author.bot) return resolve(null)
 
-	console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
+	log.command(message)
 
 	const args = message.content.slice(config.PREFIX.length).split(/ +/)
 	const command = args.shift().toLowerCase()
@@ -549,13 +528,13 @@ async function handleCommands(message) {
 
 		case "save":
 			if (!admin) break
-			if (unsavedCache.length === 0) {
+			if (cache.unsaved.length === 0) {
 				message.channel.send(embeds.error("Nothing to save."))
 					.then(log.error)
 				break
 			}
 			message.channel.send(embeds.standard("Saving..."))
-			const savedCount = await saveCache()
+			const savedCount = await cache.save()
 			message.channel.send(embeds.standard(log.save(savedCount)))
 				.then(log.say)
 			break
@@ -571,7 +550,7 @@ async function handleCommands(message) {
 			const found = await filterUndefineds(userIDs)
 
 			if (found.length > 0) {
-				userTable(found).then(table => {
+				log.userTable(found).then(table => {
 					console.info("Users filtered:")
 					console.table(table)
 				})
@@ -613,104 +592,6 @@ async function updateNicknames(nicknameDict) {
 
 
 /**
- * Downloads a file from S3_BUCKET_NAME.
- * 
- * @param {string} userID - ID of corpus to download from the S3 bucket
- * @return {Promise<Buffer|Error>} Resolve: Buffer from bucket; Reject: error
- */
-async function s3read(userID) {
-	const params = {
-		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: `${config.CORPUS_DIR}/${userID}.txt`
-	}
-
-	const res = await s3.getObject(params).promise()
-
-	if (res.Body === undefined || res.Body === null)
-		throw `Empty response at path: ${path}`
-
-	return res.Body.toString() // Convert Buffer to string
-}
-
-
-/**
- * Uploads (and overwrites) a corpus in S3_BUCKET_NAME.
- * 
- * @param {string} userID - user ID's corpus to upload/overwrite
- * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
- */
-async function s3write(userID, data) {
-	const params = {
-		Bucket: process.env.S3_BUCKET_NAME,
-		Key: `${config.CORPUS_DIR}/${userID}.txt`,
-		Body: Buffer.from(data, "UTF-8")
-	}
-	return await s3.upload(params).promise()
-}
-
-
-/**
- * Compiles a list of all the IDs inside 
- */
-async function s3listUserIDs() {
-	const params = {
-		Bucket: process.env.S3_BUCKET_NAME,
-		Prefix: config.CORPUS_DIR,
-	}
-	
-	const res = await s3.listObjectsV2(params).promise()
-
-	return res.Contents.map( ({ Key }) => {
-		// Remove file extension and preceding path
-		return path.basename(Key.replace(/\.[^/.]+$/, ""))
-	})
-}
-
-
-/**
- * Uploads all unsaved cache to S3
- *   and empties the list of unsaved files.
- * 
- * @return {Promise<void|Error>} Resolve: number of files saved; Reject: s3write() error
- */
-async function saveCache() {
-	let savedCount = 0
-	const promises = []
-	while (unsavedCache.length > 0) {
-		const userID = unsavedCache.pop()
-		const corpus = await loadCorpus(userID)
-		promises.push(
-			s3write(userID, corpus)
-				.then(savedCount++)
-		)
-	}
-
-	await Promise.all(promises)
-	return savedCount
-}
-
-
-/**
- * Make directory if it doesn't exist
- *
- * @param {string} dir - Directory of which to ensure existence
- * @return {Promise<string|Error>} Directory if it already exists or was successfully made; error if something goes wrong
- */
-function ensureDirectory(dir) {
-	return new Promise( (resolve, reject) => {
-		fs.stat(dir, err => {
-			if (err && err.code === "ENOENT") {
-				fs.mkdir(dir, { recursive: true }, err => {
-					(err) ? reject(err) : resolve(dir)
-				})
-			}
-			else (err) ? reject(err) : resolve(dir)
-		})
-	})
-}
-
-
-/**
  * Try to load the corpus corresponding to [userID] from cache.
  * If the corpus isn't in cache, try to download it from S3.
  * If it isn't there either, give up.
@@ -720,15 +601,15 @@ function ensureDirectory(dir) {
  */
 async function loadCorpus(userID) {
 	try {
-		return await cacheRead(userID) // Maybe the user's corpus is in cache
+		return await cache.read(userID) // Maybe the user's corpus is in cache
 	} catch (err) {
-		if (err.code !== "ENOENT") // Only proceed if the reason cacheRead() failed was
+		if (err.code !== "ENOENT") // Only proceed if the reason cache.read() failed was
 			throw err              //   because it couldn't find the file
 
 		// Maybe the user's corpus is in the S3 bucket
 		// If not, the user is nowhere to be found (or something went wrong)
-		const corpus = await s3read(userID)
-		cacheWrite(userID, corpus)
+		const corpus = await s3.read(userID)
+		cache.write(userID, corpus)
 		return corpus
 	}
 }
@@ -749,14 +630,14 @@ function appendCorpus(userID, data) {
 			})
 		} else if (userIDCache.includes(userID)) {
 			// Download the corpus from S3, add the new data to it, then cache it
-			s3read(userID).then(corpus => {
+			s3.read(userID).then(corpus => {
 				corpus += data
-				cacheWrite(userID, corpus)
+				cache.write(userID, corpus)
 				resolve(corpus)
 			})
 		} else {
 			// User doesn't exist; make them a new corpus from just the new data
-			cacheWrite(userID, data)
+			cache.write(userID, data)
 			resolve(data)
 		}
 	})
@@ -764,40 +645,7 @@ function appendCorpus(userID, data) {
 
 
 /**
- * Writes a file to cache.
- * 
- * @param {string} filename - name of file to write to (minus extension)
- * @param {string} data - data to write
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
- */
-function cacheWrite(filename, data) {
-	return new Promise( (resolve, reject) => {
-		fs.writeFile(`./cache/${filename}.txt`, data, err => {
-			(err) ? reject(err) : resolve()
-		})
-	})
-}
-
-
-/**
- * Reads a file from cache.
- * 
- * @param {string} filename - name of file to read (minus extension)
- * @return {Promise<string|Error>} Resolve: file's contents; Reject: Error
- */
-function cacheRead(filename) {
-	return new Promise( (resolve, reject) => {
-		fs.readFile(`./cache/${filename}.txt`, "UTF-8", (err, data) => {
-			if (err) return reject(err)
-			if (data === "") return reject( { code: "ENOENT" } )
-			resolve(data)
-		})
-	})
-}
-
-
-/**
- * 0.05% chance to return true; else false
+ * 0.05% chance to return true; 99.95% chance to return false.
  * 
  * @return {Boolean} True/false
  */
@@ -877,128 +725,6 @@ function canSpeakIn(channelID) {
 
 function learningIn(channelID) {
 	return has(channelID, config.LEARNING_CHANNELS)
-}
-
-
-/**
- * Is Object [obj] empty?
- * 
- * @param {Object} obj
- * @return {Boolean} empty or not
- */
-function isEmpty(obj) {
-	for (const key in obj) {
-		if (obj.hasOwnProperty(key))
-			return false
-	}
-	return true
-}
-
-
-/**
- * Shortcut to a reusable message location string
- * 
- * @param {Message} message
- * @return {string} "[Server - #channel]" format string
- */
-function location(message) {
-	if (message.hasOwnProperty("channel")) {
-		const type = message.channel.type
-		if (type === "text") {
-			return `[${message.guild.name} - #${message.channel.name}]`
-		} else if (type === "dm") {
-			return `[Direct message]`
-		} else {
-			return `[Unknown: ${type}]`
-		}
-	} else {
-		const channel = client.channels.get(message.channel_id)
-		return `[${channel.guild.name} - #${channel.name}]`
-	}
-}
-
-
-/**
- * Generates an object containing stats about
- *   all the channels in the given dictionary.
- * 
- * @param {Object} channelDict - Dictionary of channels
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object
- * 
- * @example
- *     channelTable(config.SPEAKING_CHANNELS)
- *         .then(console.table)
- */
-async function channelTable(channelDict) {
-	if (config.DISABLE_LOGS)
-		return {}
-	
-	if (isEmpty(channelDict))
-		throw "No channels are whitelisted."
-
-	const stats = {}
-	for (const i in channelDict) {
-		const channelID = channelDict[i]
-		const channel = client.channels.get(channelID)
-		const stat = {}
-		stat["Server"] = channel.guild.name
-		stat["Name"] = "#" + channel.name
-		stats[channelID] = stat
-	}
-	return stats
-}
-
-
-/**
- * Generates an object containing stats about
- *   all the nicknames Schism has.
- * 
- * @param {Object} nicknameDict - Dictionary of nicknames
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: "empty object"
- * 
- * @example
- *     nicknameTable(config.NICKNAMES)
- *         .then(console.table)
- */
-async function nicknameTable(nicknameDict) {
-	if (config.DISABLE_LOGS)
-		return {}
-	
-	if (isEmpty(nicknameDict))
-		throw "No nicknames defined."
-
-	const stats = {}
-	for (const serverName in nicknameDict) {
-		const [ serverID, nickname ] = nicknameDict[serverName]
-		const server = client.guilds.get(serverID)
-		const stat = {}
-		stat["Server"] = server.name
-		stat["Intended"] = nickname
-		stat["De facto"] = server.me.nickname
-		stats[serverID] = stat
-	}
-	return stats
-}
-
-
-async function userTable(userIDs) {
-	if (config.DISABLE_LOGS)
-		return {}
-	
-	if (!userIDs || userIDs.length === 0)
-		throw "No user IDs defined."
-
-	// If userIDs a single value, wrap it in an array
-	if (!Array.isArray(userIDs)) userIDs = [userIDs]
-
-	const stats = {}
-	for (const userID of userIDs) {
-		const user = await client.fetchUser(userID)
-		const stat = {}
-		stat["Username"] = user.tag
-		stats[userID] = stat
-	}
-	return stats
 }
 
 
