@@ -28,5 +28,5 @@ A totally-original Markov-chain-based Discord bot that keeps a separate Markov c
 - Keep data per server separate
 - "Forget" command to delete the data on that user (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limiting to mitigate spam
-- I probably need to split `index.js` into more files again
+- ~~I probably need to split `index.js` into more files again~~ Back under 1,000 lines!
 - Setup guide
