@@ -45,7 +45,7 @@ const log = {
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
-  , save:    count   => console.log(`Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`)
+  , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag}.`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
   , blurt:   message => console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
@@ -55,34 +55,21 @@ const log = {
 // (Hopefully) save and clear cache before shutting down
 process.on("SIGTERM", () => {
 	console.info("Saving changes...")
-	cache.save()
-		.then(savedCount => log.save(savedCount))
+	corpusUtils.saveAll()
+		.then(savedCount => console.log(log.save(savedCount)))
 })
 
 // Requirements
-const fs      = require("fs")
-    , Discord = require("discord.js")
-	, cache   = require("./cache")
-    , embeds  = require("./embeds")(config.EMBED_COLORS)
-	, help    = require("./help")
-	, markov  = require("./markov")
-	, s3      = require("./s3")(config)
+const Discord     = require("discord.js")
+	, corpusUtils = require("./corpus")
+    , embeds      = require("./embeds")
+	, help        = require("./help")
+	, markov      = require("./markov")
 
 
 // Array of promises
 // Do all these things before logging in
 const init = []
-
-// Local directories have to exist before they can be accessed
-init.push(cache.ensureDirectory("./cache"))
-
-// Cache a list of user IDs to cut down on S3 requests
-const userIDCache = []
-init.push(s3.listUserIDs().then(userIDs => {
-	for (const userID of userIDs) {
-		userIDCache.push(userID)
-	}
-}))
 
 // Set BAD_WORDS if BAD_WORDS_URL is defined
 if (config.BAD_WORDS_URL) {
@@ -128,67 +115,65 @@ client.on("ready", () => {
 
 client.on("message", async message => {
 	const authorID = message.author.id
+	const channelID = message.channel.id
 
 	if (!isBanned(authorID) // Not banned from using Schism
-	   && !isHook(authorID)
-	   && (canSpeakIn(message.channel.id) // Channel is either whitelisted or is a DM channel
-		  || message.channel.type === "dm")
+	   && !isHook(authorID) // Not a Webhook
 	   && message.author.id !== client.user.id) { // Not self
 
-		// Ping
-		if (message.isMentioned(client.user)
-		   && !message.author.bot // Not a bot
-		   && !message.content.includes(" ")) { // Message has no spaces (i.e. contains nothing but a ping)
-			log.pinged(message)
-			const userID = randomUserID()
-			imitate(userID, message.channel)
-		}
+	   if (canSpeakIn(channelID) // Channel is listed in SPEAKING_CHANNELS or is a DM channel
+		  || message.channel.type === "dm") {
 
-		// Command
-		else if (message.content.startsWith(config.PREFIX)) {
-			handleCommands(message)
-		}
-		
-		// Nothing special
-		else {
-			// Maybe imitate someone anyway
-			if (blurtChance()) {
-				log.blurt(message)
+			// Ping
+			if (message.isMentioned(client.user) // Mentioned
+			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
+				log.pinged(message)
 				const userID = randomUserID()
 				imitate(userID, message.channel)
 			}
 
-			if (learningIn(message.channel.id)
-				&& message.content.length > 0) {
-				/**
-				 * Learn
-				 * 
-				 * Record the message to the user's corpus
-				 * Builds up messages from that user until they have
-				 *   been silent for at least five seconds,
-				 * then writes them all to cache in one fell swoop.
-				 * Messages will be saved for good come the next autosave.
-				 */
-				if (buffers.hasOwnProperty(authorID) && buffers[authorID].length > 0) {
-					buffers[authorID] += message.content + "\n"
+			// Command
+			else if (message.content.startsWith(config.PREFIX) // Starts with the command prefix
+			        && !message.author.bot) { // Not a bot
+				handleCommand(message)
+			}
+			
+			// Nothing special
+			else if (blurtChance()) { // Maybe imitate someone anyway
+				log.blurt(message)
+				const userID = randomUserID()
+				imitate(userID, message.channel)
+			}
+		}
 
-				} else {
-					buffers[authorID] = message.content + "\n"
-					setTimeout( async () => {
-						const buffer = await cleanse(buffers[authorID])
-						if (buffer.length === 0) return
+		if (learningIn(channelID) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
+		   && message.content.length > 0) {
+			/**
+			 * Record the message to the user's corpus.
+			 * Builds up messages from that user until they have
+			 *   been silent for at least five seconds,
+			 *   then writes them all to cache in one fell swoop.
+			 * Messages will be saved to the cloud come the next autosave.
+			 */
+			if (buffers.hasOwnProperty(authorID) && buffers[authorID].length > 0) {
+				buffers[authorID] += message.content + "\n"
 
-						await appendCorpus(authorID, buffer)
-						if (!cache.unsaved.includes(authorID))
-							cache.unsaved.push(authorID)
+			} else {
+				buffers[authorID] = message.content + "\n"
+				setTimeout( async () => {
+					const buffer = await cleanse(buffers[authorID])
+					if (buffer.length === 0) return
 
-						if (!userIDCache.includes(authorID))
-							userIDCache.push(authorID)
+					if (!corpusUtils.local.includes(authorID))
+						corpusUtils.local.push(authorID)
 
-						console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
-						buffers[authorID] = ""
-					}, 5000) // Five seconds
-				}
+					await corpusUtils.append(authorID, buffer)
+					if (!corpusUtils.unsaved.includes(authorID))
+						corpusUtils.unsaved.push(authorID)
+
+					console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
+					buffers[authorID] = ""
+				}, 5000) // Five seconds
 			}
 		}
 	}
@@ -221,8 +206,8 @@ Promise.all(init).then( () => {
 
 	// Autosave
 	setInterval( async () => {
-		const savedCount = await cache.save()
-		log.save(savedCount)
+		const savedCount = await corpusUtils.saveAll()
+		console.log(log.save(savedCount))
 	}, 3600000) // One hour
 })
 .catch( () => {
@@ -244,7 +229,7 @@ Promise.all(init).then( () => {
  * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading user's corpus
  */
 async function generateSentence(userID) {
-	const corpus = await loadCorpus(userID)
+	const corpus = await corpusUtils.load(userID)
 	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 	const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
 	let sentence = await markov(corpus, wordCount, coherence)
@@ -289,8 +274,8 @@ async function imitate(userID, channel) {
 
 
 function randomUserID() {
-	const index = ~~(Math.random() * userIDCache.length - 1)
-	return userIDCache[index]
+	const index = ~~(Math.random() * corpusUtils.local.length - 1)
+	return corpusUtils.local[index]
 }
 
 
@@ -315,8 +300,8 @@ function scrape(channel, goal) {
 		const messages = await channel.fetchMessages(fetchOptions)
 		for (const userID in scrapeBuffers) {
 			if (scrapeBuffers[userID].length > 1000) {
-				appendCorpus(userID, scrapeBuffers[userID])
-				scrapeBuffers[userID] = ""
+				corpusUtils.append(userID, scrapeBuffers[userID])
+					.then(scrapeBuffers[userID] = "")
 			}
 		}
 
@@ -346,11 +331,11 @@ function scrape(channel, goal) {
 				scrapeBuffers[authorID] += message.content + "\n"
 				messagesAdded++
 
-				if (!cache.unsaved.includes(authorID))
-					cache.unsaved.push(authorID)
+				if (!corpusUtils.unsaved.includes(authorID))
+					corpusUtils.unsaved.push(authorID)
 
-				if (!userIDCache.includes(authorID))
-					userIDCache.push(authorID)
+				if (!corpusUtils.local.includes(authorID))
+					corpusUtils.local.push(authorID)
 			}
 		}
 		activeLoops--
@@ -361,53 +346,11 @@ function scrape(channel, goal) {
 		if (activeLoops === 0) {
 			clearInterval(whenDone)
 			for (const userID in scrapeBuffers) {
-				appendCorpus(userID, scrapeBuffers[userID])
+				corpusUtils.append(userID, scrapeBuffers[userID])
 			}
 			resolve(messagesAdded)
 		}
 	}, 100)
-}
-
-
-/**
- * Remove "undefined" from the beginning of any given corpus that has it.
- * 
- * @param {Array} userIDs - array of user IDs to sort through
- * @return {Promise<Array>} this never rejects lol. Resolve: array of user IDs where an "undefined" was removed
- */
-async function filterUndefineds(userIDs) {
-	async function filter(userID) {
-		let corpus
-		let inCache = false
-		try {
-			corpus = await cache.read(userID)
-			inCache = true
-		} catch (e) {
-			corpus = await s3.read(userID)
-		}
-
-		if (corpus.startsWith("undefined")) {
-			corpus = corpus.substring(9) // Remove the first nine characters (which is "undefined")
-
-			(inCache)
-				? cache.write(userID, corpus)
-				: s3.write(userID, corpus)
-
-			return userID
-		}
-	}
-
-	const found = []
-	const promises = []
-	for (const userID of userIDs) {
-		promises.push(
-			filter(userID).then(userID => {
-				if (userID) found.push(userID)
-			})
-		)
-	}
-	await Promise.all(promises)
-	return found
 }
 
 
@@ -418,9 +361,7 @@ async function filterUndefineds(userIDs) {
  * @param {Message} messageObj - Discord message to be parsed
  * @return {Promise<string>} Resolve: name of command performed; Reject: error
  */
-async function handleCommands(message) {
-	if (message.author.bot) return null
-
+async function handleCommand(message) {
 	log.command(message)
 
 	const args = message.content.slice(config.PREFIX.length).split(/ +/)
@@ -545,24 +486,24 @@ async function handleCommands(message) {
 
 		case "save":
 			if (!admin) break
-			if (cache.unsaved.length === 0) {
+			if (corpusUtils.unsaved.length === 0) {
 				message.channel.send(embeds.error("Nothing to save."))
 					.then(log.error)
 				break
 			}
 			message.channel.send(embeds.standard("Saving..."))
-			const savedCount = await cache.save()
+			const savedCount = await corpusUtils.saveAll()
 			message.channel.send(embeds.standard(log.save(savedCount)))
 				.then(log.say)
 			break
 
-		case "filter":
+		/*case "filter":
 		case "cleanse":
 			if (!admin) break
 
 			const userIDs = (args.length > 0)
 				? args
-				: userIDCache
+				: corpusUtils.local
 
 			const found = await filterUndefineds(userIDs)
 
@@ -576,7 +517,7 @@ async function handleCommands(message) {
 
 			message.channel.send(embeds.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
 				.then(log.say)
-			break
+			break*/
 	}
 	return command
 }
@@ -605,59 +546,6 @@ async function updateNicknames(nicknameDict) {
 		throw errors
 	else
 		return
-}
-
-
-/**
- * Try to load the corpus corresponding to [userID] from cache.
- * If the corpus isn't in cache, try to download it from S3.
- * If it isn't there either, give up.
- * 
- * @param {string} userID - user ID whose corpus to load
- * @return {Promise<corpus|Error>} Resolve: [userID]'s corpus; Reject: Error
- */
-async function loadCorpus(userID) {
-	try {
-		return await cache.read(userID) // Maybe the user's corpus is in cache
-	} catch (err) {
-		if (err.code !== "ENOENT") // Only proceed if the reason cache.read() failed was
-			throw err              //   because it couldn't find the file
-
-		// Maybe the user's corpus is in the S3 bucket
-		// If not, the user is nowhere to be found (or something went wrong)
-		const corpus = await s3.read(userID)
-		cache.write(userID, corpus)
-		return corpus
-	}
-}
-
-
-/**
- * Add data to a user's corpus.
- * 
- * @param {string} userID - ID of the user whose corpus to add data to
- * @param {string} data - data to add
- * @return {Promise<void|Error} Resolve: nothing; Reject: Error
- */
-function appendCorpus(userID, data) {
-	return new Promise( (resolve, reject) => {
-		if (fs.readdirSync(`./cache`).includes(`${userID}.txt`)) { // Corpus is in cache
-			fs.appendFile(`./cache/${userID}.txt`, data, err => { // Append the new data to it
-				if (err) reject(err)
-			})
-		} else if (userIDCache.includes(userID)) {
-			// Download the corpus from S3, add the new data to it, then cache it
-			s3.read(userID).then(corpus => {
-				corpus += data
-				cache.write(userID, corpus)
-				resolve(corpus)
-			})
-		} else {
-			// User doesn't exist; make them a new corpus from just the new data
-			cache.write(userID, data)
-			resolve(data)
-		}
-	})
 }
 
 
