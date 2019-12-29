@@ -14,6 +14,11 @@ const unsaved = []
  * @const {string[]}
  */
 const local = []
+s3.listUserIDs().then(userIDs => {
+	for (const userID of userIDs) {
+		local.push(userID)
+	}
+})
 
 // Create directory ./cache/ if it doesn't exist
 fs.mkdir("cache").catch(err => {
