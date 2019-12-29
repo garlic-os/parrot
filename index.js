@@ -707,6 +707,7 @@ async function cleanse(phrase) {
  * @return {Object} parsed object
  */
 function parseHooksDict(hooksDict) {
+	if (!hooksDict) return null
 	const hooks = {}
 	for (const key in hooksDict) {
 		const { channelID, hookID, token } = hooksDict[key]
