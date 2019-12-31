@@ -78,6 +78,7 @@ if (config.BAD_WORDS_URL) {
 }
 
 const buffers = {}
+const hookSendQueue = []
 
 const client = new Discord.Client()
 const hooks = parseHooksDict(config.HOOKS)
@@ -87,6 +88,16 @@ const hooks = parseHooksDict(config.HOOKS)
 client.on("ready", () => {
 	console.info(`Logged in as ${client.user.tag}.\n`)
 	updateNicknames(config.NICKNAMES)
+
+	// Limit the rate at which Webhook messages can be sent
+	setInterval( () => {
+		const pair = hookSendQueue.pop()
+		if (!pair) return
+
+		const [ hook, sentence ] = pair
+		hook.send(sentence)
+			.then(log.imitate.hook)
+	}, 1000) // One second
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
@@ -256,15 +267,16 @@ async function imitate(userID, channel) {
 		// If Schism can't get the user from the server,
 		// use the user's ID for their name
 		// and the default avatar.
-		avatarURL = "https://discordapp.com/assets/322c936a8c8be1b803cd94861bdfa868.png"
+		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
 		name = userID
 	}
 
 	const hook = hooks[channel.id]
 	if (hook) {
-		await hook.edit(`Not ${name}`, avatarURL)
-		hook.send(sentence)
-			.then(log.imitate.hook)
+		const newName = `Not ${name}`
+		if (hook.name !== newName) // Only change appearance if the current user to imitate is different from the last user Schism imitated
+			await hook.edit(newName, avatarURL)
+		hookSendQueue.push([hook, sentence])
 	} else {
 		avatarURL = avatarURL.replace("?size=2048", "?size=64")
 		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
@@ -885,7 +897,6 @@ function isEmpty(obj) {
 	}
 	return true
 }
-
 
 
 // --- /FUNCTIONS -------------------------------------------
