@@ -231,7 +231,7 @@ Promise.all(init).then( () => {
 async function generateSentence(userID) {
 	const corpus = await corpusUtils.load(userID)
 	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-	const coherence = (Math.random() > 0.5) ? 2 : 6 // State size 2 or 6
+	const coherence = Math.round(Math.random() * 7 + 3) // State size 3-10
 	let sentence = await markov(corpus, wordCount, coherence)
 	sentence = sentence.substring(0, 512) // Hard cap of 512 characters (any longer is just too big)
 	if (!sentence || sentence.length === 0) {
