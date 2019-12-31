@@ -128,7 +128,8 @@ client.on("message", async message => {
 	const authorID = message.author.id
 	const channelID = message.channel.id
 
-	if (!isBanned(authorID) // Not banned from using Schism
+	if (message.content.length > 0 // Not empty
+	   && !isBanned(authorID) // Not banned from using Schism
 	   && !isHook(authorID) // Not a Webhook
 	   && message.author.id !== client.user.id) { // Not self
 
@@ -139,7 +140,7 @@ client.on("message", async message => {
 			if (message.isMentioned(client.user) // Mentioned
 			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
-				const userID = randomUserID()
+				const userID = await randomUserID()
 				imitate(userID, message.channel)
 			}
 
@@ -152,13 +153,13 @@ client.on("message", async message => {
 			// Nothing special
 			else if (blurtChance()) { // Maybe imitate someone anyway
 				log.blurt(message)
-				const userID = randomUserID()
+				const userID = await randomUserID()
 				imitate(userID, message.channel)
 			}
 		}
 
 		if (learningIn(channelID) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
-		   && message.content.length > 0) {
+		   && !message.content.startsWith(config.PREFIX)) { // Not a command
 			/**
 			 * Record the message to the user's corpus.
 			 * Builds up messages from that user until they have
@@ -241,22 +242,18 @@ Promise.all(init).then( () => {
  */
 async function generateSentence(userID) {
 	const corpus = await corpusUtils.load(userID)
-	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-	const coherence = Math.round(Math.random() * 7 + 3) // State size 3-10
+	    , wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
+	    , coherence = Math.round(Math.random() * 7 + 3) // State size 3-10
 	let sentence = await markov(corpus, wordCount, coherence)
 	sentence = sentence.substring(0, 512) // Hard cap of 512 characters (any longer is just too big)
-	if (!sentence || sentence.length === 0) {
-		logError("A sentence was 0 characters long. That is not supposed to happen.")
-	}
 	return sentence
 }
 
 
 async function imitate(userID, channel) {
 	const sentence = await disablePings(await generateSentence(userID))
+	let avatarURL, name
 
-	let avatarURL
-	let name
 	try {
 		// Try to get the information from the server the user is in,
 		// so that Schism can use the user's nickname.
@@ -285,9 +282,15 @@ async function imitate(userID, channel) {
 }
 
 
-function randomUserID() {
-	const index = ~~(Math.random() * corpusUtils.local.length - 1)
-	return corpusUtils.local[index]
+async function randomUserID() {
+	while (true) { // no no potentially infinite loop is ok because its async see everything is fine
+		const index = ~~(Math.random() * corpusUtils.local.length - 1)
+		const userID = corpusUtils.local[index]
+		try {
+			await client.fetchUser(userID) // Make sure the user exists
+			return userID
+		} catch (err) {} // The user doesn't exist; loop and (literally) try again
+	}
 }
 
 
@@ -462,10 +465,10 @@ async function handleCommand(message) {
 					userID = message.author.id
 				} else {
 					if (isNaN(args[0]))
-						userID = mentionToUserID(args[0]) || randomUserID()
+						userID = mentionToUserID(args[0]) || await randomUserID()
 				}
 			} else {
-				userID = randomUserID()
+				userID = await randomUserID()
 			}
 
 			// Schism can't imitate herself
