@@ -1,6 +1,6 @@
 "use strict"
 
-const prefix = process.env.PREFIX
+const prefix = process.env.PREFIX || require("defaults.js").PREFIX
 
 module.exports = {
 	help: {
