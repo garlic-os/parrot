@@ -40,7 +40,7 @@ const log = {
     say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
   , imitate: {
     	text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
-    	hook: hookRes => console.log(`${location(hookRes)} Under the name "${hookRes.author.username}", said: ${hookRes.content}`)
+    	hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)}, saying: ${hookRes.content}`)
 	}
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
@@ -48,7 +48,7 @@ const log = {
   , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag}.`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
-  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate someone in response to ${message.author.tag}'s message.`)
+  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate ${message.author.tag} in response to their message.`)
 }
 
 
@@ -153,8 +153,7 @@ client.on("message", async message => {
 			// Nothing special
 			else if (blurtChance()) { // Maybe imitate someone anyway
 				log.blurt(message)
-				const userID = await randomUserID()
-				imitate(userID, message.channel)
+				imitate(authorID, message.channel)
 			}
 		}
 
@@ -304,67 +303,69 @@ async function randomUserID() {
  * @return {Promise<number|Error>} number of messages added
  */
 function scrape(channel, goal) {
-	const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
-	let activeLoops = 0
-	let messagesAdded = 0
-	const scrapeBuffers = {}
+    return new Promise( (resolve, reject) => {
+        const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
+        let activeLoops = 0
+        let messagesAdded = 0
+        const scrapeBuffers = {}
 
-	async function _getBatchOfMessages(fetchOptions) {
-		activeLoops++
-		const messages = await channel.fetchMessages(fetchOptions)
-		for (const userID in scrapeBuffers) {
-			if (scrapeBuffers[userID].length > 1000) {
-				corpusUtils.append(userID, scrapeBuffers[userID])
-					.then(scrapeBuffers[userID] = "")
-			}
-		}
+        async function _getBatchOfMessages(fetchOptions) {
+            activeLoops++
+            const messages = await channel.fetchMessages(fetchOptions)
+            for (const userID in scrapeBuffers) {
+                if (scrapeBuffers[userID].length > 1000) {
+                    corpusUtils.append(userID, scrapeBuffers[userID])
+                        .then(scrapeBuffers[userID] = "")
+                }
+            }
 
-		// Sometimes the last message is just undefined. No idea why.
-		let lastMessages = messages.last()
-		let toLast = 2
-		while (!lastMessages[0]) {
-			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-			toLast++
-		}
+            // Sometimes the last message is just undefined. No idea why.
+            let lastMessages = messages.last()
+            let toLast = 2
+            while (!lastMessages[0]) {
+                lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+                toLast++
+            }
 
-		const lastMessage = lastMessages[0]
+            const lastMessage = lastMessages[0]
 
-		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-		fetchOptions.before = (Array.isArray(lastMessage))
-			? lastMessage[1].id
-			: lastMessage.id
+            // Sometimes the actual message is in "message[1]", instead "message". No idea why.
+            fetchOptions.before = (Array.isArray(lastMessage))
+                ? lastMessage[1].id
+                : lastMessage.id
 
-		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-			_getBatchOfMessages(fetchOptions)
+            if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+                _getBatchOfMessages(fetchOptions)
 
-		for (let message of messages) {
-			if (messagesAdded >= goal) break
-			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-			if (message.content) { // Make sure that it's not undefined
-				const authorID = message.author.id
-				scrapeBuffers[authorID] += message.content + "\n"
-				messagesAdded++
+            for (let message of messages) {
+                if (messagesAdded >= goal) break
+                if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+                if (message.content) { // Make sure that it's not undefined
+                    const authorID = message.author.id
+                    scrapeBuffers[authorID] += message.content + "\n"
+                    messagesAdded++
 
-				if (!corpusUtils.unsaved.includes(authorID))
-					corpusUtils.unsaved.push(authorID)
+                    if (!corpusUtils.unsaved.includes(authorID))
+                        corpusUtils.unsaved.push(authorID)
 
-				if (!corpusUtils.local.includes(authorID))
-					corpusUtils.local.push(authorID)
-			}
-		}
-		activeLoops--
-	}
-	_getBatchOfMessages(fetchOptions)
+                    if (!corpusUtils.local.includes(authorID))
+                        corpusUtils.local.push(authorID)
+                }
+            }
+            activeLoops--
+        }
+        _getBatchOfMessages(fetchOptions)
 
-	const whenDone = setInterval( () => {
-		if (activeLoops === 0) {
-			clearInterval(whenDone)
-			for (const userID in scrapeBuffers) {
-				corpusUtils.append(userID, scrapeBuffers[userID])
-			}
-			resolve(messagesAdded)
-		}
-	}, 100)
+        const whenDone = setInterval( () => {
+            if (activeLoops === 0) {
+                clearInterval(whenDone)
+                for (const userID in scrapeBuffers) {
+                    corpusUtils.append(userID, scrapeBuffers[userID])
+                }
+                resolve(messagesAdded)
+            }
+        }, 100)
+    })
 }
 
 
