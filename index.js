@@ -259,20 +259,19 @@ async function imitate(userID, channel) {
 		// so that Schism can use the user's nickname.
 		const member = await channel.guild.fetchMember(userID)
 		avatarURL = member.user.displayAvatarURL
-		name = member.displayName
+        name = `Not ${member.displayName}`
 	} catch (err) {
 		// If Schism can't get the user from the server,
 		// use the user's ID for their name
 		// and the default avatar.
 		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
-		name = userID
+        name = `Ghost of user ${userID}`
 	}
 
 	const hook = hooks[channel.id]
 	if (hook) {
-		const newName = `Not ${name}`
-		if (hook.name !== newName) // Only change appearance if the current user to imitate is different from the last user Schism imitated
-			await hook.edit(newName, avatarURL)
+		if (hook.name !== name) // Only change appearance if the current user to imitate is different from the last user Schism imitated
+			await hook.edit(name, avatarURL)
 		hookSendQueue.push([hook, sentence])
 	} else {
 		avatarURL = avatarURL.replace("?size=2048", "?size=64")
