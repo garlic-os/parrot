@@ -720,6 +720,7 @@ async function cleanse(phrase) {
  * @return {Boolean} Whether the string contains any bad words
  */
 function isNaughty(phrase) {
+	if (!config.BAD_WORDS) return false
     function wordIsBad(word) {
         return config.BAD_WORDS.includes(word)
     }
