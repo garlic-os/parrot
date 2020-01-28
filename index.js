@@ -161,25 +161,18 @@ client.on("message", async message => {
 		   && !message.content.startsWith(config.PREFIX)) { // Not a command
 			/**
 			 * Record the message to the user's corpus.
-			 * Build up messages from that user until they have
+			 * Builds up messages from that user until they have
 			 *   been silent for at least five seconds,
-			 *   then write them all to cache in one fell swoop.
+			 *   then writes them all to cache in one fell swoop.
 			 * Messages will be saved to the cloud come the next autosave.
 			 */
-            if (isNaughty(message.content)) {
-                dmTheAdmins(
-`Bad word detected.
-${message.author.tag} (ID: ${authorID}) said:
-${message.content.substring(0, 1000)}
-https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=${message.id}`)
-            } else {
-                buffers[authorID] += message.content + "\n"
-            }
+			if (buffers.hasOwnProperty(authorID) && buffers[authorID].length > 0) {
+				buffers[authorID] += message.content + "\n"
 
-            // Set a timeout to wait for the user to be quiet
-            //   only if their buffer is empty.
-			if (buffers[authorID].length === 0) {
+			} else {
+				buffers[authorID] = message.content + "\n"
 				setTimeout( async () => {
+					const buffer = await cleanse(buffers[authorID])
 					if (buffer.length === 0) return
 
 					if (!corpusUtils.local.includes(authorID))
@@ -472,7 +465,7 @@ async function handleCommand(message) {
 					userID = message.author.id
 				} else {
 					if (isNaN(args[0]))
-						userID = onlyNumbers(args[0]) || await randomUserID()
+						userID = mentionToUserID(args[0]) || await randomUserID()
 				}
 			} else {
 				userID = await randomUserID()
@@ -593,13 +586,20 @@ function status(code) {
 
 
 /**
- * Removes all the characters that aren't numbers.
+ * TODO: make this not comically unreadable
  * 
- * @param {string} string - any string
- * @return {string} string with only numbers
+ * @param {string} mention - a string like "<@1234567891234567>"
+ * @return {string} user ID
  */
-function onlyNumbers(string) {
-	return string.replace(/[^0-9]/g, "")
+function mentionToUserID(mention) {
+	return (mention.startsWith("<@") && mention.endsWith(">"))
+		? mention.slice(
+			(mention.charAt(2) === "!")
+				? 3
+				: 2
+			, -1
+		)
+		: null
 }
 
 
@@ -649,21 +649,6 @@ function learningIn(channelID) {
 
 
 /**
- * DM all the users in the ADMINS env. var a message.
- * 
- * @param {string} string - message to send the admins
- */
-function dmTheAdmins(string) {
-    for (const key in config.ADMINS) {
-		const userId = config.ADMINS[key]
-		client.fetchUser(userId)
-			.then(user => user.send(string))
-			.catch(console.error)
-	}
-}
-
-
-/**
  * DMs the admins and logs an error
  * 
  * @param {string} err - an error
@@ -674,7 +659,12 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-    dmTheAdmins(sendThis)
+	for (const key in config.ADMINS) {
+		const userId = config.ADMINS[key]
+		client.fetchUser(userId)
+			.then(user => user.send(sendThis))
+			.catch(console.error)
+	}
 }
 
 
@@ -710,22 +700,6 @@ async function cleanse(phrase) {
 	})
 
 	return words.join(" ")
-}
-
-
-/**
- * Check for bad words in a string.
- * 
- * @param {string} phrase - String to check for bad words in
- * @return {Boolean} Whether the string contains any bad words
- */
-function isNaughty(phrase) {
-	if (!config.BAD_WORDS) return false
-    function wordIsBad(word) {
-        return config.BAD_WORDS.includes(word)
-    }
-    const words = phrase.split(" ")
-    return words.some(wordIsBad)
 }
 
 
@@ -769,7 +743,7 @@ function parseHooksDict(hooksDict) {
 async function disablePings(sentence) {
 	const words = sentence.split(" ")
 	for (let i=0; i<words.length; i++) {
-		const userID = onlyNumbers(words[i])
+		const userID = mentionToUserID(words[i])
 		if (userID) {
 			const user = await client.fetchUser(userID)
 			words[i] = "@" + user.tag
