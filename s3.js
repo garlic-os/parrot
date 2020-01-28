@@ -26,12 +26,15 @@ module.exports = {
 			Key: `${process.env.CORPUS_DIR}/${userID}.txt`
 		}
 
-		const res = await s3.getObject(params).promise()
+		console.debug(`[*] [s3.read()] Trying to get ${userID}'s corpus...'`)
 
-		if (res.Body === undefined || res.Body === null)
-			throw `Empty response at path: ${path}`
-
-		return res.Body.toString() // Convert Buffer to string
+		try {
+			const { Body } = await s3.getObject(params).promise()
+			if (!Body) throw `Empty response at path: ${path}`
+			return Body.toString() // Convert Buffer to string
+		} catch (err) {
+			throw `s3.read(${userID}): ${err}`
+		}
 	},
 
 
