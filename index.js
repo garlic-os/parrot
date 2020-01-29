@@ -24,9 +24,9 @@ else
 //   console-stamp if logging is disabled
 if (config.DISABLE_LOGS) {
 	const methods = ["log", "debug", "warn", "info", "table"]
-    for (const method of methods) {
-        console[method] = () => {}
-    }
+	for (const method of methods) {
+		console[method] = () => {}
+	}
 } else {
 	require("console-stamp")(console, {
 		datePrefix: "",
@@ -37,10 +37,10 @@ if (config.DISABLE_LOGS) {
 
 
 const log = {
-    say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
+	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
   , imitate: {
-    	text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
-    	hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)}, saying: ${hookRes.content}`)
+		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
+		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)}, saying: ${hookRes.content}`)
 	}
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
@@ -62,7 +62,7 @@ process.on("SIGTERM", () => {
 // Requirements
 const Discord     = require("discord.js")
 	, corpusUtils = require("./corpus")
-    , embeds      = require("./embeds")
+	, embeds      = require("./embeds")
 	, help        = require("./help")
 	, markov      = require("./markov")
 
@@ -161,30 +161,36 @@ client.on("message", async message => {
 		   && !message.content.startsWith(config.PREFIX)) { // Not a command
 			/**
 			 * Record the message to the user's corpus.
-			 * Builds up messages from that user until they have
+			 * Build up messages from that user until they have
 			 *   been silent for at least five seconds,
-			 *   then writes them all to cache in one fell swoop.
+			 *   then write them all to cache in one fell swoop.
 			 * Messages will be saved to the cloud come the next autosave.
 			 */
-			if (buffers.hasOwnProperty(authorID) && buffers[authorID].length > 0) {
-				buffers[authorID] += message.content + "\n"
-
+			if (isNaughty(message.content)) {
+				const msg = `Bad word detected.
+${message.author.tag} (ID: ${authorID}) said:
+${message.content.substring(0, 1000)}
+https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=${message.id}`
+				console.warn(msg)
+				dmTheAdmins(msg)
 			} else {
-				buffers[authorID] = message.content + "\n"
-				setTimeout( async () => {
-					const buffer = await cleanse(buffers[authorID])
-					if (buffer.length === 0) return
+				const buffer = buffers[authorID]
+				// Set a timeout to wait for the user to be quiet
+				//   only if their buffer is empty.
+				if (!buffer || buffer.length !== 0) {
+					setTimeout( async () => {
+						if (!corpusUtils.local.includes(authorID))
+							corpusUtils.local.push(authorID)
 
-					if (!corpusUtils.local.includes(authorID))
-						corpusUtils.local.push(authorID)
+						await corpusUtils.append(authorID, buffer)
+						if (!corpusUtils.unsaved.includes(authorID))
+							corpusUtils.unsaved.push(authorID)
 
-					await corpusUtils.append(authorID, buffer)
-					if (!corpusUtils.unsaved.includes(authorID))
-						corpusUtils.unsaved.push(authorID)
-
-					console.log(`${location(message)} Learned from ${message.author.tag}:`, buffer)
-					buffers[authorID] = ""
-				}, 5000) // Five seconds
+						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffer}`)
+						buffers[authorID] = ""
+					}, 5000) // Five seconds
+				}
+				buffers[authorID] += message.content + "\n"
 			}
 		}
 	}
@@ -218,7 +224,7 @@ Promise.all(init).then( () => {
 	// Autosave
 	setInterval( async () => {
 		const savedCount = await corpusUtils.saveAll()
-		console.log(log.save(savedCount))
+		console.log("[AUTOSAVE]", log.save(savedCount))
 	}, 3600000) // One hour
 })
 .catch( () => {
@@ -237,7 +243,7 @@ Promise.all(init).then( () => {
  * Generates a sentence based off [userID]'s corpus
  * 
  * @param {string} userID - ID corresponding to a user to generate a sentence from
- * @return {Promise<string|Error>} Resolve: sentence; Reject: error loading user's corpus
+ * @return {Promise<string>} Markov-generated sentence
  */
 async function generateSentence(userID) {
 	const corpus = await corpusUtils.load(userID)
@@ -249,8 +255,16 @@ async function generateSentence(userID) {
 }
 
 
+/**
+ * Send a message imitating a user.
+ * 
+ * @param {string} userID - ID corresponding to a user to imitate
+ * @param (Channel) channel - channel to send the message to
+ * @return {Promise}
+ */
 async function imitate(userID, channel) {
-	const sentence = await disablePings(await generateSentence(userID))
+	let sentence = await generateSentence(userID)
+	sentence = await disablePings(sentence)
 	let avatarURL, name
 
 	try {
@@ -258,13 +272,13 @@ async function imitate(userID, channel) {
 		// so that Schism can use the user's nickname.
 		const member = await channel.guild.fetchMember(userID)
 		avatarURL = member.user.displayAvatarURL
-        name = `Not ${member.displayName}`
+		name = `Not ${member.displayName}`
 	} catch (err) {
 		// If Schism can't get the user from the server,
 		// use the user's ID for their name
 		// and the default avatar.
 		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
-        name = `Ghost of user ${userID}`
+		name = `Ghost of user ${userID}`
 	}
 
 	const hook = hooks[channel.id]
@@ -280,6 +294,11 @@ async function imitate(userID, channel) {
 }
 
 
+/**
+ * Choose a random user ID that Schism can imitate.
+ * 
+ * @return {Promise<string>} userID
+ */
 async function randomUserID() {
 	while (true) { // no no potentially infinite loop is ok because its async see everything is fine
 		const index = ~~(Math.random() * corpusUtils.local.length - 1)
@@ -300,72 +319,68 @@ async function randomUserID() {
  *
  * @param {Channel} channel - what channel to scrape
  * @param {number} howManyMessages - number of messages to scrape
- * @return {Promise<number|Error>} number of messages added
+ * @return {Promise<number>} number of messages added
  */
-function scrape(channel, goal) {
-    return new Promise( (resolve, reject) => {
-        const fetchOptions = { limit: 100 /*, before: [last message from previous request]*/ }
-        let activeLoops = 0
-        let messagesAdded = 0
-        const scrapeBuffers = {}
+async function scrape(channel, goal) {
+	const fetchOptions = {
+		limit: 100
+		// _getBatchOfMessages() will set this:
+		//, before: [last message from previous request]
+	}
+	let messagesAdded = 0
+	const scrapeBuffers = {}
+	const promises = []
 
-        async function _getBatchOfMessages(fetchOptions) {
-            activeLoops++
-            const messages = await channel.fetchMessages(fetchOptions)
-            for (const userID in scrapeBuffers) {
-                if (scrapeBuffers[userID].length > 1000) {
-                    corpusUtils.append(userID, scrapeBuffers[userID])
-                        .then(scrapeBuffers[userID] = "")
-                }
-            }
+	async function _getBatchOfMessages(fetchOptions) {
+		const messages = await channel.fetchMessages(fetchOptions)
+		for (const userID in scrapeBuffers) {
+			if (scrapeBuffers[userID].length > 1000) {
+				corpusUtils.append(userID, scrapeBuffers[userID])
+					.then(scrapeBuffers[userID] = "")
+			}
+		}
 
-            // Sometimes the last message is just undefined. No idea why.
-            let lastMessages = messages.last()
-            let toLast = 2
-            while (!lastMessages[0]) {
-                lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-                toLast++
-            }
+		// Sometimes the last message is just undefined. No idea why.
+		let lastMessages = messages.last()
+		let toLast = 2
+		while (!lastMessages[0]) {
+			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+			toLast++
+		}
 
-            const lastMessage = lastMessages[0]
+		const lastMessage = lastMessages[0]
 
-            // Sometimes the actual message is in "message[1]", instead "message". No idea why.
-            fetchOptions.before = (Array.isArray(lastMessage))
-                ? lastMessage[1].id
-                : lastMessage.id
+		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
+		fetchOptions.before = (Array.isArray(lastMessage))
+			? lastMessage[1].id
+			: lastMessage.id
 
-            if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-                _getBatchOfMessages(fetchOptions)
+		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+			_getBatchOfMessages(fetchOptions)
 
-            for (let message of messages) {
-                if (messagesAdded >= goal) break
-                if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-                if (message.content) { // Make sure that it's not undefined
-                    const authorID = message.author.id
-                    scrapeBuffers[authorID] += message.content + "\n"
-                    messagesAdded++
+		for (let message of messages) {
+			if (messagesAdded >= goal) break
+			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+			if (message.content) { // Make sure that it's not undefined
+				const authorID = message.author.id
+				scrapeBuffers[authorID] += message.content + "\n"
+				messagesAdded++
 
-                    if (!corpusUtils.unsaved.includes(authorID))
-                        corpusUtils.unsaved.push(authorID)
+				if (!corpusUtils.unsaved.includes(authorID))
+					corpusUtils.unsaved.push(authorID)
 
-                    if (!corpusUtils.local.includes(authorID))
-                        corpusUtils.local.push(authorID)
-                }
-            }
-            activeLoops--
-        }
-        _getBatchOfMessages(fetchOptions)
+				if (!corpusUtils.local.includes(authorID))
+					corpusUtils.local.push(authorID)
+			}
+		}
+	}
+	promises.push(_getBatchOfMessages(fetchOptions))
 
-        const whenDone = setInterval( () => {
-            if (activeLoops === 0) {
-                clearInterval(whenDone)
-                for (const userID in scrapeBuffers) {
-                    corpusUtils.append(userID, scrapeBuffers[userID])
-                }
-                resolve(messagesAdded)
-            }
-        }, 100)
-    })
+	await promise.all(promises)
+	for (const userID in scrapeBuffers) {
+		corpusUtils.append(userID, scrapeBuffers[userID])
+	}
+	return messagesAdded
 }
 
 
@@ -586,20 +601,21 @@ function status(code) {
 
 
 /**
- * TODO: make this not comically unreadable
+ * Get a user ID from a mention string (e.g. <@120957139230597299>.
  * 
- * @param {string} mention - a string like "<@1234567891234567>"
- * @return {string} user ID
+ * @param {string} mention - string with a user ID
+ * @return {string|null} userID
  */
 function mentionToUserID(mention) {
-	return (mention.startsWith("<@") && mention.endsWith(">"))
-		? mention.slice(
-			(mention.charAt(2) === "!")
-				? 3
-				: 2
-			, -1
-		)
-		: null
+	// All pings start with < and end with >. However, so do emojis.
+	// We can filter out emojis by knowing emojis have :'s and pings do not.
+	if (mention.startsWith("<") && mention.endsWith(">") && !mention.includes(":")) {
+		// It's a mention! Strip off all non-numbers and return.
+		return mention.replace(/[^0-9]/g, "")
+	} else {
+		// This word isn't a mention.
+		return null
+	}
 }
 
 
@@ -649,6 +665,21 @@ function learningIn(channelID) {
 
 
 /**
+ * DM all the users in the ADMINS env. var a message.
+ * 
+ * @param {string} string - message to send the admins
+ */
+function dmTheAdmins(string) {
+	for (const key in config.ADMINS) {
+		const userId = config.ADMINS[key]
+		client.fetchUser(userId)
+			.then(user => user.send(string))
+			.catch(console.error)
+	}
+}
+
+
+/**
  * DMs the admins and logs an error
  * 
  * @param {string} err - an error
@@ -659,12 +690,7 @@ function logError(err) {
 		? `ERROR! ${err.message}`
 		: `ERROR! ${err}`
 
-	for (const key in config.ADMINS) {
-		const userId = config.ADMINS[key]
-		client.fetchUser(userId)
-			.then(user => user.send(sendThis))
-			.catch(console.error)
-	}
+	dmTheAdmins(sendThis)
 }
 
 
@@ -688,7 +714,7 @@ function httpsDownload(url) {
  * Remove bad words from a phrase
  * 
  * @param {string} phrase - Input string
- * @return {Promise<string|Error>} Resolve: filtered string; Reject: Error
+ * @return {Promise<string>} filtered string
  */
 async function cleanse(phrase) {
 	if (!config.BAD_WORDS) return phrase
@@ -700,6 +726,22 @@ async function cleanse(phrase) {
 	})
 
 	return words.join(" ")
+}
+
+
+/**
+ * Check for bad words in a string.
+ * 
+ * @param {string} phrase - String to check for bad words in
+ * @return {Boolean} Whether the string contains any bad words
+ */
+function isNaughty(phrase) {
+	if (!config.BAD_WORDS) return false
+	function wordIsBad(word) {
+		return config.BAD_WORDS.includes(word)
+	}
+	const words = phrase.split(" ")
+	return words.some(wordIsBad)
 }
 
 
@@ -738,7 +780,7 @@ function parseHooksDict(hooksDict) {
  * This makes it so that the string won't actually ping any users.
  * 
  * @param {string} sentence - sentence to disable pings in
- * @return {string} sentence that won't ping anyone
+ * @return {Promise<string>} sentence that won't ping anyone
  */
 async function disablePings(sentence) {
 	const words = sentence.split(" ")
@@ -758,7 +800,7 @@ async function disablePings(sentence) {
  *   all the channels in the given dictionary.
  * 
  * @param {Object} channelDict - Dictionary of channels
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * @return {Promise<Object>} Object intended to be console.table'd
  * 
  * @example
  *     channelTable(config.SPEAKING_CHANNELS)
@@ -794,7 +836,7 @@ async function channelTable(channelDict) {
  *   all the nicknames Schism has.
  * 
  * @param {Object} nicknameDict - Dictionary of nicknames
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * @return {Promise<Object>} Object intended to be console.table'd
  * 
  * @example
  *     nicknameTable(config.NICKNAMES)
@@ -831,7 +873,7 @@ async function nicknameTable(nicknameDict) {
  *   the supplied array of user IDs.
  * 
  * @param {string[]} userIDs - Array of user IDs
- * @return {Promise<Object|Error>} Resolve: Object intended to be console.table'd; Reject: error
+ * @return {Promise<Object>} Object intended to be console.table'd
  * 
  * @example
  *     userTable(["2547230987459237549", "0972847639849352398"])
