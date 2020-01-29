@@ -177,7 +177,7 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				const buffer = buffers[authorID]
 				// Set a timeout to wait for the user to be quiet
 				//   only if their buffer is empty.
-				if (!buffer || buffer.length !== 0) {
+				if (!buffer || buffer.length === 0) {
 					setTimeout( async () => {
 						if (!corpusUtils.local.includes(authorID))
 							corpusUtils.local.push(authorID)
