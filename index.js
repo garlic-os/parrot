@@ -174,19 +174,16 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				console.warn(msg)
 				dmTheAdmins(msg)
 			} else {
-				const buffer = buffers[authorID]
+				if (!buffers[authorID]) buffers[authorID] = ""
 				// Set a timeout to wait for the user to be quiet
 				//   only if their buffer is empty.
-				if (!buffer || buffer.length === 0) {
+				if (buffers[authorID].length === 0) {
 					setTimeout( async () => {
-						if (!corpusUtils.local.includes(authorID))
-							corpusUtils.local.push(authorID)
+						await corpusUtils.append(authorID, buffers[authorID])
+						corpusUtils.unsaved.add(authorID)
+						corpusUtils.local.add(authorID)
 
-						await corpusUtils.append(authorID, buffer)
-						if (!corpusUtils.unsaved.includes(authorID))
-							corpusUtils.unsaved.push(authorID)
-
-						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffer}`)
+						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID]}`)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
