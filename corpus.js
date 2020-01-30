@@ -4,19 +4,19 @@ const fs = require("fs").promises
     , s3 = require("./s3")
 
 /**
- * An array of corpi that have been created/modified since last S3 save
- * @const {string[]}
+ * A set of corpi that have been created/modified since last S3 save
+ * @const {Set<string>}
  */
-const unsaved = []
+const unsaved = new Set()
 
 /**
- * An array of user IDs to cut down on S3 requests
- * @const {string[]}
+ * A set of user IDs to cut down on S3 requests
+ * @const {Set<string>}
  */
-const local = []
+const local = new Set()
 s3.listUserIDs().then(userIDs => {
 	for (const userID of userIDs) {
-		local.push(userID)
+		local.add(userID)
 	}
 })
 
@@ -62,7 +62,7 @@ async function append(userID, data) {
 	if (cache.includes(`${userID}.txt`)) { // Corpus is in cache
 		fs.appendFile(`./cache/${userID}.txt`, data) // Append the new data to it
 
-	} else if (local.includes(userID)) { // Corpus is available locally
+	} else if (local.has(userID)) { // Corpus is available locally
 		const corpus = await s3.read(userID) // Download the corpus from S3
 		_writeCache(userID, corpus + data) // Cache the corpus with the new data added
 
@@ -82,14 +82,14 @@ async function append(userID, data) {
 async function saveAll() {
 	let savedCount = 0
 	const promises = []
-	while (unsaved.length > 0) {
-		const userID = unsaved.pop()
+	for (const userID in unsaved.values()) {
 		const corpus = await load(userID)
 		promises.push(
 			s3.write(userID, corpus)
 				.then(savedCount++)
 		)
 	}
+	unsaved.clear()
 
 	await Promise.all(promises)
 	return savedCount
