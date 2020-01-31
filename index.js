@@ -174,19 +174,16 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				console.warn(msg)
 				dmTheAdmins(msg)
 			} else {
-				const buffer = buffers[authorID]
+				if (!buffers[authorID]) buffers[authorID] = ""
 				// Set a timeout to wait for the user to be quiet
 				//   only if their buffer is empty.
-				if (!buffer || buffer.length === 0) {
+				if (buffers[authorID].length === 0) {
 					setTimeout( async () => {
-						if (!corpusUtils.local.includes(authorID))
-							corpusUtils.local.push(authorID)
+						await corpusUtils.append(authorID, buffers[authorID])
+						corpusUtils.unsaved.add(authorID)
+						corpusUtils.local.add(authorID)
 
-						await corpusUtils.append(authorID, buffer)
-						if (!corpusUtils.unsaved.includes(authorID))
-							corpusUtils.unsaved.push(authorID)
-
-						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffer}`)
+						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID]}`)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
@@ -300,14 +297,37 @@ async function imitate(userID, channel) {
  * @return {Promise<string>} userID
  */
 async function randomUserID() {
-	while (true) { // no no potentially infinite loop is ok because its async see everything is fine
-		const index = ~~(Math.random() * corpusUtils.local.length - 1)
-		const userID = corpusUtils.local[index]
+	const userIDs = corpusUtils.local
+	let tries = 0
+	while (++tries < 100) {
+		const index = ~~(Math.random() * userIDs.size - 1)
+		const userID = elementAt(userIDs, index)
 		try {
 			await client.fetchUser(userID) // Make sure the user exists
 			return userID
-		} catch (err) {} // The user doesn't exist; loop and (literally) try again
+		} catch (err) {} // The user doesn't exist; loop and literally *try* again
 	}
+	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
+}
+
+
+/**
+ * Get an element from a Set.
+ * 
+ * @param {Set} setObj - Set to get the element from
+ * @param {number} index - position of element in the Set
+ * @return {any} [index]th element in the Set
+ */
+function elementAt(setObj, index) {
+	if (index < 0 || index > setObj.size - 1) return // Index out of range; return undefined
+	const iterator = setObj.values()
+	for (let i=0; i<index-1; i++) {
+		// Increment the iterator index-1 times.
+		// The next iterator value is the element we want.
+		iterator.next()
+	}
+
+	return iterator.next().value
 }
 
 
@@ -365,12 +385,8 @@ async function scrape(channel, goal) {
 				const authorID = message.author.id
 				scrapeBuffers[authorID] += message.content + "\n"
 				messagesAdded++
-
-				if (!corpusUtils.unsaved.includes(authorID))
-					corpusUtils.unsaved.push(authorID)
-
-				if (!corpusUtils.local.includes(authorID))
-					corpusUtils.local.push(authorID)
+				corpusUtils.unsaved.add(authorID)
+				corpusUtils.local.add(authorID)
 			}
 		}
 	}
@@ -516,7 +532,7 @@ async function handleCommand(message) {
 
 		case "save":
 			if (!admin) break
-			if (corpusUtils.unsaved.length === 0) {
+			if (corpusUtils.unsaved.size === 0) {
 				message.channel.send(embeds.error("Nothing to save."))
 					.then(log.error)
 				break
