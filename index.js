@@ -341,64 +341,73 @@ function elementAt(setObj, index) {
  * @param {number} howManyMessages - number of messages to scrape
  * @return {Promise<number>} number of messages added
  */
-async function scrape(channel, goal) {
-	const fetchOptions = {
-		limit: 100
-		// _getBatchOfMessages() will set this:
-		//, before: [last message from previous request]
-	}
-	let messagesAdded = 0
-	const scrapeBuffers = {}
-	const promises = []
-	const filter = new RegExp(`^\\${config.PREFIX}.+`, "gim") // Filter out Schism commands
+function scrape(channel, goal) {
+	return new Promise( (resolve, reject) => {
+		const fetchOptions = {
+			limit: 100
+			// _getBatchOfMessages() will set this:
+			//, before: [last message from previous request]
+		}
+		let processes = 0
+		let messagesAdded = 0
+		const scrapeBuffers = {}
+		const promises = []
+		const filter = new RegExp(`^\\${config.PREFIX}.+`, "gim") // Filter out Schism commands
 
-	async function _getBatchOfMessages(fetchOptions) {
-		const messages = await channel.fetchMessages(fetchOptions)
-		for (const userID in scrapeBuffers) {
-			if (scrapeBuffers[userID].length > 1000) {
+		async function _getBatchOfMessages(fetchOptions) {
+			++processes
+
+			const messages = await channel.fetchMessages(fetchOptions)
+			for (const userID in scrapeBuffers) {
+				if (scrapeBuffers[userID].length > 1000) {
+					corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
+						.then(scrapeBuffers[userID] = "")
+				}
+			}
+
+			// Sometimes the last message is just undefined. No idea why.
+			let lastMessages = messages.last()
+			let toLast = 2
+			while (!lastMessages[0]) {
+				lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+				toLast++
+			}
+
+			const lastMessage = lastMessages[0]
+
+			// Sometimes the actual message is in "message[1]", instead "message". No idea why.
+			fetchOptions.before = (Array.isArray(lastMessage))
+				? lastMessage[1].id
+				: lastMessage.id
+
+			if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+				_getBatchOfMessages(fetchOptions)
+
+			for (let message of messages) {
+				if (messagesAdded >= goal) break
+				if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+				if (message.content) { // Make sure that it's not undefined
+					const authorID = message.author.id
+					if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
+					scrapeBuffers[authorID] += message.content + "\n"
+					messagesAdded++
+					corpusUtils.unsaved.add(authorID)
+					corpusUtils.local.add(authorID)
+				}
+			}
+			--processes
+		}
+		_getBatchOfMessages(fetchOptions)
+
+		const whenDone = setInterval( () => {
+			if (processes !== 0) return
+			clearInterval(whenDone)
+			for (const userID in scrapeBuffers) {
 				corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
-					.then(scrapeBuffers[userID] = "")
 			}
-		}
-
-		// Sometimes the last message is just undefined. No idea why.
-		let lastMessages = messages.last()
-		let toLast = 2
-		while (!lastMessages[0]) {
-			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-			toLast++
-		}
-
-		const lastMessage = lastMessages[0]
-
-		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-		fetchOptions.before = (Array.isArray(lastMessage))
-			? lastMessage[1].id
-			: lastMessage.id
-
-		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-			promises.push(_getBatchOfMessages(fetchOptions))
-
-		for (let message of messages) {
-			if (messagesAdded >= goal) break
-			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-			if (message.content) { // Make sure that it's not undefined
-				const authorID = message.author.id
-				if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
-				scrapeBuffers[authorID] += message.content + "\n"
-				messagesAdded++
-				corpusUtils.unsaved.add(authorID)
-				corpusUtils.local.add(authorID)
-			}
-		}
-	}
-	promises.push(_getBatchOfMessages(fetchOptions))
-
-	await Promise.all(promises)
-	for (const userID in scrapeBuffers) {
-		corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
-	}
-	return messagesAdded
+			resolve(messagesAdded)
+		}, 100)
+	})
 }
 
 
