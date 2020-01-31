@@ -392,7 +392,7 @@ async function scrape(channel, goal) {
 	}
 	promises.push(_getBatchOfMessages(fetchOptions))
 
-	await promise.all(promises)
+	await Promise.all(promises)
 	for (const userID in scrapeBuffers) {
 		corpusUtils.append(userID, scrapeBuffers[userID])
 	}
@@ -542,28 +542,6 @@ async function handleCommand(message) {
 			message.channel.send(embeds.standard(log.save(savedCount)))
 				.then(log.say)
 			break
-
-		/*case "filter":
-		case "cleanse":
-			if (!admin) break
-
-			const userIDs = (args.length > 0)
-				? args
-				: corpusUtils.local
-
-			const found = await filterUndefineds(userIDs)
-
-			if (found.length > 0) {
-				userTable(found).then(table => {
-					console.info("Users filtered:")
-					console.table(table)
-				})
-				.catch(console.warn)
-			}
-
-			message.channel.send(embeds.standard(`Found and removed the word "undefined" from the beginnings of ${found.length} corpi. See the logs for a list of affected users (unless you disabled logs; then you just don't get to know).`))
-				.then(log.say)
-			break*/
 	}
 	return command
 }
@@ -572,7 +550,8 @@ async function handleCommand(message) {
 /**
  * Sets the custom nicknames from the config file
  * 
- * @return {Promise<void>} Resolve: nothing (there were no errors); Reject: array of errors
+ * @return {Promise<void>}
+ * @rejects {Error[]} array of errors
  */
 async function updateNicknames(nicknameDict) {
 	const errors = []
@@ -597,6 +576,7 @@ async function updateNicknames(nicknameDict) {
 
 /**
  * 0.05% chance to return true; 99.95% chance to return false.
+ * The change that Schism will choose to respond to a mundane message
  * 
  * @return {Boolean} True/false
  */
