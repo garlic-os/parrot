@@ -350,12 +350,13 @@ async function scrape(channel, goal) {
 	let messagesAdded = 0
 	const scrapeBuffers = {}
 	const promises = []
+	const filter = new RegExp(`^\\${config.PREFIX}.+`, "gim") // Filter out Schism commands
 
 	async function _getBatchOfMessages(fetchOptions) {
 		const messages = await channel.fetchMessages(fetchOptions)
 		for (const userID in scrapeBuffers) {
 			if (scrapeBuffers[userID].length > 1000) {
-				corpusUtils.append(userID, scrapeBuffers[userID])
+				corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
 					.then(scrapeBuffers[userID] = "")
 			}
 		}
@@ -383,6 +384,7 @@ async function scrape(channel, goal) {
 			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
 			if (message.content) { // Make sure that it's not undefined
 				const authorID = message.author.id
+				if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
 				scrapeBuffers[authorID] += message.content + "\n"
 				messagesAdded++
 				corpusUtils.unsaved.add(authorID)
@@ -394,7 +396,7 @@ async function scrape(channel, goal) {
 
 	await Promise.all(promises)
 	for (const userID in scrapeBuffers) {
-		corpusUtils.append(userID, scrapeBuffers[userID])
+		corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
 	}
 	return messagesAdded
 }
