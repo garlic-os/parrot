@@ -376,7 +376,7 @@ async function scrape(channel, goal) {
 			: lastMessage.id
 
 		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-			_getBatchOfMessages(fetchOptions)
+			promises.push(_getBatchOfMessages(fetchOptions))
 
 		for (let message of messages) {
 			if (messagesAdded >= goal) break
