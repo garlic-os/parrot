@@ -6,19 +6,21 @@ const fs = require("fs").promises
 var autosaveInterval;
 
 /**
- * A set of corpi that have been created/modified since last S3 save
+ * A set of user IDs whose corpi have been created/modified since last S3 save.
+ * Is cleared when their corpus is saved.
  * @const {Set<string>}
  */
 const unsaved = new Set()
 
 /**
- * A set of user IDs to cut down on S3 requests
+ * A set of all user IDs in the S3 bucket.
+ * Is NOT cleared when their corpus is saved.
  * @const {Set<string>}
  */
-const local = new Set()
+const onS3 = new Set()
 s3.listUserIDs().then(userIDs => {
 	for (const userID of userIDs) {
-		local.add(userID)
+		onS3.add(userID)
 	}
 })
 
@@ -46,6 +48,7 @@ async function load(userID) {
 
 		// Maybe the user's corpus is in the S3 bucket
 		// If not, the user is nowhere to be found (or something went wrong)
+		if (!onS3.has(userID)) throw `[corpus.load(userID)] User not found: ${userID}`
 		const corpus = await s3.read(userID)
 		_writeCache(userID, corpus)
 		return corpus
@@ -65,7 +68,7 @@ async function append(userID, data) {
 	if (cache.includes(`${userID}.txt`)) { // Corpus is in cache
 		fs.appendFile(`./cache/${userID}.txt`, data) // Append the new data to it
 
-	} else if (local.has(userID)) { // Corpus is available locally
+	} else if (onS3.has(userID)) { // Corpus is in the S3 bucket
 		const corpus = await s3.read(userID) // Download the corpus from S3
 		_writeCache(userID, corpus + data) // Cache the corpus with the new data added
 
@@ -73,7 +76,6 @@ async function append(userID, data) {
 		// User doesn't exist; make them a new corpus from just the new data
 		_writeCache(userID, data)
 	}
-	local.add(userID)
 	unsaved.add(userID)
 }
 
@@ -90,8 +92,10 @@ async function saveAll() {
 	for (const userID in unsaved.values()) {
 		const corpus = await load(userID)
 		promises.push(
-			s3.write(userID, corpus)
-				.then(savedCount++)
+			s3.write(userID, corpus).then( () => {
+				savedCount++
+				onS3.add(userID)
+			})
 		)
 	}
 	unsaved.clear()
@@ -147,7 +151,7 @@ async function _readCache(filename) {
 
 module.exports = {
 	unsaved: unsaved,
-	local: local,
+	onS3: onS3,
 	load: load,
 	append: append,
 	saveAll: saveAll,
