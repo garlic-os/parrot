@@ -37,10 +37,5 @@ module.exports = {
 		admin: true,
 		desc: `Xok`,
 		syntax: `${prefix}xok`
-	},
-	filter: {
-		admin: true,
-		desc: `Removes "undefined" from the beginning of any given corpi that have it.\nIf no list is given, a list of all corpi will be used instead.`,
-		syntax: `${prefix}filter [space-delimited list of user IDs]`
 	}
 }
