@@ -67,8 +67,10 @@ const Discord     = require("discord.js")
 	, markov      = require("./markov")
 
 
-// Array of promises
-// Do all these things before logging in
+/**
+ * Do all these things before logging in
+ * @type {Promise[]} array of Promises
+ */
 const init = []
 
 // Set BAD_WORDS if BAD_WORDS_URL is defined
@@ -79,7 +81,6 @@ if (config.BAD_WORDS_URL) {
 
 const buffers = {}
 const hookSendQueue = []
-
 const client = new Discord.Client()
 const hooks = parseHooksDict(config.HOOKS)
 
@@ -180,9 +181,6 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				if (buffers[authorID].length === 0) {
 					setTimeout( async () => {
 						await corpusUtils.append(authorID, buffers[authorID])
-						corpusUtils.unsaved.add(authorID)
-						corpusUtils.local.add(authorID)
-
 						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID]}`)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
@@ -218,11 +216,7 @@ Promise.all(init).then( () => {
 	console.info("Logging in...")
 	client.login(process.env.DISCORD_BOT_TOKEN)
 
-	// Autosave
-	setInterval( async () => {
-		const savedCount = await corpusUtils.saveAll()
-		console.log("[AUTOSAVE]", log.save(savedCount))
-	}, 3600000) // One hour
+	corpusUtils.startAutosave()
 })
 .catch( () => {
 	console.error("One or more initialization steps have failed:")
@@ -391,8 +385,6 @@ function scrape(channel, goal) {
 					if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
 					scrapeBuffers[authorID] += message.content + "\n"
 					messagesAdded++
-					corpusUtils.unsaved.add(authorID)
-					corpusUtils.local.add(authorID)
 				}
 			}
 			--processes
