@@ -1,5 +1,5 @@
-const AWS  = require("aws-sdk"),
-      path = require("path")
+const AWS  = require("aws-sdk")
+    , path = require("path")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -13,10 +13,10 @@ const s3 = new AWS.S3()
 
 module.exports = {
 	/**
-	 * Downloads a file from S3_BUCKET_NAME.
+	 * Download a file from S3_BUCKET_NAME.
 	 * 
 	 * @param {string} userID - ID of a corpus to download from the S3 bucket
-	 * @return {Promise<string|Error>} Resolve: data from bucket; Reject: error
+	 * @return {Promise<string>} data from bucket
 	 */
 	read: async userID => {
 		if (!userID) throw `s3.read() received invalid ID: ${userID}`
@@ -26,21 +26,22 @@ module.exports = {
 			Key: `${process.env.CORPUS_DIR}/${userID}.txt`
 		}
 
-		const res = await s3.getObject(params).promise()
-
-		if (res.Body === undefined || res.Body === null)
-			throw `Empty response at path: ${path}`
-
-		return res.Body.toString() // Convert Buffer to string
+		try {
+			const { Body } = await s3.getObject(params).promise()
+			if (!Body) throw `Empty response at path: ${path}`
+			return Body.toString() // Convert Buffer to string
+		} catch (err) {
+			throw `[s3.read(${userID})] ${err}`
+		}
 	},
 
 
 	/**
-	 * Uploads (and overwrites) a corpus in S3_BUCKET_NAME.
+	 * Upload (and overwrite) a corpus in S3_BUCKET_NAME.
 	 * 
 	 * @param {string} userID - user ID's corpus to upload/overwrite
 	 * @param {string} data - data to write to user's corpus 
-	 * @return {Promise<Object|Error>} Resolve: success response; Reject: Error
+	 * @return {Promise<Object>} success response
 	 */
 	write: async (userID, data) => {
 		if (!userID) throw `s3.write() received invalid ID: ${userID}`
@@ -55,9 +56,9 @@ module.exports = {
 
 
 	/**
-	 * Compiles a list of all the IDs inside CORPUS_DIR.
+	 * Compile a list of all the IDs inside CORPUS_DIR.
 	 * 
-	 * @return {Promise<string[]|Error>} Resolve: Array of user IDs; Reject: error message
+	 * @return {Promise<string[]>} array of user IDs
 	 */
 	listUserIDs: async () => {
 		const params = {
