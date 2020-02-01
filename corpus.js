@@ -3,6 +3,8 @@
 const fs = require("fs").promises
     , s3 = require("./s3")
 
+var autosaveInterval;
+
 /**
  * A set of corpi that have been created/modified since last S3 save
  * @const {Set<string>}
@@ -20,6 +22,7 @@ s3.listUserIDs().then(userIDs => {
 	}
 })
 
+
 // Create directory ./cache/ if it doesn't exist
 fs.mkdir("cache").catch(err => {
 	if (err.code !== "EEXIST") throw err
@@ -32,7 +35,7 @@ fs.mkdir("cache").catch(err => {
  * If it isn't there either, give up.
  * 
  * @param {string} userID - user ID whose corpus to load
- * @return {Promise<string|Error>} Resolve: [userID]'s corpus; Reject: Error
+ * @return {Promise<string>} [userID]'s corpus
  */
 async function load(userID) {
 	try {
@@ -55,7 +58,7 @@ async function load(userID) {
  * 
  * @param {string} userID - ID of the user whose corpus to add data to
  * @param {string} data - data to add
- * @return {Promise<void|Error} Resolve: nothing; Reject: Error
+ * @return {Promise<void>} nothing
  */
 async function append(userID, data) {
 	const cache = await fs.readdir(`./cache`)
@@ -70,6 +73,8 @@ async function append(userID, data) {
 		// User doesn't exist; make them a new corpus from just the new data
 		_writeCache(userID, data)
 	}
+	local.add(userID)
+	unsaved.add(userID)
 }
 
 
@@ -77,7 +82,7 @@ async function append(userID, data) {
  * Upload all unsaved cache to S3
  *   and empty the list of unsaved files.
  * 
- * @return {Promise<void|Error>} Resolve: number of files saved; Reject: s3.write() error
+ * @return {Promise<number>} number of files saved
  */
 async function saveAll() {
 	let savedCount = 0
@@ -97,11 +102,29 @@ async function saveAll() {
 
 
 /**
+ * Automatically save all corpi on an interval.
+ * 
+ * @param {number} [intervalMS] - time between autosaves (in milliseconds)
+ */
+function startAutosave(intervalMS=3600000) {
+	autosaveInterval = setInterval( async () => {
+		const savedCount = await saveAll()
+		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`)
+	}, intervalMS)
+}
+
+
+function stopAutosave() {
+	clearInterval(autosaveInterval)
+}
+
+
+/**
  * Write a file to cache.
  * 
  * @param {string} filename - name of file to write to (minus extension)
  * @param {string} data - data to write
- * @return {Promise<void|Error>} Resolve: nothing; Reject: Error
+ * @return {Promise<void>} nothing
  */
 async function _writeCache(filename, data) {
 	fs.writeFile(`./cache/${filename}.txt`, data)
@@ -112,7 +135,7 @@ async function _writeCache(filename, data) {
  * Read a file from cache.
  * 
  * @param {string} filename - name of file to read (minus extension)
- * @return {Promise<string|Error>} Resolve: file's contents; Reject: Error
+ * @return {Promise<string>} file's contents
  */
 async function _readCache(filename) {
 	const data = await fs.readFile(`./cache/${filename}.txt`, "UTF-8")
@@ -121,10 +144,13 @@ async function _readCache(filename) {
 }
 
 
+
 module.exports = {
 	unsaved: unsaved,
 	local: local,
 	load: load,
 	append: append,
-	saveAll: saveAll
+	saveAll: saveAll,
+	startAutosave: startAutosave,
+	stopAutosave: stopAutosave
 }
