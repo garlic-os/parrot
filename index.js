@@ -291,7 +291,7 @@ async function imitate(userID, channel) {
  * @return {Promise<string>} userID
  */
 async function randomUserID() {
-	const userIDs = corpusUtils.local
+	const userIDs = corpusUtils.onS3
 	let tries = 0
 	while (++tries < 100) {
 		const index = ~~(Math.random() * userIDs.size - 1)
@@ -335,71 +335,74 @@ function elementAt(setObj, index) {
  * @param {number} howManyMessages - number of messages to scrape
  * @return {Promise<number>} number of messages added
  */
-function scrape(channel, goal) {
-	return new Promise( (resolve, reject) => {
-		const fetchOptions = {
-			limit: 100
-			// _getBatchOfMessages() will set this:
-			//, before: [last message from previous request]
-		}
-		let processes = 0
-		let messagesAdded = 0
-		const scrapeBuffers = {}
-		const promises = []
-		const filter = new RegExp(`^\\${config.PREFIX}.+`, "gim") // Filter out Schism commands
+async function scrape(channel, goal) {
+	const fetchOptions = {
+		limit: 100
+		// _getBatchOfMessages() will set this:
+		//, before: [last message from previous request]
+	}
+	let messagesAdded = 0
+	const scrapeBuffers = {}
+	const escapedPrefix = interpolate(config.PREFIX, "\\")
+	const filter = new RegExp(`^${escapedPrefix}.+`, "gim") // Filter out Schism commands
 
-		async function _getBatchOfMessages(fetchOptions) {
-			++processes
-
-			const messages = await channel.fetchMessages(fetchOptions)
-			for (const userID in scrapeBuffers) {
-				if (scrapeBuffers[userID].length > 1000) {
-					corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
-						.then(scrapeBuffers[userID] = "")
-				}
-			}
-
-			// Sometimes the last message is just undefined. No idea why.
-			let lastMessages = messages.last()
-			let toLast = 2
-			while (!lastMessages[0]) {
-				lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-				toLast++
-			}
-
-			const lastMessage = lastMessages[0]
-
-			// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-			fetchOptions.before = (Array.isArray(lastMessage))
-				? lastMessage[1].id
-				: lastMessage.id
-
-			if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-				_getBatchOfMessages(fetchOptions)
-
-			for (let message of messages) {
-				if (messagesAdded >= goal) break
-				if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-				if (message.content) { // Make sure that it's not undefined
-					const authorID = message.author.id
-					if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
-					scrapeBuffers[authorID] += message.content + "\n"
-					messagesAdded++
-				}
-			}
-			--processes
-		}
-		_getBatchOfMessages(fetchOptions)
-
-		const whenDone = setInterval( () => {
-			if (processes !== 0) return
-			clearInterval(whenDone)
-			for (const userID in scrapeBuffers) {
+	async function _getBatchOfMessages(fetchOptions) {
+		const messages = await channel.fetchMessages(fetchOptions)
+		for (const userID in scrapeBuffers) {
+			if (scrapeBuffers[userID].length > 1000) {
 				corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
+					.then(scrapeBuffers[userID] = "")
 			}
-			resolve(messagesAdded)
-		}, 100)
-	})
+		}
+
+		// Sometimes the last message is just undefined. No idea why.
+		let lastMessages = messages.last()
+		let toLast = 2
+		while (!lastMessages[0]) {
+			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
+			toLast++
+		}
+
+		const lastMessage = lastMessages[0]
+
+		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
+		fetchOptions.before = (Array.isArray(lastMessage))
+			? lastMessage[1].id
+			: lastMessage.id
+
+		let nextBatch
+		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
+			nextBatch = _getBatchOfMessages(fetchOptions)
+
+		for (let message of messages) {
+			if (messagesAdded >= goal) break
+			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
+			if (message.content) { // Make sure that it's not undefined
+				const authorID = message.author.id
+				if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
+				scrapeBuffers[authorID] += message.content + "\n"
+				messagesAdded++
+			}
+		}
+		try {
+			await nextBatch
+		} catch (err) {}
+		return
+	}
+	await _getBatchOfMessages(fetchOptions)
+	for (const userID in scrapeBuffers) {
+		corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
+	}
+	return messagesAdded
+}
+
+
+function interpolate(bigString, insert) {
+	let output = ""
+	for (const char of bigString.split("")) {
+		output += insert + char
+	}
+	return output
 }
 
 
