@@ -53,10 +53,10 @@ const log = {
 
 
 // (Hopefully) save and clear cache before shutting down
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
 	console.info("Saving changes...")
-	corpusUtils.saveAll()
-		.then(savedCount => console.log(log.save(savedCount)))
+	const savedCount = await corpusUtils.saveAll()
+	console.info(log.save(savedCount))
 })
 
 // Requirements
@@ -75,14 +75,19 @@ const init = []
 
 // Set BAD_WORDS if BAD_WORDS_URL is defined
 if (config.BAD_WORDS_URL) {
-	init.push(httpsDownload(config.BAD_WORDS_URL)
-		.then(rawData => config.BAD_WORDS = rawData.split("\n")))
+	init.push(
+		(async () => {
+			const data = await httpsDownload(config.BAD_WORDS_URL)
+			config.BAD_WORDS = data.split("\n")
+		})()
+	)
 }
 
 const buffers = {}
-const hookSendQueue = []
-const client = new Discord.Client()
-const hooks = parseHooksDict(config.HOOKS)
+    , hookSendQueue = []
+    , client = new Discord.Client()
+    , hooks = parseHooksDict(config.HOOKS)
+
 
 // --- LISTENERS ---------------------------------------------
 
@@ -207,22 +212,26 @@ ${guild.name} (ID: ${guild.id})
 ---------------------------------`)
 })
 
+
 // --- /LISTENERS --------------------------------------------
 
 // --- LOGIN -------------------------------------------------
 
+
 // When all initalization steps have finished
-Promise.all(init).then( () => {
+;( async () => {
+	try {
+		await Promise.all(init)
+	} catch (err) {
+		console.error("One or more initialization steps have failed:", init)
+		console.error(err)
+		throw "Startup failure"
+	}
 	console.info("Logging in...")
 	client.login(process.env.DISCORD_BOT_TOKEN)
 
 	corpusUtils.startAutosave()
-})
-.catch( () => {
-	console.error("One or more initialization steps have failed:")
-	console.error(init)
-	throw "Startup failure"
-})
+})()
 
 
 // --- /LOGIN ------------------------------------------------
@@ -231,7 +240,7 @@ Promise.all(init).then( () => {
 
 
 /**
- * Generates a sentence based off [userID]'s corpus
+ * Generate a sentence based off [userID]'s corpus.
  * 
  * @param {string} userID - ID corresponding to a user to generate a sentence from
  * @return {Promise<string>} Markov-generated sentence
@@ -291,7 +300,7 @@ async function imitate(userID, channel) {
  * @return {Promise<string>} userID
  */
 async function randomUserID() {
-	const userIDs = corpusUtils.onS3
+	const userIDs = corpusUtils.allUserIDs()
 	let tries = 0
 	while (++tries < 100) {
 		const index = ~~(Math.random() * userIDs.size - 1)
@@ -326,8 +335,9 @@ function elementAt(setObj, index) {
 
 
 /**
- * Scrapes [howManyMessages] messages from [channel].
- * Adds the messages to their corresponding user's corpus.
+ * Scrape [howManyMessages] messages from [channel],
+ *   then add the messages to their corresponding
+ *   user's corpus.
  * 
  * Here be dragons.
  *
@@ -343,7 +353,7 @@ async function scrape(channel, goal) {
 	}
 	let messagesAdded = 0
 	const scrapeBuffers = {}
-	const escapedPrefix = interpolate(config.PREFIX, "\\")
+	const escapedPrefix = escape(config.PREFIX)
 	const filter = new RegExp(`^${escapedPrefix}.+`, "gim") // Filter out Schism commands
 
 	async function _getBatchOfMessages(fetchOptions) {
@@ -397,21 +407,27 @@ async function scrape(channel, goal) {
 }
 
 
-function interpolate(bigString, insert) {
+/**
+ * Put \ before every character in a string.
+ * 
+ * @param {string} string - string to be escaped
+ * @return {string} escaped string
+ */
+function escape(string) {
 	let output = ""
-	for (const char of bigString.split("")) {
-		output += insert + char
+	for (const char of string.split("")) {
+		output += "\\" + char
 	}
 	return output
 }
 
 
 /**
- * Parses a message whose content is presumed to be a command
- *   and performs the corresponding action.
+ * Parse a message whose content is presumed to be a command
+ *   and perform the corresponding action.
  * 
  * @param {Message} messageObj - Discord message to be parsed
- * @return {Promise<string>} Resolve: name of command performed; Reject: error
+ * @return {Promise<string>} name of command performed
  */
 async function handleCommand(message) {
 	log.command(message)
@@ -474,7 +490,7 @@ async function handleCommand(message) {
 			}
 
 			// Resolve a starting message and a promise for an ending message
-			message.channel.send(embeds.standard(`Scraping ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
+			message.channel.send(embeds.standard(`Scraping up to ${howManyMessages} messages from [${channel.guild.name} - #${channel.name}]...`))
 				.then(log.say)
 
 
@@ -538,15 +554,15 @@ async function handleCommand(message) {
 
 		case "save":
 			if (!admin) break
-			if (corpusUtils.unsaved.size === 0) {
-				message.channel.send(embeds.error("Nothing to save."))
-					.then(log.error)
-				break
-			}
 			message.channel.send(embeds.standard("Saving..."))
-			const savedCount = await corpusUtils.saveAll()
-			message.channel.send(embeds.standard(log.save(savedCount)))
-				.then(log.say)
+			try {
+				const savedCount = await corpusUtils.saveAll()
+				message.channel.send(embeds.standard(log.save(savedCount)))
+					.then(log.say)
+			} catch (err) {
+				message.channel.send(embeds.error(err))
+					.then(log.error)
+			}
 			break
 	}
 	return command
@@ -554,9 +570,9 @@ async function handleCommand(message) {
 
 
 /**
- * Sets the custom nicknames from the config file
+ * Set the custom nicknames from config.
  * 
- * @return {Promise<void>}
+ * @return {Promise<void>} nothing
  * @rejects {Error[]} array of errors
  */
 async function updateNicknames(nicknameDict) {
@@ -582,7 +598,7 @@ async function updateNicknames(nicknameDict) {
 
 /**
  * 0.05% chance to return true; 99.95% chance to return false.
- * The change that Schism will choose to respond to a mundane message
+ * The chance that Schism will choose to respond to a mundane message.
  * 
  * @return {Boolean} True/false
  */
@@ -592,7 +608,7 @@ function blurtChance() {
 
 
 /**
- * Get status name from status code
+ * Get status name from a status code.
  * 
  * @param {number} code - status code
  * @return {string} status name
@@ -606,7 +622,7 @@ function status(code) {
  * Get a user ID from a mention string (e.g. <@120957139230597299>.
  * 
  * @param {string} mention - string with a user ID
- * @return {string|null} userID
+ * @return {?string} userID
  */
 function mentionToUserID(mention) {
 	// All pings start with < and end with >. However, so do emojis.
@@ -626,7 +642,7 @@ function mentionToUserID(mention) {
  * 
  * @param {any} val
  * @param {Object} object
- * @return {Boolean} True/false
+ * @return {Boolean}
  */
 function has(val, obj) {
 	for (const i in obj) {
@@ -667,7 +683,7 @@ function learningIn(channelID) {
 
 
 /**
- * DM all the users in the ADMINS env. var a message.
+ * DM all the users in the ADMINS envrionment variable.
  * 
  * @param {string} string - message to send the admins
  */
@@ -682,9 +698,9 @@ function dmTheAdmins(string) {
 
 
 /**
- * DMs the admins and logs an error
+ * DM the admins and log an error.
  * 
- * @param {string} err - an error
+ * @param {string} err - error message
  */
 function logError(err) {
 	console.error(err)
@@ -696,38 +712,26 @@ function logError(err) {
 }
 
 
+/**
+ * HTTPS download a file from a URL.
+ * Written to only be used once; hence why it directly requires https lol
+ * 
+ * @param {string} url - URL to download the file from
+ * @return {string} response from server
+ */
 function httpsDownload(url) {
 	return new Promise( (resolve, reject) => {
 		require("https").get(url, res => {
 			if (res.statusCode === 200) {
-				let rawData = ""
+				let data = ""
 				res.setEncoding("utf8")
-				res.on("data", chunk => rawData += chunk)
-				res.on("end", () => resolve(rawData))
+				res.on("data", chunk => data += chunk)
+				res.on("end", () => resolve(data))
 			} else {
 				reject(`Failed to download URL: ${url}`)
 			}
 		})
 	})
-}
-
-
-/**
- * Remove bad words from a phrase
- * 
- * @param {string} phrase - Input string
- * @return {Promise<string>} filtered string
- */
-async function cleanse(phrase) {
-	if (!config.BAD_WORDS) return phrase
-
-	let words = phrase.split(" ")
-	words = words.filter(word => {
-		word = word.toLowerCase().replace("\n", "")
-		return !config.BAD_WORDS.includes(word)
-	})
-
-	return words.join(" ")
 }
 
 
@@ -748,7 +752,7 @@ function isNaughty(phrase) {
 
 
 /**
- * Turns this:
+ * Turn this:
  *     "server - #channel": {
  *         "channelID": "876587263845753",
  *         "hookID": "1254318729468795",
@@ -778,8 +782,8 @@ function parseHooksDict(hooksDict) {
 
 
 /**
- * Parses <@6813218746128746>-type strings into @user#1234-type strings.
- * This makes it so that the string won't actually ping any users.
+ * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
+ * This way, the mention won't actually ping any users.
  * 
  * @param {string} sentence - sentence to disable pings in
  * @return {Promise<string>} sentence that won't ping anyone
@@ -871,48 +875,14 @@ async function nicknameTable(nicknameDict) {
 
 
 /**
- * Generate an object containing stats about
- *   the supplied array of user IDs.
- * 
- * @param {string[]} userIDs - Array of user IDs
- * @return {Promise<Object>} Object intended to be console.table'd
- * 
- * @example
- *     userTable(["2547230987459237549", "0972847639849352398"])
- *         .then(console.table)
- */
-async function userTable(userIDs) {
-	if (config.DISABLE_LOGS) return {}
-	
-	if (!userIDs || userIDs.length === 0)
-		throw "No user IDs defined."
-
-	// If userIDs a single value, wrap it in an array
-	if (!Array.isArray(userIDs)) userIDs = [userIDs]
-
-	const stats = {}
-	for (const userID of userIDs) {
-		const user = await client.fetchUser(userID)
-
-		if (!user) {
-			logError(`userTable() non-fatal error: could not find a user with the ID ${userID}`)
-			continue
-		}
-
-		const stat = {}
-		stat["Username"] = user.tag
-		stats[userID] = stat
-	}
-	return stats
-}
-
-
-/**
- * Utility function that produces a string containing the
- *   place the message came from.
+ * Generate a string that tells where the message came from
+ *   based on a Discord Message object.
  * 
  * @param {Message} message - message object, like from channel.send() or on-message
- * @return {string} "[Server - #channel]" format string
+ * @return {string} location string
+ * @example
+ *     console.log(location(message))
+ *     // returns "[Server - #channel]"
  */
 function location(message) {
 	if (message.hasOwnProperty("channel")) {
