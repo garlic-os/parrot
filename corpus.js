@@ -93,11 +93,11 @@ async function load(userID) {
  */
 async function append(userID, data) {
 	// If the corpus is in the S3 bucket but not cached,
-	//   download the corpus from S3mto have a complete
+	//   download the corpus from S3 to have a complete
 	//   copy in cache.
 	// If not, either the corpus is already cached or the
-	//   corpus does not exist at all.
-	//   In either case, Schism does not need to download
+	//   corpus does not exist at all;
+	//   in either case, Schism does not need to download
 	//   the corpus from S3 and can add just the new data.
 	if (inBucket.has(userID) && !inCache.has(userID))
 		data = (await s3.read(userID)) + data
@@ -170,7 +170,7 @@ function allUserIDs() {
  * @return {Promise<void>} nothing
  */
 async function _addToCache(userID, data) {
-	fs.appendFile(`./cache/${userID}.txt`, data)
+	await fs.appendFile(`./cache/${userID}.txt`, data)
 	inCache.add(userID)
 	unsaved.add(userID)
 }
