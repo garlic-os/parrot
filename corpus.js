@@ -26,43 +26,35 @@ const inBucket = new Set()
  */
 const inCache = new Set()
 
-/**
- * Don't export the module until these promises are resolved.
- * @type {Promise[]}
- */
-const init = []
 
 /**
  * Populate inBucket with the user IDs in the S3 bucket.
  */
-init.push(
-	(async () => {
-		const userIDs = await s3.listUserIDs()
-		for (const userID of userIDs) {
-			inBucket.add(userID)
-		}
-	})()
-)
+;(async () => {
+	const userIDs = await s3.listUserIDs()
+	for (const userID of userIDs) {
+		inBucket.add(userID)
+	}
+})()
+
 
 /**
  * Populate inCache with the user IDs in the cache folder.
  */
-init.push(
-	(async () => {
-		// Create directory ./cache/ if it doesn't exist
-		try {
-			await fs.mkdir("cache")
-		} catch (err) {
-			if (err.code !== "EEXIST") throw err
-		}
+;(async () => {
+	// Create directory ./cache/ if it doesn't exist
+	try {
+		await fs.mkdir("cache")
+	} catch (err) {
+		if (err.code !== "EEXIST") throw err
+	}
 
-		const filenames = await fs.readdir("./cache")
-		for (const filename of filenames) {
-			const userID = filename.slice(0, -4) // Remove last four characters (file extension)
-			inCache.add(userID)
-		}
-	})()
-)
+	const filenames = await fs.readdir("./cache")
+	for (const filename of filenames) {
+		const userID = filename.slice(0, -4) // Remove last four characters (file extension)
+		inCache.add(userID)
+	}
+})()
 
 
 
