@@ -36,6 +36,23 @@ if (config.DISABLE_LOGS) {
 }
 
 
+/**
+ * Do all these things before logging in
+ * @type {Promise[]} array of Promises
+ */
+const init = []
+
+// Set BAD_WORDS if BAD_WORDS_URL is defined
+if (config.BAD_WORDS_URL) {
+	init.push(
+		(async () => {
+			const data = await httpsDownload(config.BAD_WORDS_URL)
+			config.BAD_WORDS = data.split("\n")
+		})()
+	)
+}
+
+
 const log = {
 	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
   , imitate: {
@@ -59,6 +76,7 @@ process.on("SIGTERM", async () => {
 	console.info(log.save(savedCount))
 })
 
+
 // Requirements
 const Discord     = require("discord.js")
 	, corpusUtils = require("./corpus")
@@ -66,24 +84,7 @@ const Discord     = require("discord.js")
 	, help        = require("./help")
 	, markov      = require("./markov")
 
-
-/**
- * Do all these things before logging in
- * @type {Promise[]} array of Promises
- */
-const init = []
-
-// Set BAD_WORDS if BAD_WORDS_URL is defined
-if (config.BAD_WORDS_URL) {
-	init.push(
-		(async () => {
-			const data = await httpsDownload(config.BAD_WORDS_URL)
-			config.BAD_WORDS = data.split("\n")
-		})()
-	)
-}
-
-const buffers = {}
+    , buffers = {}
     , hookSendQueue = []
     , client = new Discord.Client()
     , hooks = parseHooksDict(config.HOOKS)
@@ -186,7 +187,7 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				if (buffers[authorID].length === 0) {
 					setTimeout( async () => {
 						await corpusUtils.append(authorID, buffers[authorID])
-						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID]}`)
+						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID].slice(0, -1)}`)
 						buffers[authorID] = ""
 					}, 5000) // Five seconds
 				}
@@ -197,13 +198,44 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 })
 
 
+/**
+ * When Schism is added to a server,
+ *   DM the admins and log a message containing
+ *   information about the server to help the
+ *   admins set up Schism there.
+ */
 client.on("guildCreate", guild => {
-	console.info(`---------------------------------
+	const embed = new Discord.RichEmbed()
+		.setAuthor("Added to a server.")
+		.setTitle(guild.name)
+		.setDescription(guild.id)
+		.setThumbnail(guild.iconURL)
+		.addField(`Owner: ${guild.owner.user.tag}`, `${guild.ownerID}\n\n${guild.memberCount} members`)
+		.addBlankField()
+
+	let logmsg = `-------------------------------
 Added to a new server.
 ${guild.name} (ID: ${guild.id})
 ${guild.memberCount} members
----------------------------------`)
+Channels:`
+
+	/**
+	 * Add an inline field to the embed and a
+	 *   line to the log message
+	 *   for every text channel in the guild.
+	 */
+	guild.channels.tap(channel => {
+		if (channel.type === "text") {
+			embed.addField(`#${channel.name}`, channel.id, true)
+			logmsg += `\n#${channel.name} (ID: ${channel.id})`
+		}
+	})
+
+	logmsg += "\n-------------------------------"
+	dmTheDevs(embed)
+	console.info(logmsg)
 })
+
 
 client.on("guildDelete", guild => {
 	console.info(`---------------------------------
@@ -326,7 +358,7 @@ function elementAt(setObj, index) {
 	const iterator = setObj.values()
 	for (let i=0; i<index-1; i++) {
 		// Increment the iterator index-1 times.
-		// The next iterator value is the element we want.
+		// The iterator value after this one is the element we want.
 		iterator.next()
 	}
 
@@ -349,59 +381,77 @@ async function scrape(channel, goal) {
 	const fetchOptions = {
 		limit: 100
 		// _getBatchOfMessages() will set this:
-		//, before: [last message from previous request]
+		//, before: [ID of last message from previous request]
 	}
 	let messagesAdded = 0
 	const scrapeBuffers = {}
 	const escapedPrefix = escape(config.PREFIX)
 	const filter = new RegExp(`^${escapedPrefix}.+`, "gim") // Filter out Schism commands
 
-	async function _getBatchOfMessages(fetchOptions) {
-		const messages = await channel.fetchMessages(fetchOptions)
-		for (const userID in scrapeBuffers) {
-			if (scrapeBuffers[userID].length > 1000) {
-				corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
-					.then(scrapeBuffers[userID] = "")
-			}
-		}
+	/**
+	 * Remove [filter] matches from [userID]'s scrape buffer,
+	 *   then append it to that user's corpus
+	 * 
+	 * @param {string} userID - user ID whose scrape buffer to dump
+	 * @return {Promise} corpusUtils.append() promise
+	 */
+	function dump(userID) {
+		return corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
+	}
 
+	function lastMessageID(messages) {
 		// Sometimes the last message is just undefined. No idea why.
 		let lastMessages = messages.last()
 		let toLast = 2
 		while (!lastMessages[0]) {
-			lastMessages = messages.last(toLast) // Second-to-last message (or third-to-last, etc.)
-			toLast++
+			lastMessages = messages.last(toLast++) // Second-to-last message (or third-to-last, etc.)
 		}
 
 		const lastMessage = lastMessages[0]
 
 		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-		fetchOptions.before = (Array.isArray(lastMessage))
+		return (Array.isArray(lastMessage))
 			? lastMessage[1].id
 			: lastMessage.id
+	}
 
-		let nextBatch
+	async function _getBatchOfMessages(fetchOptions) {
+		const messages = await channel.fetchMessages(fetchOptions)
+		for (const userID in scrapeBuffers) {
+			// Don't let any user's scrape buffer get bigger than 1 MB
+			if (scrapeBuffers[userID].length > 1048576) {
+				// If a scrape buffer exceeds the size limit, empty the buffer
+				//   to a cache file early (before all messages have been scraped).
+				dump(userID)
+					.then(scrapeBuffers[userID] = "")
+			}
+		}
+
+		fetchOptions.before = lastMessageID(messages)
+
+		let nextBatchFinished
 		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-			nextBatch = _getBatchOfMessages(fetchOptions)
+			nextBatchFinished = _getBatchOfMessages(fetchOptions)
 
 		for (let message of messages) {
-			if (messagesAdded >= goal) break
-			if (Array.isArray(message)) message = message[1] // In case message is actually in message[1]
-			if (message.content) { // Make sure that it's not undefined
+			if (Array.isArray(message)) message = message[1] // In case message is actually message[1]
+			if (message.content) { // Message has text (sometimes it can just be a picture)
 				const authorID = message.author.id
 				if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
 				scrapeBuffers[authorID] += message.content + "\n"
-				messagesAdded++
+				if (++messagesAdded >= goal) break
 			}
 		}
+
 		try {
-			await nextBatch
+			await nextBatchFinished
 		} catch (err) {}
 		return
 	}
+
 	await _getBatchOfMessages(fetchOptions)
 	for (const userID in scrapeBuffers) {
-		corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
+		dump(userID)
 	}
 	return messagesAdded
 }
@@ -506,6 +556,7 @@ async function handleCommand(message) {
 				})
 			break
 
+
 		case "imitate":
 			let userID = args[0]
 
@@ -534,11 +585,13 @@ async function handleCommand(message) {
 			imitate(userID, message.channel)
 			break
 
+
 		case "embed":
 			if (!admin || !args[0]) break
 			message.channel.send(embeds.standard(args.join(" ")))
 				.then(log.say)
 			break
+
 
 		case "error":
 			if (!admin || !args[0]) break
@@ -546,11 +599,13 @@ async function handleCommand(message) {
 				.then(log.error)
 			break
 
+
 		case "xok":
 			if (!admin) break
 			message.channel.send(embeds.xok)
 				.then(log.xok)
 			break
+
 
 		case "save":
 			if (!admin) break
@@ -563,6 +618,69 @@ async function handleCommand(message) {
 				message.channel.send(embeds.error(err))
 					.then(log.error)
 			}
+			break
+
+
+		case "servers":
+			const servers_embed = new Discord.RichEmbed()
+				.setTitle("Member of these servers:")
+
+			client.guilds.tap(server => {
+				servers_embed.addField(server.name, server.id, true)
+			})
+
+			message.channel.send(servers_embed)
+				.then(console.log(`${location(message)} Listed servers.`))
+			break
+
+
+		case "speaking":
+			if (!args[0]) {
+				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
+					.then(log.error)
+				break
+			}
+
+			const speaking_guild = client.guilds.get(args[0])
+			if (!speaking_guild) {
+				message.channel.send(embeds.error("Invalid server ID"))
+					.then(log.error)
+			}
+			const speaking_embed = new Discord.RichEmbed()
+				.setTitle(`Able to speak in these channels in ${speaking_guild.name} (ID: ${speaking_guild.id}):`)
+
+			speaking_guild.channels.tap(channel => {
+				if (canSpeakIn(channel.id))
+					speaking_embed.addField(`#${channel.name}`, channel.id, true)
+			})
+
+			message.channel.send(speaking_embed)
+				.then(console.log(`${location(message)} Listed speaking channels for ${speaking_guild.name} (ID: ${speaking_guild.id}).`))
+			break
+
+
+		case "learning":
+			if (!args[0]) {
+				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
+					.then(log.error)
+				break
+			}
+
+			const learning_guild = client.guilds.get(args[0])
+			if (!learning_guild) {
+				message.channel.send(embeds.error("Invalid server ID"))
+					.then(log.error)
+			}
+			const learning_embed = new Discord.RichEmbed()
+				.setTitle(`Learning in these channels in ${learning_guild.name} (ID: ${learning_guild.id}):`)
+
+			learning_guild.channels.tap(channel => {
+				if (learningIn(channel.id))
+					learning_embed.addField(`#${channel.name}`, channel.id, true)
+			})
+
+			message.channel.send(learning_embed)
+				.then(console.log(`${location(message)} Listed learning channels for ${learning_guild.name} (ID: ${learning_guild.id}).`))
 			break
 	}
 	return command
@@ -714,7 +832,7 @@ function logError(err) {
 
 /**
  * HTTPS download a file from a URL.
- * Written to only be used once; hence why it directly requires https lol
+ * Written to only be used once which is why it directly requires https lol
  * 
  * @param {string} url - URL to download the file from
  * @return {string} response from server
@@ -733,6 +851,25 @@ function httpsDownload(url) {
 		})
 	})
 }
+
+
+/**
+ * Remove bad words from a phrase.
+ * 
+ * @param {string} phrase - Input string
+ * @return {Promise<string>} filtered string
+ */
+/*async function cleanse(phrase) {
+	if (!config.BAD_WORDS) return phrase
+
+	let words = phrase.split(" ")
+	words = words.filter(word => {
+		word = word.toLowerCase().replace("\n", "")
+		return !config.BAD_WORDS.includes(word)
+	})
+
+	return words.join(" ")
+}*/
 
 
 /**
@@ -872,6 +1009,43 @@ async function nicknameTable(nicknameDict) {
 	}
 	return stats
 }
+
+
+/**
+ * Generate an object containing stats about
+ *   the supplied array of user IDs.
+ * 
+ * @param {string[]} userIDs - Array of user IDs
+ * @return {Promise<Object>} Object intended to be console.table'd
+ * 
+ * @example
+ *     userTable(["2547230987459237549", "0972847639849352398"])
+ *         .then(console.table)
+ */
+/*async function userTable(userIDs) {
+	if (config.DISABLE_LOGS) return {}
+	
+	if (!userIDs || userIDs.length === 0)
+		throw "No user IDs defined."
+
+	// If userIDs a single value, wrap it in an array
+	if (!Array.isArray(userIDs)) userIDs = [userIDs]
+
+	const stats = {}
+	for (const userID of userIDs) {
+		const user = await client.fetchUser(userID)
+
+		if (!user) {
+			logError(`userTable() non-fatal error: could not find a user with the ID ${userID}`)
+			continue
+		}
+
+		const stat = {}
+		stat["Username"] = user.tag
+		stats[userID] = stat
+	}
+	return stats
+}*/
 
 
 /**
