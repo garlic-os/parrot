@@ -1,41 +1,41 @@
 "use strict"
 
-const { PREFIX } = process.env || require("./defaults")
+const prefix = process.env.PREFIX || require("./defaults").PREFIX
 
 module.exports = {
 	help: {
 		admin: false,
 		desc: `Help.`,
-		syntax: `${PREFIX}help`
+		syntax: `${prefix}help`
 	},
 	imitate: {
 		admin: false,
 		desc: `Imitate a user.`,
-		syntax: `${PREFIX}imitate <ping a user>`
+		syntax: `${prefix}imitate <ping a user>`
 	},
 	save: {
 		admin: true,
 		desc: `Upload all unsaved cache to S3.`,
-		syntax: `${PREFIX}save`
+		syntax: `${prefix}save`
 	},
 	scrape: {
 		admin: true,
 		desc: `Save [howManyMessages] messages in [channel].`,
-		syntax: `${PREFIX}scrape <channelID> <howManyMessages>`
+		syntax: `${prefix}scrape <channelID> <howManyMessages>`
 	},
 	embed: {
 		admin: true,
 		desc: `Generate an embed.`,
-		syntax: `${PREFIX}embed <message>`
+		syntax: `${prefix}embed <message>`
 	},
 	error: {
 		admin: true,
 		desc: `Generate an error embed.`,
-		syntax: `${PREFIX}error <message>`
+		syntax: `${prefix}error <message>`
 	},
 	xok: {
 		admin: true,
 		desc: `Xok`,
-		syntax: `${PREFIX}xok`
+		syntax: `${prefix}xok`
 	}
 }
