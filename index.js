@@ -256,7 +256,7 @@ ${guild.name} (ID: ${guild.id})
 		await Promise.all(init)
 	} catch (err) {
 		console.error("One or more initialization steps have failed:", init)
-		console.error(err)
+		console.error(err.stack)
 		throw "Startup failure"
 	}
 	console.info("Logging in...")
@@ -305,7 +305,7 @@ async function imitate(userID, channel) {
 		const member = await channel.guild.fetchMember(userID)
 		avatarURL = member.user.displayAvatarURL
 		name = `Not ${member.displayName}`
-	} catch (err) {
+	} catch (e) {
 		// If Schism can't get the user from the server,
 		// use the user's ID for their name
 		// and the default avatar.
@@ -340,7 +340,7 @@ async function randomUserID() {
 		try {
 			await client.fetchUser(userID) // Make sure the user exists
 			return userID
-		} catch (err) {} // The user doesn't exist; loop and literally *try* again
+		} catch (e) {} // The user doesn't exist; loop and literally *try* again
 	}
 	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
 }
@@ -445,7 +445,7 @@ async function scrape(channel, goal) {
 
 		try {
 			await nextBatchFinished
-		} catch (err) {}
+		} catch (e) {}
 		return
 	}
 
@@ -615,6 +615,7 @@ async function handleCommand(message) {
 				message.channel.send(embeds.standard(log.save(savedCount)))
 					.then(log.say)
 			} catch (err) {
+				logError(err.stack)
 				message.channel.send(embeds.error(err))
 					.then(log.error)
 			}
@@ -934,7 +935,7 @@ async function disablePings(sentence) {
 				const user = await client.fetchUser(userID)
 				words[i] = "@" + user.tag
 			} catch (err) {
-				throw `disablePings(${sentence}): User with ID ${userID} not found`
+				`disablePings(${sentence}): User with ID ${userID} not found\n${err.stack}`
 			}
 		}
 	}
@@ -1013,6 +1014,41 @@ async function nicknameTable(nicknameDict) {
 	}
 	return stats
 }
+
+
+/**
+ * Generate an object containing stats about
+ *   the supplied array of user IDs.
+ * 
+ * @param {string[]} userIDs - Array of user IDs
+ * @return {Promise<Object>} Object intended to be console.table'd
+ * 
+ * @example
+ *     userTable(["2547230987459237549", "0972847639849352398"])
+ *         .then(console.table)
+ */
+/*async function userTable(userIDs) {
+	if (config.DISABLE_LOGS) return {}
+	
+	if (!userIDs || userIDs.length === 0)
+		throw "No user IDs defined."
+
+	// If userIDs a single value, wrap it in an array
+	if (!Array.isArray(userIDs)) userIDs = [userIDs]
+
+	const stats = {}
+	for (const userID of userIDs) {
+		try {
+			const user = await client.fetchUser(userID)
+			const stat = {}
+			stat["Username"] = user.tag
+			stats[userID] = stat
+		} catch (err) {
+			logError(`userTable() non-fatal error: user with ID ${userID} not found\n{$err.stack}`)
+		}
+	}
+	return stats
+}*/
 
 
 /**
