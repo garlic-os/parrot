@@ -934,7 +934,7 @@ async function disablePings(sentence) {
 				const user = await client.fetchUser(userID)
 				words[i] = "@" + user.tag
 			} catch (err) {
-				throw `disablePings(${sentence}): Unknown with ID ${userID} not found`
+				throw `disablePings(${sentence}): User with ID ${userID} not found`
 			}
 		}
 	}
