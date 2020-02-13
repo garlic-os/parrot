@@ -930,8 +930,12 @@ async function disablePings(sentence) {
 	for (let i=0; i<words.length; i++) {
 		const userID = mentionToUserID(words[i])
 		if (userID) {
-			const user = await client.fetchUser(userID)
-			words[i] = "@" + user.tag
+			try {
+				const user = await client.fetchUser(userID)
+				words[i] = "@" + user.tag
+			} catch (err) {
+				throw `disablePings(${sentence}): Unknown with ID ${userID} not found`
+			}
 		}
 	}
 	return words.join(" ")
@@ -1009,43 +1013,6 @@ async function nicknameTable(nicknameDict) {
 	}
 	return stats
 }
-
-
-/**
- * Generate an object containing stats about
- *   the supplied array of user IDs.
- * 
- * @param {string[]} userIDs - Array of user IDs
- * @return {Promise<Object>} Object intended to be console.table'd
- * 
- * @example
- *     userTable(["2547230987459237549", "0972847639849352398"])
- *         .then(console.table)
- */
-/*async function userTable(userIDs) {
-	if (config.DISABLE_LOGS) return {}
-	
-	if (!userIDs || userIDs.length === 0)
-		throw "No user IDs defined."
-
-	// If userIDs a single value, wrap it in an array
-	if (!Array.isArray(userIDs)) userIDs = [userIDs]
-
-	const stats = {}
-	for (const userID of userIDs) {
-		const user = await client.fetchUser(userID)
-
-		if (!user) {
-			logError(`userTable() non-fatal error: could not find a user with the ID ${userID}`)
-			continue
-		}
-
-		const stat = {}
-		stat["Username"] = user.tag
-		stats[userID] = stat
-	}
-	return stats
-}*/
 
 
 /**
