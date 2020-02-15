@@ -855,25 +855,6 @@ function httpsDownload(url) {
 
 
 /**
- * Remove bad words from a phrase.
- * 
- * @param {string} phrase - Input string
- * @return {Promise<string>} filtered string
- */
-/*async function cleanse(phrase) {
-	if (!config.BAD_WORDS) return phrase
-
-	let words = phrase.split(" ")
-	words = words.filter(word => {
-		word = word.toLowerCase().replace("\n", "")
-		return !config.BAD_WORDS.includes(word)
-	})
-
-	return words.join(" ")
-}*/
-
-
-/**
  * Check for bad words in a string.
  * 
  * @param {string} phrase - String to check for bad words in
@@ -882,7 +863,7 @@ function httpsDownload(url) {
 function isNaughty(phrase) {
 	if (!config.BAD_WORDS) return false
 	function wordIsBad(word) {
-		return config.BAD_WORDS.includes(word)
+		return config.BAD_WORDS.includes(word.replace(/[^a-zA-Z]/g, ""))
 	}
 	const words = phrase.split(" ")
 	return words.some(wordIsBad)
