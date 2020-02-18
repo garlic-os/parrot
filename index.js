@@ -356,7 +356,7 @@ async function randomUserID() {
 function elementAt(setObj, index) {
 	if (index < 0 || index > setObj.size - 1) return // Index out of range; return undefined
 	const iterator = setObj.values()
-	for (let i=0; i<index-1; i++) {
+	for (let i=0; i<index-1; ++i) {
 		// Increment the iterator index-1 times.
 		// The iterator value after this one is the element we want.
 		iterator.next()
@@ -740,19 +740,19 @@ function status(code) {
 /**
  * Get a user ID from a mention string (e.g. <@120957139230597299>.
  * 
+ * Pings start with <@, end with >, and do NOT contain :'s.
+ * Not containing :'s is important since emojis do.
+ * 
  * @param {string} mention - string with a user ID
  * @return {?string} userID
  */
 function mentionToUserID(mention) {
-	// All pings start with < and end with >. However, so do emojis.
-	// We can filter out emojis by knowing emojis have :'s and pings do not.
-	if (mention.startsWith("<") && mention.endsWith(">") && !mention.includes(":")) {
-		// It's a mention! Strip off all non-numbers and return.
-		return mention.replace(/[^0-9]/g, "")
-	} else {
-		// This word isn't a mention.
-		return null
-	}
+	const mentionPattern = /<@((?!:).)[0-9]*>/g
+	const idPattern = /[0-9]/
+
+	return (mentionPattern.test(mention))
+		? mention.match(idPattern)[0]
+		: null
 }
 
 
@@ -902,25 +902,20 @@ function parseHooksDict(hooksDict) {
 
 /**
  * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
- * This way, the mention won't actually ping any users.
+ * This way, mentions won't actually ping any users.
  * 
  * @param {string} sentence - sentence to disable pings in
  * @return {Promise<string>} sentence that won't ping anyone
  */
 async function disablePings(sentence) {
-	const words = sentence.split(" ")
-	for (let i=0; i<words.length; i++) {
-		const userID = mentionToUserID(words[i])
-		if (userID) {
-			try {
-				const user = await client.fetchUser(userID)
-				words[i] = "@" + user.tag
-			} catch (err) {
-				throw `disablePings(${sentence}): User with ID ${userID} not found\n${err.stack}`
-			}
-		}
-	}
-	return words.join(" ")
+	const mentionPattern = /<@((?!:).)[0-9]*>/g
+	const idPattern = /[0-9]/
+
+	return sentence.replace(mentionPattern, mention => {
+		const userID = mention.match(idPattern)[0]
+		const user = await client.fetchUser(userID)
+		return "@" + user.tag
+	})
 }
 
 	
@@ -995,41 +990,6 @@ async function nicknameTable(nicknameDict) {
 	}
 	return stats
 }
-
-
-/**
- * Generate an object containing stats about
- *   the supplied array of user IDs.
- * 
- * @param {string[]} userIDs - Array of user IDs
- * @return {Promise<Object>} Object intended to be console.table'd
- * 
- * @example
- *     userTable(["2547230987459237549", "0972847639849352398"])
- *         .then(console.table)
- */
-/*async function userTable(userIDs) {
-	if (config.DISABLE_LOGS) return {}
-	
-	if (!userIDs || userIDs.length === 0)
-		throw "No user IDs defined."
-
-	// If userIDs a single value, wrap it in an array
-	if (!Array.isArray(userIDs)) userIDs = [userIDs]
-
-	const stats = {}
-	for (const userID of userIDs) {
-		try {
-			const user = await client.fetchUser(userID)
-			const stat = {}
-			stat["Username"] = user.tag
-			stats[userID] = stat
-		} catch (err) {
-			logError(`userTable() non-fatal error: user with ID ${userID} not found\n{$err.stack}`)
-		}
-	}
-	return stats
-}*/
 
 
 /**
