@@ -911,7 +911,7 @@ async function disablePings(sentence) {
 	const mentionPattern = /<@((?!:).)[0-9]*>/g
 	const idPattern = /[0-9]/
 
-	return sentence.replace(mentionPattern, mention => {
+	return sentence.replace(mentionPattern, async mention => {
 		const userID = mention.match(idPattern)[0]
 		const user = await client.fetchUser(userID)
 		return "@" + user.tag
