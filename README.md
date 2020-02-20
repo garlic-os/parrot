@@ -1,7 +1,7 @@
 # Schism
 _Imitate everyone individually._
 
-A totally-original Markov-chain-based Discord bot that keeps a separate Markov chain for each user. Can imitate a theoretically unlimited number of users.
+A Markov-chain-based Discord bot that keeps a separate Markov chain for each user. With a single bot, you can imitate a theoretically unlimited number of users.
 
 ## Environment variables
 | Name | Description | Example | Default |
