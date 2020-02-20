@@ -1,65 +1,65 @@
 "use strict"
 
-const prefix = process.env.prefix || require("./defaults").prefix
+const { PREFIX } = process.env || require("./defaults")
 
 module.exports = {
 	help: {
 		admin: false,
 		desc: `Help.`,
-		syntax: `${prefix}help`
+		syntax: `${PREFIX}help`
 	}
 
 	, imitate: {
 		admin: false,
 		desc: `Imitate a user.`,
-		syntax: `${prefix}imitate <ping a user>`
+		syntax: `${PREFIX}imitate <ping a user>`
 	}
 
 	, save: {
 		admin: true,
 		desc: `Upload all unsaved cache to S3.`,
-		syntax: `${prefix}save`
+		syntax: `${PREFIX}save`
 	}
 
 	, scrape: {
 		admin: true,
 		desc: `Save [howManyMessages] messages in [channel].`,
-		syntax: `${prefix}scrape <channelID> <howManyMessages>`
+		syntax: `${PREFIX}scrape <channelID> <howManyMessages>`
 	}
 
 	, embed: {
 		admin: true,
 		desc: `Generate an embed.`,
-		syntax: `${prefix}embed <message>`
+		syntax: `${PREFIX}embed <message>`
 	}
 
 	, error: {
 		admin: true,
 		desc: `Generate an error embed.`,
-		syntax: `${prefix}error <message>`
+		syntax: `${PREFIX}error <message>`
 	}
 
 	, xok: {
 		admin: true,
 		desc: `Xok`,
-		syntax: `${prefix}xok`
+		syntax: `${PREFIX}xok`
 	}
 
 	, servers: {
 		admin: false,
 		desc: `List all the servers Schism is a member of.`,
-		syntax: `${prefix}servers`
+		syntax: `${PREFIX}servers`
 	}
 
 	, speaking: {
 		admin: false,
 		desc: `List all the channels of a server that Schism can speak in.`,
-		syntax: `${prefix}speaking <serverID>`
+		syntax: `${PREFIX}speaking <serverID>`
 	}
 
 	, learning: {
 		admin: false,
 		desc: `List all the channels of a server that Schism is learning from.`,
-		syntax: `${prefix}learning <serverID>`
+		syntax: `${PREFIX}learning <serverID>`
 	}
 }
