@@ -12,19 +12,19 @@ module.exports = {
 	, imitate: {
 		admin: false,
 		desc: `Imitate a user.`,
-		syntax: `${PREFIX}imitate <ping a user>`
+		syntax: `${PREFIX}imitate <@user#1234>`
 	}
 
 	, save: {
 		admin: true,
 		desc: `Upload all unsaved cache to S3.`,
-		syntax: `${PREFIX}save`
+		syntax: `${PREFIX}save ["all"]`
 	}
 
 	, scrape: {
 		admin: true,
-		desc: `Save [howManyMessages] messages in [channel].`,
-		syntax: `${PREFIX}scrape <channelID> <howManyMessages>`
+		desc: `Save [goal] number of messages in [channel].`,
+		syntax: `${PREFIX}scrape <[channelID|"here"]> <[goal|"all"]>`
 	}
 
 	, embed: {
@@ -61,5 +61,11 @@ module.exports = {
 		admin: false,
 		desc: `List all the channels of a server that Schism is learning from.`,
 		syntax: `${PREFIX}learning <serverID>`
+	}
+
+	, code: {
+		admin: false,
+		desc: `Get information on how to find Schism on GitHub.`,
+		syntax: `${PREFIX}[code|github|source]`
 	}
 }

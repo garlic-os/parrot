@@ -6,11 +6,11 @@ module.exports = {
 		"normal": "#A755B5",
 		"error": "#FF3636"
 	},
-	HOOKS: {},
 	SPEAKING_CHANNELS: {},
 	LEARNING_CHANNELS: {},
 	NICKNAMES: {},
 	ADMINS: {},
 	BANNED: {},
-	DISABLE_LOGGING: false
+	DISABLE_LOGGING: false,
+	HOOKS: {}
 }

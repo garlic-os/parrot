@@ -1,3 +1,5 @@
+"use strict"
+
 const AWS  = require("aws-sdk")
     , path = require("path")
 
@@ -75,7 +77,7 @@ async function listUserIDs() {
 
 
 module.exports = {
-	read: read,
-	write: write,
-	listUserIDs: listUserIDs
+	read,
+	write,
+	listUserIDs
 }

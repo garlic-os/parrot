@@ -5,7 +5,7 @@
 
 // Load environment variables to const config
 // JSON parse any value that is JSON parseable
-const config = require("./defaults")
+const config = require("./schism/defaults")
 for (const key in process.env) {
 	try {
 		config[key] = JSON.parse(process.env[key])
@@ -69,25 +69,27 @@ const log = {
 }
 
 
-// (Hopefully) save and clear cache before shutting down
+// Lots of consts
+const Discord     = require("discord.js")
+	, corpusUtils = require("./schism/corpus")
+	, embeds      = require("./schism/embeds")
+	, help        = require("./schism/help")
+
+    , buffers = {}
+    , hookSendQueue = []
+    , hooks = parseHooksDict(config.HOOKS)
+
+    , client = new Discord.Client()
+	, scrape = require("./schism/scrape")(client, corpusUtils)
+	, markov = require("./schism/markov")(client, corpusUtils)
+
+
+// (Hopefully) save before shutting down
 process.on("SIGTERM", async () => {
 	console.info("Saving changes...")
 	const savedCount = await corpusUtils.saveAll()
 	console.info(log.save(savedCount))
 })
-
-
-// Requirements
-const Discord     = require("discord.js")
-	, corpusUtils = require("./corpus")
-	, embeds      = require("./embeds")
-	, help        = require("./help")
-	, markov      = require("./markov")
-
-    , buffers = {}
-    , hookSendQueue = []
-    , client = new Discord.Client()
-    , hooks = parseHooksDict(config.HOOKS)
 
 
 // --- LISTENERS ---------------------------------------------
@@ -147,7 +149,7 @@ client.on("message", async message => {
 			if (message.isMentioned(client.user) // Mentioned
 			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
-				const userID = await randomUserID()
+				const userID = await markov.randomUserID()
 				imitate(userID, message.channel)
 			}
 
@@ -182,16 +184,20 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				dmTheAdmins(msg)
 			} else {
 				if (!buffers[authorID]) buffers[authorID] = ""
-				// Set a timeout to wait for the user to be quiet
-				//   only if their buffer is empty.
-				if (buffers[authorID].length === 0) {
-					setTimeout( async () => {
-						await corpusUtils.append(authorID, buffers[authorID])
-						console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID].slice(0, -1)}`)
-						buffers[authorID] = ""
-					}, 5000) // Five seconds
+
+				// Don't learn from a message if it's just pinging Schism
+				if (message.content !== `<@${client.user.id}>` || message.content !== `<@!${client.user.id}>`) {
+					// Set a timeout to wait for the user to be quiet
+					//   only if their buffer is empty.
+					if (buffers[authorID].length === 0) {
+						setTimeout( async () => {
+							await corpusUtils.append(authorID, buffers[authorID])
+							console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID].slice(0, -1)}`)
+							buffers[authorID] = ""
+						}, 5000) // Five seconds
+					}
+					buffers[authorID] += message.content + "\n"
 				}
-				buffers[authorID] += message.content + "\n"
 			}
 		}
 	}
@@ -272,22 +278,6 @@ ${guild.name} (ID: ${guild.id})
 
 
 /**
- * Generate a sentence based off [userID]'s corpus.
- * 
- * @param {string} userID - ID corresponding to a user to generate a sentence from
- * @return {Promise<string>} Markov-generated sentence
- */
-async function generateSentence(userID) {
-	const corpus = await corpusUtils.load(userID)
-	    , wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-	    , coherence = Math.round(Math.random() * 7 + 3) // State size 3-10
-	let sentence = await markov(corpus, wordCount, coherence)
-	sentence = sentence.substring(0, 512) // Hard cap of 512 characters (any longer is just too big)
-	return sentence
-}
-
-
-/**
  * Send a message imitating a user.
  * 
  * @param {string} userID - ID corresponding to a user to imitate
@@ -295,8 +285,7 @@ async function generateSentence(userID) {
  * @return {Promise}
  */
 async function imitate(userID, channel) {
-	let sentence = await generateSentence(userID)
-	sentence = await disablePings(sentence)
+	let sentence = await markov.generateSentence(userID)
 	let avatarURL, name
 
 	try {
@@ -327,152 +316,6 @@ async function imitate(userID, channel) {
 
 
 /**
- * Choose a random user ID that Schism can imitate.
- * 
- * @return {Promise<string>} userID
- */
-async function randomUserID() {
-	const userIDs = corpusUtils.allUserIDs()
-	let tries = 0
-	while (++tries < 100) {
-		const index = ~~(Math.random() * userIDs.size - 1)
-		const userID = elementAt(userIDs, index)
-		try {
-			await client.fetchUser(userID) // Make sure the user exists
-			return userID
-		} catch (e) {} // The user doesn't exist; loop and literally *try* again
-	}
-	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
-}
-
-
-/**
- * Get an element from a Set.
- * 
- * @param {Set} setObj - Set to get the element from
- * @param {number} index - position of element in the Set
- * @return {any} [index]th element in the Set
- */
-function elementAt(setObj, index) {
-	if (index < 0 || index > setObj.size - 1) return // Index out of range; return undefined
-	const iterator = setObj.values()
-	for (let i=0; i<index-1; ++i) {
-		// Increment the iterator index-1 times.
-		// The iterator value after this one is the element we want.
-		iterator.next()
-	}
-
-	return iterator.next().value
-}
-
-
-/**
- * Scrape [howManyMessages] messages from [channel],
- *   then add the messages to their corresponding
- *   user's corpus.
- * 
- * Here be dragons.
- *
- * @param {Channel} channel - what channel to scrape
- * @param {number} howManyMessages - number of messages to scrape
- * @return {Promise<number>} number of messages added
- */
-async function scrape(channel, goal) {
-	const fetchOptions = {
-		limit: 100
-		// _getBatchOfMessages() will set this:
-		//, before: [ID of last message from previous request]
-	}
-	let messagesAdded = 0
-	const scrapeBuffers = {}
-	const escapedPrefix = escape(config.PREFIX)
-	const filter = new RegExp(`^${escapedPrefix}.+`, "gim") // Filter out Schism commands
-
-	/**
-	 * Remove [filter] matches from [userID]'s scrape buffer,
-	 *   then append it to that user's corpus
-	 * 
-	 * @param {string} userID - user ID whose scrape buffer to dump
-	 * @return {Promise} corpusUtils.append() promise
-	 */
-	function dump(userID) {
-		return corpusUtils.append(userID, scrapeBuffers[userID].replace(filter, ""))
-	}
-
-	function lastMessageID(messages) {
-		// Sometimes the last message is just undefined. No idea why.
-		let lastMessages = messages.last()
-		let toLast = 2
-		while (!lastMessages[0]) {
-			lastMessages = messages.last(toLast++) // Second-to-last message (or third-to-last, etc.)
-		}
-
-		const lastMessage = lastMessages[0]
-
-		// Sometimes the actual message is in "message[1]", instead "message". No idea why.
-		return (Array.isArray(lastMessage))
-			? lastMessage[1].id
-			: lastMessage.id
-	}
-
-	async function _getBatchOfMessages(fetchOptions) {
-		const messages = await channel.fetchMessages(fetchOptions)
-		for (const userID in scrapeBuffers) {
-			// Don't let any user's scrape buffer get bigger than 1 MB
-			if (scrapeBuffers[userID].length > 1048576) {
-				// If a scrape buffer exceeds the size limit, empty the buffer
-				//   to a cache file early (before all messages have been scraped).
-				dump(userID)
-					.then(scrapeBuffers[userID] = "")
-			}
-		}
-
-		fetchOptions.before = lastMessageID(messages)
-
-		let nextBatchFinished
-		if (messages.size >= 100 && messagesAdded < goal) // Next request won't be empty and goal is not yet met
-			nextBatchFinished = _getBatchOfMessages(fetchOptions)
-
-		for (let message of messages) {
-			if (Array.isArray(message)) message = message[1] // In case message is actually message[1]
-			if (message.content) { // Message has text (sometimes it can just be a picture)
-				const authorID = message.author.id
-				if (!scrapeBuffers[authorID]) scrapeBuffers[authorID] = ""
-				scrapeBuffers[authorID] += message.content + "\n"
-				if (++messagesAdded >= goal) break
-			}
-		}
-
-		try {
-			await nextBatchFinished
-		} catch (e) {}
-		return
-	}
-
-	await _getBatchOfMessages(fetchOptions)
-	for (const userID in scrapeBuffers) {
-		dump(userID)
-	}
-	return messagesAdded
-}
-
-
-/**
- * Put \ before every character in a string.
- * 
- * @param {string} string - string to be escaped
- * @return {string} escaped string
- */
-function escape(string) {
-	let output = ""
-	for (const char of string.split("")) {
-		output += "\\" + char
-	}
-	return output
-}
-
-
-/**
  * Parse a message whose content is presumed to be a command
  *   and perform the corresponding action.
  * 
@@ -486,8 +329,14 @@ async function handleCommand(message) {
 	const command = args.shift().toLowerCase()
 
 	const admin = isAdmin(message.author.id)
-	switch (command) {
-		case "help":
+
+	const commands = {
+		/**
+		 * Compile an embed out of the commands in help.js.
+		 * If the user is not an admin, the embed will not contain
+		 *   admin commands.
+		 */
+		help: () => {
 			const embed = new Discord.RichEmbed()
 				.setColor(config.EMBED_COLORS.normal)
 				.setTitle("Help")
@@ -497,7 +346,7 @@ async function handleCommand(message) {
 				if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
 					message.author.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
 						.then(log.error)
-					break
+					return
 				} else {
 					embed.addField(args[0], help[args[0]].desc + "\n" + help[args[0]].syntax)
 				}
@@ -510,14 +359,14 @@ async function handleCommand(message) {
 			}
 			message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
 				.then(log.help)
-			break
+		}
 
 
-		case "scrape":
+		, scrape: async () => {
 			if (!admin) {
 				message.channel.send(embeds.error("You aren't allowed to use this command."))
 					.then(log.error)
-				break
+				return
 			}
 			const channel = (args[0].toLowerCase() === "here")
 				? message.channel
@@ -526,7 +375,7 @@ async function handleCommand(message) {
 			if (!channel) {
 				message.channel.send(embeds.error(`Channel not accessible: ${args[0]}`))
 					.then(log.error)
-				break
+				return
 			}
 
 			const howManyMessages = (args[1].toLowerCase() === "all")
@@ -536,7 +385,7 @@ async function handleCommand(message) {
 			if (isNaN(howManyMessages)) {
 				message.channel.send(embeds.error(`Not a number: ${args[1]}`))
 					.then(log.error)
-				break
+				return
 			}
 
 			// Resolve a starting message and a promise for an ending message
@@ -544,20 +393,20 @@ async function handleCommand(message) {
 				.then(log.say)
 
 
-			scrape(channel, howManyMessages)
-				.then(messagesAdded => {
-					message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
-						.then(log.say)
-				})
-				.catch(err => {
-					logError(err)
-					message.channel.send(embeds.error(err))
-						.then(log.error)
-				})
-			break
+			try {
+				const messagesAdded = await scrape(channel, howManyMessages)
+				message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
+					.then(log.say)
+			}
+			catch (err) {
+				logError(err)
+				message.channel.send(embeds.error(err))
+					.then(log.error)
+			}
+		}
 
 
-		case "imitate":
+		, imitate: async () => {
 			let userID = args[0]
 
 			if (args[0]) {
@@ -569,49 +418,62 @@ async function handleCommand(message) {
 					userID = message.author.id
 				} else {
 					if (isNaN(args[0]))
-						userID = mentionToUserID(args[0]) || await randomUserID()
+						userID = mentionToUserID(args[0]) || await markov.randomUserID()
 				}
 			} else {
-				userID = await randomUserID()
+				userID = await markov.randomUserID()
 			}
 
 			// Schism can't imitate herself
 			if (userID === client.user.id) {
 				message.channel.send(embeds.xok)
 					.then(log.xok)
-				break
+				return
 			}
 
 			imitate(userID, message.channel)
-			break
+		}
 
 
-		case "embed":
-			if (!admin || !args[0]) break
+		, embed: () => {
+			if (!admin || !args[0]) return
 			message.channel.send(embeds.standard(args.join(" ")))
 				.then(log.say)
-			break
+		}
 
 
-		case "error":
-			if (!admin || !args[0]) break
+		, error: () => {
+			if (!admin || !args[0]) return
 			message.channel.send(embeds.error(args.join(" ")))
 				.then(log.error)
-			break
+		}
 
 
-		case "xok":
-			if (!admin) break
+		, xok: () => {
+			if (!admin) return
 			message.channel.send(embeds.xok)
 				.then(log.xok)
-			break
+		}
 
 
-		case "save":
-			if (!admin) break
-			message.channel.send(embeds.standard("Saving..."))
+		, code: () => {
+			message.channel.send(embeds.code)
+				.then(log.say)
+		}
+
+
+		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
+		, get github() { return this.code }
+		, get source() { return this.code }
+
+
+		, save: async () => {
+			if (!admin) return
+			const force = args[0] === "all"
+
+			message.channel.send(embeds.standard((force) ? "Saving all corpi..." : "Saving..."))
 			try {
-				const savedCount = await corpusUtils.saveAll()
+				const savedCount = await corpusUtils.saveAll(force)
 				message.channel.send(embeds.standard(log.save(savedCount)))
 					.then(log.say)
 			} catch (err) {
@@ -619,71 +481,77 @@ async function handleCommand(message) {
 				message.channel.send(embeds.error(err))
 					.then(log.error)
 			}
-			break
+		}
 
 
-		case "servers":
-			const servers_embed = new Discord.RichEmbed()
+		, servers: () => {
+			const embed = new Discord.RichEmbed()
 				.setTitle("Member of these servers:")
 
 			client.guilds.tap(server => {
-				servers_embed.addField(server.name, server.id, true)
+				embed.addField(server.name, server.id, true)
 			})
 
-			message.channel.send(servers_embed)
-				.then(console.log(`${location(message)} Listed servers.`))
-			break
+			message.channel.send(embed)
+				.then(console.log(`${location(message)} Listed servers to ${message.author.tag}.`))
+		}
 
 
-		case "speaking":
+		, speaking: () => {
 			if (!args[0]) {
 				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
 					.then(log.error)
-				break
+				return
 			}
 
-			const speaking_guild = client.guilds.get(args[0])
-			if (!speaking_guild) {
+			const guild = client.guilds.get(args[0])
+			if (!guild) {
 				message.channel.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
-			const speaking_embed = new Discord.RichEmbed()
-				.setTitle(`Able to speak in these channels in ${speaking_guild.name} (ID: ${speaking_guild.id}):`)
+			const embed = new Discord.RichEmbed()
+				.setTitle(`${guild.name} (ID: ${guild.id})`)
+				.setDescription("Can speak in these channels")
 
-			speaking_guild.channels.tap(channel => {
+			guild.channels.tap(channel => {
 				if (canSpeakIn(channel.id))
-					speaking_embed.addField(`#${channel.name}`, channel.id, true)
+					embed.addField(`#${channel.name}`, channel.id, true)
 			})
 
-			message.channel.send(speaking_embed)
-				.then(console.log(`${location(message)} Listed speaking channels for ${speaking_guild.name} (ID: ${speaking_guild.id}).`))
-			break
+			message.channel.send(embed)
+				.then(console.log(`${location(message)} Listed speaking channels for ${guild.name} (ID: ${guild.id}) to ${message.author.tag}.`))
+		}
 
 
-		case "learning":
+		, learning: () => {
 			if (!args[0]) {
 				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
 					.then(log.error)
-				break
+				return
 			}
 
-			const learning_guild = client.guilds.get(args[0])
-			if (!learning_guild) {
+			const guild = client.guilds.get(args[0])
+			if (!guild) {
 				message.channel.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
-			const learning_embed = new Discord.RichEmbed()
-				.setTitle(`Learning in these channels in ${learning_guild.name} (ID: ${learning_guild.id}):`)
+			const embed = new Discord.RichEmbed()
+				.setTitle(`${guild.name} (ID: ${guild.id})`)
+				.setDescription("Learning in these channels")
 
-			learning_guild.channels.tap(channel => {
+			guild.channels.tap(channel => {
 				if (learningIn(channel.id))
-					learning_embed.addField(`#${channel.name}`, channel.id, true)
+					embed.addField(`#${channel.name}`, channel.id, true)
 			})
 
-			message.channel.send(learning_embed)
-				.then(console.log(`${location(message)} Listed learning channels for ${learning_guild.name} (ID: ${learning_guild.id}).`))
-			break
+			message.channel.send(embed)
+				.then(console.log(`${location(message)} Listed learning channels for ${guild.name} (ID: ${guild.id}) to ${message.author.tag}.`))
+		}
 	}
+
+	// Execute the corresponding command from the commands dictionary
+	commands[command]()
+
 	return command
 }
 
@@ -862,11 +730,14 @@ function httpsDownload(url) {
  */
 function isNaughty(phrase) {
 	if (!config.BAD_WORDS) return false
-	function wordIsBad(word) {
-		return config.BAD_WORDS.includes(word.replace(/[^a-zA-Z]/g, ""))
+
+	function _wordIsBad(word) {
+		return config.BAD_WORDS.includes(word)
 	}
-	const words = phrase.split(" ")
-	return words.some(wordIsBad)
+
+	phrase = phrase.replace(/[^A-z]/g, "") // Only acknowledge letters
+	const words = phrase.split(" ") // Split into an array of words
+	return words.some(_wordIsBad) // Returns true if any word is bad, false if none are bad
 }
 
 
@@ -897,25 +768,6 @@ function parseHooksDict(hooksDict) {
 		hooks[channelID] = hook
 	}
 	return hooks
-}
-
-
-/**
- * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
- * This way, mentions won't actually ping any users.
- * 
- * @param {string} sentence - sentence to disable pings in
- * @return {Promise<string>} sentence that won't ping anyone
- */
-async function disablePings(sentence) {
-	const mentionPattern = /<@((?!:).)[0-9]*>/g
-	const idPattern = /[0-9]/
-
-	return sentence.replace(mentionPattern, async mention => {
-		const userID = mention.match(idPattern)[0]
-		const user = await client.fetchUser(userID)
-		return "@" + user.tag
-	})
 }
 
 	

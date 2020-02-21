@@ -7,7 +7,6 @@ const embedColors = (process.env.EMBED_COLORS)
 	: require("./defaults").EMBED_COLORS
 
 
-
 /**
  * Generate a Discord Rich Embed message.
  * 
@@ -45,8 +44,19 @@ const xok = new RichEmbed()
 	.setImage("attachment://xok.png")
 
 
+/**
+ * A pre-made embed with information on how to find
+ *   Schism on GitHub.
+ */
+const code = new RichEmbed()
+	.setTitle("Schism is open source!")
+	.addField("View the code, file issues, and make pull requests to help improve Schism.", "https://github.com/Grosserly/schism")
+	.setFooter("Please help me. I'm begging you.")
+
+
 module.exports = {
-	standard: standard,
-	error: error,
-	xok: xok
+	standard,
+	error,
+	xok,
+	code
 }

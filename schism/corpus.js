@@ -30,7 +30,7 @@ const inCache = new Set()
 /**
  * Populate inBucket with the user IDs in the S3 bucket.
  */
-;(async () => {
+const inBucketReady = (async () => {
 	const userIDs = await s3.listUserIDs()
 	for (const userID of userIDs) {
 		inBucket.add(userID)
@@ -41,7 +41,7 @@ const inCache = new Set()
 /**
  * Populate inCache with the user IDs in the cache folder.
  */
-;(async () => {
+const inCacheReady = (async () => {
 	// Create directory ./cache/ if it doesn't exist
 	try {
 		await fs.mkdir("cache")
@@ -74,6 +74,9 @@ async function load(userID) {
 		if (err.code !== "ENOENT") // Only proceed if the reason _readFromCache() failed was
 			throw err              //   because it couldn't find the file
 	}
+
+	await inBucketReady
+
 	// Else, if in the S3 bucket, server from the S3 bucket
 	if (inBucket.has(userID)) {
 		const corpus = await s3.read(userID)
@@ -92,15 +95,21 @@ async function load(userID) {
  * @return {Promise<void>} nothing
  */
 async function append(userID, data) {
-	// If the corpus is in the S3 bucket but not cached,
-	//   download the corpus from S3 to have a complete
-	//   copy in cache.
-	// If not, either the corpus is already cached or the
-	//   corpus does not exist at all;
-	//   in either case, Schism does not need to download
-	//   the corpus from S3 and can add just the new data.
-	if (inBucket.has(userID) && !inCache.has(userID))
-		data = (await s3.read(userID)) + data
+	await inCacheReady
+	await inBucketReady
+	/**
+	* If the corpus is in the S3 bucket but not cached,
+	*   download the corpus from S3 to have a complete
+	*   copy in cache.
+	* If not, either the corpus is already cached or the
+	*   corpus does not exist at all;
+	*   in either case, Schism does not need to download
+	*   the corpus from S3 and can add just the new data.
+	*/
+	if (inBucket.has(userID) && !inCache.has(userID)) {
+		const corpus = await s3.read(userID)
+		data = corpus + data
+	}
 
 	_addToCache(userID, data)
 }
@@ -110,13 +119,25 @@ async function append(userID, data) {
  * Upload all unsaved cache to S3
  *   and empty the list of unsaved files.
  * 
+ * @param {Boolean} [force] - if true, save all corpi regardless of whether they have apparently been changed
  * @return {Promise<number>} number of files saved
  */
-async function saveAll() {
-	if (unsaved.size === 0) throw `Nothing to save.`
+async function saveAll(force) {
+	let setToSave
+
+	if (force) {
+		await inCacheReady
+		setToSave = inCache
+	} else {
+		setToSave = unsaved
+	}
+
+	if (setToSave.size === 0) throw `Nothing to save.`
+
+	await inBucketReady
 
 	var savedCount = 0
-	for (const userID of unsaved) {
+	for (const userID of setToSave) {
 		const corpus = await _readFromCache(userID)
 		await s3.write(userID, corpus)
 		++savedCount
@@ -157,8 +178,16 @@ function stopAutosave() {
  * 
  * @return {Set<string>} all user IDs
  */
-function allUserIDs() {
-	return new Set(function*() { yield* inCache; yield* inBucket; }())
+async function allUserIDs() {
+	await inCacheReady
+	await inBucketReady
+
+	return new Set(
+		function*() {
+			yield* inCache
+			yield* inBucket
+		}()
+	)
 }
 
 
@@ -170,6 +199,8 @@ function allUserIDs() {
  * @return {Promise<void>} nothing
  */
 async function _addToCache(userID, data) {
+	await inCacheReady
+
 	await fs.appendFile(`./cache/${userID}.txt`, data)
 	inCache.add(userID)
 	unsaved.add(userID)
@@ -190,10 +221,10 @@ async function _readFromCache(userID) {
 
 
 module.exports = {
-	load: load,
-	append: append,
-	saveAll: saveAll,
-	startAutosave: startAutosave,
-	stopAutosave: stopAutosave,
-	allUserIDs: allUserIDs
+	load,
+	append,
+	saveAll,
+	startAutosave,
+	stopAutosave,
+	allUserIDs
 }
