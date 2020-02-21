@@ -1,7 +1,7 @@
 "use strict"
 
-const { PREFIX } = process.env || require("./defaults")
-const escapedPrefix = _escape(PREFIX)
+const prefix = process.env.PREFIX || require("./defaults").PREFIX
+const escapedPrefix = _escape(prefix)
 
 var client
 var corpusUtils
