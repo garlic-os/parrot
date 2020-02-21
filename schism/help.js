@@ -1,71 +1,71 @@
 "use strict"
 
-const { PREFIX } = process.env || require("./defaults")
+const prefix = process.env.PREFIX || require("./defaults").PREFIX
 
 module.exports = {
 	help: {
 		admin: false,
 		desc: `Help.`,
-		syntax: `${PREFIX}help`
+		syntax: `${prefix}help`
 	}
 
 	, imitate: {
 		admin: false,
 		desc: `Imitate a user.`,
-		syntax: `${PREFIX}imitate <@user#1234>`
+		syntax: `${prefix}imitate <@user#1234>`
 	}
 
 	, save: {
 		admin: true,
 		desc: `Upload all unsaved cache to S3.`,
-		syntax: `${PREFIX}save ["all"]`
+		syntax: `${prefix}save ["all"]`
 	}
 
 	, scrape: {
 		admin: true,
 		desc: `Save [goal] number of messages in [channel].`,
-		syntax: `${PREFIX}scrape <[channelID|"here"]> <[goal|"all"]>`
+		syntax: `${prefix}scrape <[channelID|"here"]> <[goal|"all"]>`
 	}
 
 	, embed: {
 		admin: true,
 		desc: `Generate an embed.`,
-		syntax: `${PREFIX}embed <message>`
+		syntax: `${prefix}embed <message>`
 	}
 
 	, error: {
 		admin: true,
 		desc: `Generate an error embed.`,
-		syntax: `${PREFIX}error <message>`
+		syntax: `${prefix}error <message>`
 	}
 
 	, xok: {
 		admin: true,
 		desc: `Xok`,
-		syntax: `${PREFIX}xok`
+		syntax: `${prefix}xok`
 	}
 
 	, servers: {
 		admin: false,
 		desc: `List all the servers Schism is a member of.`,
-		syntax: `${PREFIX}servers`
+		syntax: `${prefix}servers`
 	}
 
 	, speaking: {
 		admin: false,
 		desc: `List all the channels of a server that Schism can speak in.`,
-		syntax: `${PREFIX}speaking <serverID>`
+		syntax: `${prefix}speaking <serverID>`
 	}
 
 	, learning: {
 		admin: false,
 		desc: `List all the channels of a server that Schism is learning from.`,
-		syntax: `${PREFIX}learning <serverID>`
+		syntax: `${prefix}learning <serverID>`
 	}
 
 	, code: {
 		admin: false,
 		desc: `Get information on how to find Schism on GitHub.`,
-		syntax: `${PREFIX}[code|github|source]`
+		syntax: `${prefix}[code|github|source]`
 	}
 }
