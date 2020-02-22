@@ -87,6 +87,29 @@ async function load(userID) {
 }
 
 
+async function forget(userID) {
+	// Remove from source of truth
+	await inBucketReady
+
+	let found = false
+
+	if (inBucket.has(userID)) {
+		await s3.delete(userID)
+		found = true
+	}
+
+	// Remove from cache
+	try {
+		await _deleteFromCache(userID)
+	} catch (err) {
+		if (err.code !== "ENOENT")
+			throw err
+	}
+
+	return found
+}
+
+
 /**
  * Add data to a user's corpus.
  * 
@@ -220,6 +243,16 @@ async function _readFromCache(userID) {
 	return data
 }
 
+
+/**
+ * Delete a file from cache.
+ * 
+ * @param {string} userID - name of file to delete (minus extension)
+ * @return {Promise<void>}
+ */
+async function _deleteFromCache(userID) {
+	await fs.unlink(`./cache/${userID}.txt`, "UTF-8")
+}
 
 module.exports = {
 	load,
