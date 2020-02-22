@@ -1,5 +1,7 @@
 "use strict"
 
+const regex = require("./regex")
+
 var corpusUtils
 var client
 
@@ -88,15 +90,15 @@ async function _replaceAsync(str, regex, asyncFn) {
  * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
  * This way, mentions won't actually ping any users.
  * 
+ * This is a naughty one:
+ * https://repl.it/@Garlic_OS/disablePings-debugging
+ * 
  * @param {string} sentence - sentence to disable pings in
  * @return {Promise<string>} sentence that won't ping anyone
  */
 async function _disablePings(sentence) {
-	const mentionPattern = /<@([!&]*)[0-9]+>/g; // All instances of <@[userID]>, including the outer characters
-	const idPattern = /[0-9]+/; // The string of numbers inside an instance of <@[userID]>
-
-	return await _replaceAsync(sentence, mentionPattern, async mention => {
-		const userID = mention.match(idPattern)[0]
+	return await _replaceAsync(sentence, regex.mention, async mention => {
+		const userID = mention.match(regex.id)[0]
 		try {
 			const user = await client.fetchUser(userID)
 			return "@" + user.tag
