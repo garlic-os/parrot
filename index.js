@@ -62,15 +62,15 @@ const log = {
 	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
   , imitate: {
 		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
-		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)}, saying: ${hookRes.content}`)
+		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	}
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
   , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
-  , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag}.`)
-  , command: message => console.log(`${location(message)} Received a command from ${message.author.tag}: ${message.content}`)
-  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate ${message.author.tag} in response to their message.`)
+  , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag} (ID: ${message.author.id}).`)
+  , command: message => console.log(`${location(message)} Received a command from ${message.author.tag} (ID: ${message.author.id}): ${message.content}`)
+  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate ${message.author.tag} (ID: ${message.author.id}) in response to their message.`)
 }
 
 
@@ -79,6 +79,7 @@ const Discord     = require("discord.js")
 	, corpusUtils = require("./schism/corpus")
 	, embeds      = require("./schism/embeds")
 	, help        = require("./schism/help")
+	, regex       = require("./schism/regex")
 
     , buffers = {}
     , hookSendQueue = []
@@ -100,7 +101,7 @@ process.on("SIGTERM", async () => {
 // --- LISTENERS ---------------------------------------------
 
 client.on("ready", () => {
-	console.info(`Logged in as ${client.user.tag}.\n`)
+	console.info(`Logged in as ${client.user.tag} (ID: ${client.user.id}).\n`)
 	updateNicknames(config.NICKNAMES)
 
 	// Limit the rate at which Webhook messages can be sent
@@ -144,7 +145,7 @@ client.on("message", async message => {
 
 	if (message.content.length > 0 // Not empty
 	   && !isBanned(authorID) // Not banned from using Schism
-	   && !isHook(authorID) // Not a Webhook
+	   && !message.webhookID // Not a Webhook
 	   && message.author.id !== client.user.id) { // Not self
 
 	   if (canSpeakIn(channelID) // Channel is listed in SPEAKING_CHANNELS or is a DM channel
@@ -191,13 +192,13 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				if (!buffers[authorID]) buffers[authorID] = ""
 
 				// Don't learn from a message if it's just pinging Schism
-				if (message.content !== `<@${client.user.id}>` || message.content !== `<@!${client.user.id}>`) {
+				if (message.content !== `<@${client.user.id}>` && message.content !== `<@!${client.user.id}>`) {
 					// Set a timeout to wait for the user to be quiet
 					//   only if their buffer is empty.
 					if (buffers[authorID].length === 0) {
 						setTimeout( async () => {
 							await corpusUtils.append(authorID, buffers[authorID])
-							console.log(`${location(message)} Learned from ${message.author.tag}: ${buffers[authorID].slice(0, -1)}`)
+							console.log(`${location(message)} Learned from ${message.author.tag} (ID: ${authorID}): ${buffers[authorID].slice(0, -1)}`)
 							buffers[authorID] = ""
 						}, 5000) // Five seconds
 					}
@@ -304,13 +305,16 @@ async function imitate(userID, channel) {
 		// use the user's ID for their name
 		// and the default avatar.
 		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
-		name = `Ghost of user ${userID}`
+		name = `​​​​Ghost of user ${userID}` // There are four zero-width spaces at the beginning of this string so that log.imitate doesn't cut it off :intensepain:
 	}
 
 	const hook = hooks[channel.id]
 	if (hook) {
-		if (hook.name !== name) // Only change appearance if the current user to imitate is different from the last user Schism imitated
+		// Only change appearance if the current user to imitate
+		//   is different from the last user Schism imitated
+		if (hook.name !== name)
 			await hook.edit(name, avatarURL)
+
 		hookSendQueue.push([hook, sentence])
 	} else {
 		avatarURL = avatarURL.replace("?size=2048", "?size=64")
@@ -411,7 +415,7 @@ async function handleCommand(message) {
 		}
 
 
-		, imitate: async () => {
+		, imitate: async () => {			
 			let userID = args[0]
 
 			if (args[0]) {
@@ -555,7 +559,8 @@ async function handleCommand(message) {
 	}
 
 	// Execute the corresponding command from the commands dictionary
-	commands[command]()
+	if (Object.keys(commands).includes(command))
+		commands[command]()
 
 	return command
 }
@@ -620,11 +625,8 @@ function status(code) {
  * @return {?string} userID
  */
 function mentionToUserID(mention) {
-	const mentionPattern = /<@((?!:).)[0-9]*>/g
-	const idPattern = /[0-9]/
-
-	return (mentionPattern.test(mention))
-		? mention.match(idPattern)[0]
+	return (regex.mention.test(mention))
+		? mention.match(regex.id)[0]
 		: null
 }
 
@@ -652,15 +654,6 @@ function isAdmin(userID) {
 
 function isBanned(userID) {
 	return has(userID, config.BANNED)
-}
-
-
-function isHook(userID) {
-	for (const key in config.HOOKS) {
-		if (config.HOOKS[key].hookID === userID)
-			return true
-	}
-	return false
 }
 
 
