@@ -14,6 +14,22 @@ const s3 = new AWS.S3()
 
 
 /**
+ * Remove an element from any array by value.
+ * 
+ * @param {Array} array - array to modify
+ * @param {any} element - element to find and remove
+ * @return {Array} the modified array
+ */
+function removeFrom(array, element) {
+	const index = array.indexOf(element)
+	if (index > -1) {
+		array.splice(index, 1)
+	}
+	return array
+}
+
+
+/**
  * Download a file from S3_BUCKET_NAME.
  * 
  * @param {string} userID - ID of a corpus to download from the S3 bucket
@@ -64,10 +80,13 @@ async function write(userID, data) {
 async function listUserIDs() {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
-		Prefix: process.env.CORPUS_DIR,
+		Prefix: process.env.CORPUS_DIR + "/",
 	}
 	
 	const { Contents } = await s3.listObjectsV2(params).promise()
+
+	// Remove an unwanted entry named "corpus"
+	removeFrom(Contents, "corpus")
 
 	return Contents.map( ({ Key }) => {
 		// Remove file extension and preceding path
