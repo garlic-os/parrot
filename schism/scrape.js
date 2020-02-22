@@ -1,5 +1,3 @@
-"use strict"
-
 const prefix = process.env.PREFIX || require("./defaults").PREFIX
 const escapedPrefix = _escape(prefix)
 

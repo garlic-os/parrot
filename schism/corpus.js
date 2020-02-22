@@ -1,5 +1,3 @@
-"use strict"
-
 const fs = require("fs").promises
     , s3 = require("./s3")
 

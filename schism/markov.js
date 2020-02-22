@@ -1,5 +1,3 @@
-"use strict"
-
 const regex = require("./regex")
 
 var corpusUtils

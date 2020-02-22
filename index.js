@@ -1,5 +1,3 @@
-"use strict"
-
 // Permissions code: 67584
 // Send messages, read message history
 

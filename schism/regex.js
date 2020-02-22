@@ -1,5 +1,3 @@
-"use strict"
-
 module.exports = {
 	/**
 	 * All instances of <@[userID]>, including the outer characters.
