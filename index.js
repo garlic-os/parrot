@@ -23,8 +23,7 @@ else
 // Overwrite console methods with empty ones and don't require
 //   console-stamp if logging is disabled
 if (config.DISABLE_LOGS) {
-	const methods = ["log", "debug", "warn", "info", "table"]
-	for (const method of methods) {
+	for (const method of Object.keys(console)) {
 		console[method] = () => {}
 	}
 } else {
@@ -33,6 +32,12 @@ if (config.DISABLE_LOGS) {
 		dateSuffix: "",
 		pattern: " "
 	})
+}
+
+
+// Only allow console.debug() when DEBUG env var is set
+if (!config.DEBUG) {
+	console.debug = () => {}
 }
 
 
@@ -198,6 +203,7 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 					}
 					buffers[authorID] += message.content + "\n"
 				}
+				console.debug(`Learning: User ${authorID}'s buffer length: ${buffers[authorID].length}`)
 			}
 		}
 	}
