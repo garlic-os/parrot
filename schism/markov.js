@@ -101,7 +101,7 @@ async function _disablePings(sentence) {
 			const user = await client.fetchUser(userID)
 			return "@" + user.tag
 		} catch (err) {
-			console.debug("  [DEBUG]   markov.js _disablePings() error:", err)
+			console.debug(`  [DEBUG]   markov.js _disablePings() error. mention: ${mention}. userID: ${userID}.`, err)
 			return ""
 		}
 	})
