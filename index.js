@@ -62,7 +62,6 @@ const log = {
 		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
 		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	}
-  , forget:  ([message, name]) => console.log(`${location(message)} forgot user: ${name}`)
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
@@ -440,37 +439,6 @@ async function handleCommand(message) {
 			}
 
 			imitate(userID, message.channel)
-		}
-
-
-		, forget: async () => {
-			let userID = args[0]
-			let caller = message.author.id
-
-			if (args[0]) {
-				// They specified a user to forget; check that
-				// they're an admin
-				if (isAdmin(caller)) {
-					userID = mentionToUserID(userID)
-				} else {
-					message.channel.send(embeds.error("Only admins can force-forget other users"))
-						.then(log.error)
-					return
-				}
-			} else {
-				userID = caller
-			}
-
-			try {
-				const member = await channel.guild.fetchMember(userID)
-				markov.forget(userID)
-				message.channel.send(embeds.standard(`Forgot user ${member.displayName}`))
-					.then(() => log.forget([message, member.displayName]))
-			} catch (err) {
-				logError(err)
-				message.channel.send(embeds.error(err))
-					.then(log.error)
-			}
 		}
 
 
