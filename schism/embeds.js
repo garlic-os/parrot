@@ -1,5 +1,3 @@
-"use strict"
-
 const { RichEmbed } = require("discord.js")
 
 const embedColors = (process.env.EMBED_COLORS)
