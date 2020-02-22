@@ -97,6 +97,10 @@ async function load(userID) {
 async function append(userID, data) {
 	await inCacheReady
 	await inBucketReady
+
+	console.debug(`User ${userID} in Bucket? ${inBucket.has(userID)}`)
+	console.debug(`User ${userID} in Cache? ${inCache.has(userID)}`)
+
 	/**
 	* If the corpus is in the S3 bucket but not cached,
 	*   download the corpus from S3 to have a complete
