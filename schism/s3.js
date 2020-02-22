@@ -71,6 +71,24 @@ async function write(userID, data) {
 
 
 /**
+ * Delete a corpus in S3_BUCKET_NAME.
+ *
+ * @param {string} userID - user ID's corpus to delete
+ * @return {Promise<void>}
+ */
+async function delete(userID) {
+	if (!userID) throw `s3.delete() received invalid ID: ${userID}`
+
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME, 
+		Key: `${process.env.CORPUS_DIR}/${userID}.txt`
+	}
+
+	return await s3.deleteObject(params).promise()
+}
+
+
+/**
  * Compile a list of all the IDs inside CORPUS_DIR.
  * 
  * @return {Promise<string[]>} array of user IDs
