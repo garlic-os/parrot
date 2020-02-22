@@ -203,7 +203,6 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 					}
 					buffers[authorID] += message.content + "\n"
 				}
-				console.debug(`Learning: User ${authorID}'s buffer length: ${buffers[authorID].length}`)
 			}
 		}
 	}
