@@ -339,7 +339,8 @@ async function handleCommand(message) {
 	log.command(message)
 
 	const args = message.content.slice(config.PREFIX.length).split(/ +/)
-	const command = args.shift().toLowerCase()
+	let command = args.shift().toLowerCase()
+
 	const caller = message.author
 	const admin = isAdmin(caller.id)
 
