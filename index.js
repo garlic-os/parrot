@@ -83,7 +83,7 @@ const Discord     = require("discord.js")
     , hookSendQueue = []
     , hooks = parseHooksDict(config.HOOKS)
 
-    , client = new Discord.Client()
+    , client = new Discord.Client({disableEveryone: true})
 	, scrape = require("./schism/scrape")(client, corpusUtils)
 	, markov = require("./schism/markov")(client, corpusUtils)
 
@@ -760,7 +760,7 @@ function parseHooksDict(hooksDict) {
 	const hooks = {}
 	for (const key in hooksDict) {
 		const { channelID, hookID, token } = hooksDict[key]
-		const hook = new Discord.WebhookClient(hookID, token)
+		const hook = new Discord.WebhookClient(hookID, token, {disableEveryone: true})
 		hooks[channelID] = hook
 	}
 	return hooks
