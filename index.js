@@ -286,11 +286,16 @@ ${guild.name} (ID: ${guild.id})
  * 
  * @param {string} userID - ID corresponding to a user to imitate
  * @param (Channel) channel - channel to send the message to
+ * @param {Boolean} intimidateMode - when true, put message in **BOLD ALL CAPS**
  * @return {Promise}
  */
-async function imitate(userID, channel) {
+async function imitate(userID, channel, intimidateMode) {
 	let sentence = await markov.generateSentence(userID)
 	let avatarURL, name
+
+	if (intimidateMode) {
+		sentence = "**" + sentence.toUpperCase() + "**"
+	}
 
 	try {
 		// Try to get the information from the server the user is in,
@@ -310,8 +315,9 @@ async function imitate(userID, channel) {
 	if (hook) {
 		// Only change appearance if the current user to imitate
 		//   is different from the last user Schism imitated
-		if (hook.name !== name)
+		if (hook.name !== name) {
 			await hook.edit(name, avatarURL)
+		}
 
 		hookSendQueue.push([hook, sentence])
 	} else {
@@ -334,8 +340,10 @@ async function handleCommand(message) {
 
 	const args = message.content.slice(config.PREFIX.length).split(/ +/)
 	const command = args.shift().toLowerCase()
+	const caller = message.author
+	const admin = isAdmin(caller.id)
 
-	const admin = isAdmin(message.author.id)
+	let intimidateMode = false
 
 	const commands = {
 		/**
@@ -351,7 +359,7 @@ async function handleCommand(message) {
 			// Individual command
 			if (help.hasOwnProperty(args[0])) {
 				if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
-					message.author.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
+					caller.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
 						.then(log.error)
 					return
 				} else {
@@ -360,11 +368,12 @@ async function handleCommand(message) {
 			// All commands
 			} else {
 				for (const [command, properties] of Object.entries(help)) {
-					if (!(properties.admin && !admin)) // If the user is not an admin, do not show admin-only commands
+					if (!(properties.admin && !admin)) { // If the user is not an admin, do not show admin-only commands
 						embed.addField(command, properties.desc + "\n" + properties.syntax)
+					}
 				}
 			}
-			message.author.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
+			caller.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
 				.then(log.help)
 		}
 
@@ -422,10 +431,11 @@ async function handleCommand(message) {
 				// If it can't be a number, maybe it's a <@ping>. Try to convert it.
 				// If it's not actually a ping, use a random ID.
 				if (args[0].toLowerCase() === "me") {
-					userID = message.author.id
+					userID = caller.id
 				} else {
-					if (isNaN(args[0]))
+					if (isNaN(args[0])) {
 						userID = mentionToUserID(args[0]) || await markov.randomUserID()
+					}
 				}
 			} else {
 				userID = await markov.randomUserID()
@@ -438,7 +448,37 @@ async function handleCommand(message) {
 				return
 			}
 
-			imitate(userID, message.channel)
+			imitate(userID, message.channel, intimidateMode)
+		}
+
+
+		, forget: async () => {
+			let userID = mentionToUserID(args[0])
+
+			// Specified a user to forget and that user isn't their self
+			if (userID && userID !== caller.id) {
+				if (admin) {
+					userID = mentionToUserID(userID)
+				} else {
+					message.channel.send(embeds.error("Only admins can force-forget other users."))
+						.then(log.error)
+					return
+				}
+			} else { // No user specified
+				userID = caller.id
+			}
+
+			try {
+				const user = await client.fetchUser(userID)
+				corpusUtils.forget(userID)
+				message.channel.send(embeds.standard(`Forgot user ${user.tag}.`))
+					.then(() => log.forget([message, user]))
+				dmTheAdmins(`Forgot user ${user.tag} (ID: ${user.id}).`)
+			} catch (err) {
+				logError(err)
+				message.channel.send(embeds.error(err))
+					.then(log.error)
+			}
 		}
 
 
@@ -500,7 +540,7 @@ async function handleCommand(message) {
 			})
 
 			message.channel.send(embed)
-				.then(console.log(`${location(message)} Listed servers to ${message.author.tag}.`))
+				.then(console.log(`${location(message)} Listed servers to ${caller.tag}.`))
 		}
 
 
@@ -521,8 +561,9 @@ async function handleCommand(message) {
 				.setDescription("Can speak in these channels")
 
 			guild.channels.tap(channel => {
-				if (canSpeakIn(channel.id))
+				if (canSpeakIn(channel.id)) {
 					embed.addField(`#${channel.name}`, channel.id, true)
+				}
 			})
 
 			message.channel.send(embed)
@@ -547,18 +588,26 @@ async function handleCommand(message) {
 				.setDescription("Learning in these channels")
 
 			guild.channels.tap(channel => {
-				if (learningIn(channel.id))
+				if (learningIn(channel.id)) {
 					embed.addField(`#${channel.name}`, channel.id, true)
+				}
 			})
 
 			message.channel.send(embed)
-				.then(console.log(`${location(message)} Listed learning channels for ${guild.name} (ID: ${guild.id}) to ${message.author.tag}.`))
+				.then(console.log(`${location(message)} Listed learning channels for ${guild.name} (ID: ${guild.id}) to ${caller.tag}.`))
 		}
 	}
 
+	// Special case modifier for |imitate
+	if (command === "intimidate") {
+		intimidateMode = true
+		command = "imitate"
+	}
+
 	// Execute the corresponding command from the commands dictionary
-	if (Object.keys(commands).includes(command))
+	if (Object.keys(commands).includes(command)) {
 		commands[command]()
+	}
 
 	return command
 }
