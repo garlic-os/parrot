@@ -293,10 +293,6 @@ async function imitate(userID, channel, intimidateMode) {
 	let sentence = await markov.generateSentence(userID)
 	let avatarURL, name
 
-	if (intimidateMode) {
-		sentence = "**" + sentence.toUpperCase() + "**"
-	}
-
 	try {
 		// Try to get the information from the server the user is in,
 		// so that Schism can use the user's nickname.
@@ -309,6 +305,11 @@ async function imitate(userID, channel, intimidateMode) {
 		// and the default avatar.
 		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
 		name = `​​​​Ghost of user ${userID}` // There are four zero-width spaces at the beginning of this string so that log.imitate doesn't cut it off :intensepain:
+	}
+
+	if (intimidateMode) {
+		sentence = "**" + sentence.toUpperCase() + "**"
+		name = name.toUpperCase()
 	}
 
 	const hook = hooks[channel.id]
