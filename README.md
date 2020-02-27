@@ -29,5 +29,5 @@ A Markov-chain-based Discord bot that keeps a separate Markov chain for each use
 - "Forget" command to delete a user's data (legally required by the GDPR? <sup>/s</sup>)
 - Message rate limiting to mitigate spam
 - Webhook rate limiter that actually works
-- I probably need to split `index.js` into more files again
+- ~~I probably need to split `index.js` into more files again~~ Under 1,000 lines once more!
 - Setup guide
