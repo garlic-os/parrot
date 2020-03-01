@@ -10,7 +10,7 @@ module.exports = {
 	, imitate: {
 		admin: false,
 		desc: `Imitate a user.`,
-		syntax: `${prefix}imitate <@user#1234>`
+		syntax: `${prefix}imitate <user>`
 	}
 
 	, save: {
@@ -44,19 +44,19 @@ module.exports = {
 	}
 
 	, servers: {
-		admin: false,
+		admin: true,
 		desc: `List all the servers Schism is a member of.`,
 		syntax: `${prefix}servers`
 	}
 
 	, speaking: {
-		admin: false,
+		admin: true,
 		desc: `List all the channels of a server that Schism can speak in.`,
 		syntax: `${prefix}speaking <serverID>`
 	}
 
 	, learning: {
-		admin: false,
+		admin: true,
 		desc: `List all the channels of a server that Schism is learning from.`,
 		syntax: `${prefix}learning <serverID>`
 	}

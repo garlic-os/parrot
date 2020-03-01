@@ -13,10 +13,11 @@ for (const key in process.env) {
 }
 
 // Log errors when in production; crash when not in production
-if (config.NODE_ENV === "production")
+if (config.NODE_ENV === "production") {
 	process.on("unhandledRejection", logError)
-else
+} else {
 	process.on("unhandledRejection", up => { throw up })
+}
 
 // Overwrite console methods with empty ones and don't require
 //   console-stamp if logging is disabled
@@ -62,6 +63,7 @@ const log = {
 		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
 		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	}
+  , forget:  ([message, user]) => console.log(`${location(message)} Forgot user ${user.tag} (ID: ${user.id}).`)
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
@@ -74,18 +76,18 @@ const log = {
 
 // Lots of consts
 const Discord     = require("discord.js")
-	, corpusUtils = require("./schism/corpus")
-	, embeds      = require("./schism/embeds")
-	, help        = require("./schism/help")
-	, regex       = require("./schism/regex")
+const corpusUtils = require("./schism/corpus")
+const embeds      = require("./schism/embeds")
+const help        = require("./schism/help")
+const regex       = require("./schism/regex")
 
-    , buffers = {}
-    , hookSendQueue = []
-    , hooks = parseHooksDict(config.HOOKS)
+const buffers = {}
+const hookSendQueue = []
+const hooks = parseHooksDict(config.HOOKS)
 
-    , client = new Discord.Client({disableEveryone: true})
-	, scrape = require("./schism/scrape")(client, corpusUtils)
-	, markov = require("./schism/markov")(client, corpusUtils)
+const client = new Discord.Client({disableEveryone: true})
+const scrape = require("./schism/scrape")(client, corpusUtils)
+const markov = require("./schism/markov")(client, corpusUtils)
 
 
 // (Hopefully) save before shutting down
@@ -187,7 +189,9 @@ https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=$
 				console.warn(msg)
 				dmTheAdmins(msg)
 			} else {
-				if (!buffers[authorID]) buffers[authorID] = ""
+				if (!buffers[authorID]) {
+					buffers[authorID] = ""
+				}
 
 				// Don't learn from a message if it's just pinging Schism
 				if (message.content !== `<@${client.user.id}>` && message.content !== `<@!${client.user.id}>`) {
@@ -242,7 +246,7 @@ Channels:`
 	})
 
 	logmsg += "\n-------------------------------"
-	dmTheDevs(embed)
+	dmTheAdmins(embed)
 	console.info(logmsg)
 })
 
@@ -308,7 +312,7 @@ async function imitate(userID, channel, intimidateMode) {
 	}
 
 	if (intimidateMode) {
-		sentence = "**" + sentence.toUpperCase() + "**"
+		sentence = "**" + discordCaps(sentence) + "**"
 		name = name.toUpperCase()
 	}
 
@@ -326,6 +330,21 @@ async function imitate(userID, channel, intimidateMode) {
 		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
 			.then(message => log.imitate.text([message, name, sentence]))
 	}
+}
+
+
+/**
+ * Capitalize everything except :emojis:.
+ * 
+ * @param {string} sentence - Sentence to (mostly) capitalize
+ * @return {string} All-caps string, except emojis
+ */
+function discordCaps(sentence) {
+	const words = sentence.split(" ")
+	const holdovers = words.filter(word => {
+		return (!word.startsWith(":") && (word.endsWith(":") || word.endsWith(">")))
+	})
+	return sentence
 }
 
 
@@ -534,6 +553,8 @@ async function handleCommand(message) {
 
 
 		, servers: () => {
+			if (!admin) return
+
 			const embed = new Discord.RichEmbed()
 				.setTitle("Member of these servers:")
 
@@ -541,21 +562,23 @@ async function handleCommand(message) {
 				embed.addField(server.name, server.id, true)
 			})
 
-			message.channel.send(embed)
+			message.author.send(embed)
 				.then(console.log(`${location(message)} Listed servers to ${caller.tag}.`))
 		}
 
 
 		, speaking: () => {
+			if (!admin) return
+
 			if (!args[0]) {
-				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
+				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
 					.then(log.error)
 				return
 			}
 
 			const guild = client.guilds.get(args[0])
 			if (!guild) {
-				message.channel.send(embeds.error("Invalid server ID"))
+				message.author.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
 			const embed = new Discord.RichEmbed()
@@ -568,21 +591,23 @@ async function handleCommand(message) {
 				}
 			})
 
-			message.channel.send(embed)
+			message.author.send(embed)
 				.then(console.log(`${location(message)} Listed speaking channels for ${guild.name} (ID: ${guild.id}) to ${message.author.tag}.`))
 		}
 
 
 		, learning: () => {
+			if (!admin) return
+
 			if (!args[0]) {
-				message.channel.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
+				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
 					.then(log.error)
 				return
 			}
 
 			const guild = client.guilds.get(args[0])
 			if (!guild) {
-				message.channel.send(embeds.error("Invalid server ID"))
+				message.author.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
 			const embed = new Discord.RichEmbed()
@@ -595,7 +620,7 @@ async function handleCommand(message) {
 				}
 			})
 
-			message.channel.send(embed)
+			message.author.send(embed)
 				.then(console.log(`${location(message)} Listed learning channels for ${guild.name} (ID: ${guild.id}) to ${caller.tag}.`))
 		}
 	}
@@ -635,10 +660,11 @@ async function updateNicknames(nicknameDict) {
 			.catch(errors.push)
 	}
 
-	if (errors.length > 0)
+	if (errors.length > 0) {
 		throw errors
-	else
+	} else {
 		return
+	}
 }
 
 
@@ -689,8 +715,9 @@ function mentionToUserID(mention) {
  */
 function has(val, obj) {
 	for (const i in obj) {
-		if (obj[i] === val)
+		if (obj[i] === val) {
 			return true
+		}
 	}
 	return false
 }
@@ -832,8 +859,9 @@ function parseHooksDict(hooksDict) {
 async function channelTable(channelDict) {
 	if (config.DISABLE_LOGS) return {}
 	
-	if (isEmpty(channelDict))
+	if (isEmpty(channelDict)) {
 		throw "No channels are whitelisted."
+	}
 
 	const stats = {}
 	for (const i in channelDict) {
@@ -868,8 +896,9 @@ async function channelTable(channelDict) {
 async function nicknameTable(nicknameDict) {
 	if (config.DISABLE_LOGS) return {}
 	
-	if (isEmpty(nicknameDict))
+	if (isEmpty(nicknameDict)) {
 		throw "No nicknames defined."
+	}
 
 	const stats = {}
 	for (const serverName in nicknameDict) {
@@ -926,8 +955,9 @@ function location(message) {
  */
 function isEmpty(obj) {
 	for (const key in obj) {
-		if (obj.hasOwnProperty(key))
+		if (obj.hasOwnProperty(key)) {
 			return false
+		}
 	}
 	return true
 }
