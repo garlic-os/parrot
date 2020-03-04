@@ -4,11 +4,11 @@ var corpusUtils
 var client
 
 /**
- * A function that makes Markov chain sentences.
- * I didn't make this, but the lengths the author
- *   managed to go in the name of efficiency is insane.
+ * Quick and dirty Markov chain text generator
+ * By kevincennis on GitHub
+ * https://gist.github.com/kevincennis/5440878
  * 
- * I have heavily modified it to be better for one-time use,
+ * I have modified this algorithm to be better for one-time use,
  *   since Schism will only use a Markov once before
  *   throwing it away to make a new one with different data.
  * 
