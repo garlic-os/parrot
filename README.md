@@ -25,9 +25,10 @@ A Markov-chain-based Discord bot that keeps a separate Markov chain for each use
 
 
 ## TODO
-- Keep data per server separate
-- "Forget" command to delete a user's data (legally required by the GDPR? <sup>/s</sup>)
+- Keep data per server separate. Partially patched in at the moment, but needs a better solution.
+- "forget" and "download" commands to let users download and delete their own data
 - Message rate limiting to mitigate spam
 - Webhook rate limiter that actually works
-- ~~I probably need to split `index.js` into more files again~~ Under 1,000 lines once more!
-- Setup guide
+- _So ein mist!_ `index.js` is longer than 1,000 lines again. Refactor to keep all files under 1,000 lines.
+- Setup guide for running your own copy of Schism
+- Setup commands for configuring Schism in new servers
