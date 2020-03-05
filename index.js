@@ -155,7 +155,7 @@ client.on("message", async message => {
 			if (message.isMentioned(client.user) // Mentioned
 			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
-				const userID = await markov.randomUserID()
+				const userID = await randomUserID(message.guild)
 				imitate(userID, message.channel)
 			}
 
@@ -294,22 +294,11 @@ ${guild.name} (ID: ${guild.id})
  * @return {Promise}
  */
 async function imitate(userID, channel, intimidateMode) {
-	let sentence = await markov.generateSentence(userID)
-	let avatarURL, name
+	const member = await channel.guild.fetchMember(userID)
+	const avatarURL = member.user.displayAvatarURL
+	const name = `Not ${member.displayName}`
 
-	try {
-		// Try to get the information from the server the user is in,
-		// so that Schism can use the user's nickname.
-		const member = await channel.guild.fetchMember(userID)
-		avatarURL = member.user.displayAvatarURL
-		name = `Not ${member.displayName}`
-	} catch (e) {
-		// If Schism can't get the user from the server,
-		// use the user's ID for their name
-		// and the default avatar.
-		avatarURL = "https://cdn.discordapp.com/attachments/280298381807714304/661400836605345861/322c936a8c8be1b803cd94861bdfa868.png"
-		name = `​​​​Ghost of user ${userID}` // There are four zero-width spaces at the beginning of this string so that log.imitate doesn't cut it off :intensepain:
-	}
+	let sentence = await markov(userID)
 
 	if (intimidateMode) {
 		sentence = "**" + discordCaps(sentence) + "**"
@@ -455,11 +444,11 @@ async function handleCommand(message) {
 					userID = caller.id
 				} else {
 					if (isNaN(args[0])) {
-						userID = mentionToUserID(args[0]) || await markov.randomUserID()
+						userID = mentionToUserID(args[0]) || await randomUserID(message.guild)
 					}
 				}
 			} else {
-				userID = await markov.randomUserID()
+				userID = await randomUserID(message.guild)
 			}
 
 			// Schism can't imitate herself
@@ -960,6 +949,51 @@ function isEmpty(obj) {
 		}
 	}
 	return true
+}
+
+
+/**
+ * Choose a random user ID that Schism can imitate.
+ * 
+ * @param {Guild} guild - Guild from which to choose a random user
+ * @return {Promise<string>} userID
+ */
+async function randomUserID(guild) {
+	const userIDs = await corpusUtils.allUserIDs()
+	let tries = 0
+	while (++tries < 100) {
+		const index = ~~(Math.random() * userIDs.size - 1)
+		const userID = elementAt(userIDs, index)
+		try {
+			await guild.fetchMember(userID) // Make sure the user in is this server
+			return userID
+		} catch (e) {
+			console.debug(`  [DEBUG]   randomUserID() error ${userID}`)
+		} // The user doesn't exist; loop and *try* again
+	}
+	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
+}
+
+
+/**
+ * Get an element from a Set.
+ * 
+ * @param {Set} setObj - Set to get the element from
+ * @param {number} index - position of element in the Set
+ * @return ?{any} [index]th element in the Set
+ */
+function elementAt(setObj, index) {
+	if (index < 0 || index > setObj.size - 1) {
+		return // Index out of range; return undefined
+	}
+	const iterator = setObj.values()
+	for (let i=0; i<index-1; ++i) {
+		// Increment the iterator index-1 times.
+		// The iterator value after this one is the element we want.
+		iterator.next()
+	}
+
+	return iterator.next().value
 }
 
 

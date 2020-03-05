@@ -3,6 +3,7 @@ const regex = require("./regex")
 var corpusUtils
 var client
 
+
 /**
  * Quick and dirty Markov chain text generator
  * By kevincennis on GitHub
@@ -18,7 +19,10 @@ var client
  * @return {Promise<string>} new sentence based from the corpus
  */
 async function _markovChain(corpus, outputSize=20, stateSize=4) {
-	if (!corpus) throw "_markovChain(): did not receive a corpus"
+	if (!corpus) {
+		throw "_markovChain(): did not receive a corpus"
+	}
+
 	const cache = Object.create(null) // An object without its usual methods (e.g. .hasOwnProperty())
 	const words = corpus.split(/\s/)
 	const startWords = [words[0]]
@@ -31,7 +35,7 @@ async function _markovChain(corpus, outputSize=20, stateSize=4) {
 	 * @return random element from an array
 	 */
 	function _choose(arr) {
-		return arr[~~(Math.random() * arr.length)] // ~~ is a "faster substitute for Math.floor()": https://stackoverflow.com/a/5971668
+		return arr[~~(Math.random() * arr.length)] // ~~() is a "faster substitute for Math.floor()": https://stackoverflow.com/a/5971668
 	}
 
 	/**
@@ -109,26 +113,6 @@ async function _disablePings(sentence) {
 
 
 /**
- * Get an element from a Set.
- * 
- * @param {Set} setObj - Set to get the element from
- * @param {number} index - position of element in the Set
- * @return {any} [index]th element in the Set
- */
-function _elementAt(setObj, index) {
-	if (index < 0 || index > setObj.size - 1) return // Index out of range; return undefined
-	const iterator = setObj.values()
-	for (let i=0; i<index-1; ++i) {
-		// Increment the iterator index-1 times.
-		// The iterator value after this one is the element we want.
-		iterator.next()
-	}
-
-	return iterator.next().value
-}
-
-
-/**
  * Generate a sentence based off [userID]'s corpus.
  * 
  * @param {string} userID - ID corresponding to a user to generate a sentence from
@@ -147,28 +131,6 @@ async function generateSentence(userID) {
 
 
 /**
- * Choose a random user ID that Schism can imitate.
- * 
- * @return {Promise<string>} userID
- */
-async function randomUserID() {
-	const userIDs = await corpusUtils.allUserIDs()
-	let tries = 0
-	while (++tries < 100) {
-		const index = ~~(Math.random() * userIDs.size - 1)
-		const userID = _elementAt(userIDs, index)
-		try {
-			await client.fetchUser(userID) // Make sure the user exists
-			return userID
-		} catch (e) {
-			console.debug(`  [DEBUG]   markov.js randomUserID() error ${userID}`)
-		} // The user doesn't exist; loop and *try* again
-	}
-	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
-}
-
-
-/**
  * @param {Client} input_client - A Discord client for markov.js to use
  * @param {Object} input_corpusUtils - An instance of corpus.js
  */
@@ -176,11 +138,13 @@ module.exports = (input_client, input_corpusUtils) => {
 	client = input_client
 	corpusUtils = input_corpusUtils
 
-	if (!client) throw "Missing argument: no client provided"
-	if (!corpusUtils) throw "Missing argument: no corpus.js provided"
-
-	return {
-		generateSentence,
-		randomUserID
+	if (!client) {
+		throw "Missing argument: no client provided"
 	}
+
+	if (!corpusUtils) {
+		throw "Missing argument: no corpus.js provided"
+	}
+
+	return generateSentence
 }
