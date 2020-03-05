@@ -295,8 +295,9 @@ ${guild.name} (ID: ${guild.id})
  */
 async function imitate(userID, channel, intimidateMode) {
 	const member = await channel.guild.fetchMember(userID)
-	const avatarURL = member.user.displayAvatarURL
-	const name = `Not ${member.displayName}`
+
+	let avatarURL = member.user.displayAvatarURL
+	let name = `Not ${member.displayName}`
 
 	let sentence = await markov(userID)
 
