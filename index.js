@@ -330,10 +330,17 @@ async function imitate(userID, channel, intimidateMode) {
  * @return {string} All-caps string, except emojis
  */
 function discordCaps(sentence) {
-	const words = sentence.split(" ")
-	const holdovers = words.filter(word => {
-		return (!word.startsWith(":") && (word.endsWith(":") || word.endsWith(">")))
-	})
+	const emojiPattern = regex.emoji
+	let match
+
+	sentence = sentence.toUpperCase()
+
+	while ((match = emojiPattern.exec(sentence)) !== null) {
+		sentence = sentence.slice(0, emojiPattern.index) +
+			       match[0] +
+			       sentence.slice(emojiPattern.lastIndex)
+	}
+
 	return sentence
 }
 
