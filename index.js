@@ -322,7 +322,6 @@ async function imitate(userID, channel, intimidateMode) {
 	}
 }
 
-
 /**
  * Capitalize everything except :emojis:.
  * 
@@ -330,7 +329,7 @@ async function imitate(userID, channel, intimidateMode) {
  * @return {string} All-caps string, except emojis
  */
 function discordCaps(sentence) {
-	const emojiPattern = regex.emoji
+	/*const emojiPattern = regex.emoji
 	let match
 
 	sentence = sentence.toUpperCase()
@@ -339,9 +338,9 @@ function discordCaps(sentence) {
 		sentence = sentence.slice(0, emojiPattern.index) +
 			       match[0] +
 			       sentence.slice(emojiPattern.lastIndex)
-	}
+	}*/
 
-	return sentence
+	return sentence.toUpperCase()
 }
 
 
