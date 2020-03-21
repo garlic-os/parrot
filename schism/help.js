@@ -12,6 +12,12 @@ module.exports = {
 		desc: `Imitate a user.`,
 		syntax: `${prefix}imitate <user>`
 	}
+	
+	, intimidate: {
+		admin: false,
+		desc: `**IMITATE A USER.**`,
+		syntax: `${prefix}intimidate <user>`
+	}
 
 	, save: {
 		admin: true,
