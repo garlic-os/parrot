@@ -17,9 +17,11 @@ module.exports = {
 	, id: /[0-9]+/
 
 	/**
-	 * Standard and custom emojis.
+	 * Things that should not be capitalized:
+	 * - emojis (start with < and end with >)
+	 * - URLs (contain '://' somewhere in the middle)
 	 * 
 	 * @type {RegExp}
 	 */
-	, emoji: /:\w+[:>]/g
+	, doNotCapitalize: /(^<.*>$)|(^.+:\/\/.+$)/
 }
