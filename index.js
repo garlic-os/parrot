@@ -22,7 +22,7 @@ if (config.NODE_ENV === "production") {
 // Overwrite console methods with empty ones and don't require
 //   console-stamp if logging is disabled
 if (config.DISABLE_LOGS) {
-	for (const method of Object.keys(console)) {
+	for (const method in console) {
 		console[method] = () => {}
 	}
 } else {
@@ -81,13 +81,12 @@ const embeds      = require("./schism/embeds")
 const help        = require("./schism/help")
 const regex       = require("./schism/regex")
 
-const buffers = {}
 const hookSendQueue = []
 const hooks = parseHooksDict(config.HOOKS)
 
-const client = new Discord.Client({disableEveryone: true})
-const scrape = require("./schism/scrape")(client, corpusUtils)
-const markov = require("./schism/markov")(client, corpusUtils)
+const client   = new Discord.Client({disableEveryone: true})
+const learning = require("./schism/learning")(client, corpusUtils)
+const markov   = require("./schism/markov")(client, corpusUtils)
 
 
 // (Hopefully) save before shutting down
@@ -174,39 +173,7 @@ client.on("message", async message => {
 
 		if (learningIn(channelID) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
 		   && !message.content.startsWith(config.PREFIX)) { // Not a command
-			/**
-			 * Record the message to the user's corpus.
-			 * Build up messages from that user until they have
-			 *   been silent for at least five seconds,
-			 *   then write them all to cache in one fell swoop.
-			 * Messages will be saved to the cloud come the next autosave.
-			 */
-			if (isNaughty(message.content)) {
-				const msg = `Bad word detected.
-${message.author.tag} (ID: ${authorID}) said:
-${message.content.substring(0, 1000)}
-https://discordapp.com/channels/${message.guild.id}/${message.channel.id}?jump=${message.id}`
-				console.warn(msg)
-				dmTheAdmins(msg)
-			} else {
-				if (!buffers[authorID]) {
-					buffers[authorID] = ""
-				}
-
-				// Don't learn from a message if it's just pinging Schism
-				if (message.content !== `<@${client.user.id}>` && message.content !== `<@!${client.user.id}>`) {
-					// Set a timeout to wait for the user to be quiet
-					//   only if their buffer is empty.
-					if (buffers[authorID].length === 0) {
-						setTimeout( async () => {
-							await corpusUtils.append(authorID, buffers[authorID])
-							console.log(`${location(message)} Learned from ${message.author.tag} (ID: ${authorID}): ${buffers[authorID].slice(0, -1)}`)
-							buffers[authorID] = ""
-						}, 5000) // Five seconds
-					}
-					buffers[authorID] += message.content + "\n"
-				}
-			}
+			learning.learnFrom(message)
 		}
 	}
 })
@@ -322,25 +289,31 @@ async function imitate(userID, channel, intimidateMode) {
 	}
 }
 
+
 /**
- * Capitalize everything except :emojis:.
+ * Turn everything caps, except emojis.
+ * Contributed by Kaylynn. Thank you, Kaylynn!
  * 
- * @param {string} sentence - Sentence to (mostly) capitalize
- * @return {string} All-caps string, except emojis
+ * Leaves URLs and emojis unaffected so that they
+ *   will still work normally.
+ * 
+ * @param {string} sentence - sentence to mostly capitalize
+ * @return {string} mostly capitalized string
  */
 function discordCaps(sentence) {
-	/*const emojiPattern = regex.emoji
-	let match
+	const pattern = regex.doNotCapitalize
 
-	sentence = sentence.toUpperCase()
+    sentence = sentence.replace(/\*/g, "").split(" ")
+    const output = []
+	for (const word of sentence) {
+		if (pattern.test(word)) {
+			output.push(word)
+		} else {
+			output.push(word.upper())
+		}
+	}
 
-	while ((match = emojiPattern.exec(sentence)) !== null) {
-		sentence = sentence.slice(0, emojiPattern.index) +
-			       match[0] +
-			       sentence.slice(emojiPattern.lastIndex)
-	}*/
-
-	return sentence.toUpperCase()
+    return output.join(" ")
 }
 
 
@@ -1003,5 +976,25 @@ function elementAt(setObj, index) {
 	return iterator.next().value
 }
 
+
+/**
+ * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
+ * This way, mentions won't actually ping any users.
+ * 
+ * @param {string} sentence - sentence to disable pings in
+ * @return {Promise<string>} sentence that won't ping anyone
+ */
+async function disablePings(sentence) {
+	return await _replaceAsync(sentence, regex.mention, async mention => {
+		const userID = mention.match(regex.id)[0]
+		try {
+			const user = await client.fetchUser(userID)
+			return "@" + user.tag
+		} catch (err) {
+			console.debug(`  [DEBUG]   markov.js _disablePings() error. mention: ${mention}. userID: ${userID}.`, err)
+			return ""
+		}
+	})
+}
 
 // --- /FUNCTIONS -------------------------------------------
