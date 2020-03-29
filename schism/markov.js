@@ -1,5 +1,3 @@
-const regex = require("./regex")
-
 var corpusUtils
 var client
 
@@ -15,10 +13,10 @@ var client
  * 
  * @param {string} corpus - big body of text to make a new, similar-sounding sentence from
  * @param {number} [outputSize=20] - number of words to generate (default: 20)
- * @param {number} [stateSize=4] - chain order (default: 2)
+ * @param {number} [stateSize=3] - chain order (default: 3)
  * @return {Promise<string>} new sentence based from the corpus
  */
-async function _markovChain(corpus, outputSize=20, stateSize=4) {
+async function _markovChain(corpus, outputSize=20, stateSize=3) {
 	if (!corpus) {
 		throw "_markovChain(): did not receive a corpus"
 	}
@@ -89,30 +87,6 @@ async function _replaceAsync(str, regex, asyncFn) {
 
 
 /**
- * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
- * This way, mentions won't actually ping any users.
- * 
- * This is a naughty one:
- * https://repl.it/@Garlic_OS/disablePings-debugging
- * 
- * @param {string} sentence - sentence to disable pings in
- * @return {Promise<string>} sentence that won't ping anyone
- */
-async function _disablePings(sentence) {
-	return await _replaceAsync(sentence, regex.mention, async mention => {
-		const userID = mention.match(regex.id)[0]
-		try {
-			const user = await client.fetchUser(userID)
-			return "@" + user.tag
-		} catch (err) {
-			console.debug(`  [DEBUG]   markov.js _disablePings() error. mention: ${mention}. userID: ${userID}.`, err)
-			return ""
-		}
-	})
-}
-
-
-/**
  * Generate a sentence based off [userID]'s corpus.
  * 
  * @param {string} userID - ID corresponding to a user to generate a sentence from
@@ -120,12 +94,10 @@ async function _disablePings(sentence) {
  */
 async function generateSentence(userID) {
 	const corpus = await corpusUtils.load(userID)
-	    , wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
-	    , coherence = Math.round(Math.random() * 7 + 3) // State size 3-10
+	const wordCount = ~~(Math.random() * 49 + 1) // 1-50 words
 
-	let sentence = await _markovChain(corpus, wordCount, coherence)
+	let sentence = await _markovChain(corpus, wordCount, 3)
 	sentence = sentence.substring(0, 256) // Hard cap of 256 characters (any longer is just too big)
-	sentence = await _disablePings(sentence)
 	return sentence
 }
 

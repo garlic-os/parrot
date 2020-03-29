@@ -1,5 +1,5 @@
 const AWS  = require("aws-sdk")
-    , path = require("path")
+const path = require("path")
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
@@ -34,7 +34,9 @@ function removeFrom(array, element) {
  * @return {Promise<string>} data from bucket
  */
 async function read(userID) {
-	if (!userID) throw `s3.read() received invalid ID: ${userID}`
+	if (!userID) {
+		throw `s3.read() received invalid ID: ${userID}`
+	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME, 
@@ -43,7 +45,11 @@ async function read(userID) {
 
 	try {
 		const { Body } = await s3.getObject(params).promise()
-		if (!Body) throw `Empty response at path: ${path}`
+
+		if (!Body) {
+			throw `Empty response at path: ${path}`
+		}
+
 		return Body.toString() // Convert Buffer to string
 	} catch (err) {
 		throw `[s3.read(${userID})] ${err}`
@@ -59,7 +65,9 @@ async function read(userID) {
  * @return {Promise<Object>} success response
  */
 async function write(userID, data) {
-	if (!userID) throw `s3.write() received invalid ID: ${userID}`
+	if (!userID) {
+		throw `s3.write() received invalid ID: ${userID}`
+	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,

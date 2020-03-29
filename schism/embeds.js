@@ -1,8 +1,5 @@
 const { RichEmbed } = require("discord.js")
-
-const embedColors = (process.env.EMBED_COLORS)
-	? JSON.parse(process.env.EMBED_COLORS)
-	: require("./defaults").EMBED_COLORS
+const colors = require("./config").EMBED_COLORS
 
 
 /**
@@ -13,7 +10,7 @@ const embedColors = (process.env.EMBED_COLORS)
  */
 function standard(str) {
 	return new RichEmbed()
-		.setColor(embedColors.normal)
+		.setColor(colors.normal)
 		.addField("Schism", str)
 }
 
@@ -26,7 +23,7 @@ function standard(str) {
  */
 function error(err) {
 	return new RichEmbed()
-		.setColor(embedColors.error)
+		.setColor(colors.error)
 		.addField("Error", err)
 }
 
@@ -37,7 +34,7 @@ function error(err) {
  */
 const xok = new RichEmbed()
 	.attachFiles(["./img/xok.png"])
-	.setColor(embedColors.error)
+	.setColor(colors.error)
 	.setTitle("Error")
 	.setImage("attachment://xok.png")
 
