@@ -1,4 +1,4 @@
-const prefix = process.env.PREFIX || require("./defaults").PREFIX
+const prefix = require("./config").PREFIX
 
 module.exports = {
 	help: {
@@ -12,7 +12,7 @@ module.exports = {
 		desc: `Imitate a user.`,
 		syntax: `${prefix}imitate <user>`
 	}
-	
+
 	, intimidate: {
 		admin: false,
 		desc: `**IMITATE A USER.**`,
