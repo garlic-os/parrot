@@ -69,19 +69,20 @@ async function load(userID) {
 	try {
 		return await _readFromCache(userID)
 	} catch (err) {
-		if (err.code !== "ENOENT") // Only proceed if the reason _readFromCache() failed was
-			throw err              //   because it couldn't find the file
+		if (err.code !== "ENOENT") { // Only proceed if the reason _readFromCache() failed was
+			throw err                //   because it couldn't find the file
+		}
 	}
 
 	await inBucketReady
 
-	// Else, if in the S3 bucket, server from the S3 bucket
+	// Else, if in the S3 bucket, serve from the S3 bucket
 	if (inBucket.has(userID)) {
 		const corpus = await s3.read(userID)
 		_addToCache(userID, corpus) // Not in cache, so cache this corpus
 		return corpus
 	}
-	throw `[corpus.load(userID)] User not found: ${userID}`
+	throw `[corpus.load()] User not found: ${userID}`
 }
 
 
