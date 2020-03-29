@@ -1,16 +1,8 @@
 // Permissions code: 67584
 // Send messages, read message history
 
-// Load environment variables to const config
-// JSON parse any value that is JSON parseable
-const config = require("./schism/defaults")
-for (const key in process.env) {
-	try {
-		config[key] = JSON.parse(process.env[key])
-	} catch (e) {
-		config[key] = process.env[key]
-	}
-}
+const config = require("./schism/config")
+
 
 // Log errors when in production; crash when not in production
 if (config.NODE_ENV === "production") {
@@ -267,7 +259,7 @@ async function imitate(userID, channel, intimidateMode) {
 	let name = `Not ${member.displayName}`
 
 	let sentence = await markov(userID)
-	sentence = await discordCaps(sentence)
+	sentence = await disablePings(sentence)
 
 	if (intimidateMode) {
 		sentence = "**" + discordCaps(sentence) + "**"
@@ -315,6 +307,48 @@ function discordCaps(sentence) {
 	}
 
     return output.join(" ")
+}
+
+
+/**
+ * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
+ * This way, mentions won't actually ping any users.
+ * 
+ * @param {string} sentence - sentence to disable pings in
+ * @return {Promise<string>} sentence that won't ping anyone
+ */
+async function disablePings(sentence) {
+	return await _replaceAsync(sentence, regex.mention, async mention => {
+		const userID = mention.match(regex.id)[0]
+		try {
+			const user = await client.fetchUser(userID)
+			return "@" + user.tag
+		} catch (err) {
+			console.error(`_disablePings() error. mention: ${mention}. userID: ${userID}.`, err)
+			return ""
+		}
+	})
+}
+
+
+/**
+ * An asynchronous version of String.prototype.replace().
+ * Created by Overcl9ck on StackOverflow:
+ * https://stackoverflow.com/a/48032528
+ * 
+ * @param {string} str - string to run the function on
+ * @param {RegExp} regex - match to this regular expression
+ * @param {Function} asyncFn - function to be invoked to replace the matches to [regex]
+ * @return {string} string with matches to [regex] processed by [asyncFn]
+ */
+async function _replaceAsync(str, regex, asyncFn) {
+    const promises = []
+    str.replace(regex, (match, ...args) => {
+        const promise = asyncFn(match, ...args)
+        promises.push(promise)
+    })
+    const data = await Promise.all(promises)
+    return str.replace(regex, () => data.shift())
 }
 
 
@@ -439,7 +473,12 @@ async function handleCommand(message) {
 				return
 			}
 
-			imitate(userID, message.channel, intimidateMode)
+			try {
+				imitate(userID, message.channel, intimidateMode)
+			} catch (err) {
+				const msg = err.message || err
+				message.channel.send(embeds.error(msg))
+			}
 		}
 
 
@@ -767,25 +806,6 @@ function httpsDownload(url) {
 
 
 /**
- * Check for bad words in a string.
- * 
- * @param {string} phrase - String to check for bad words in
- * @return {Boolean} Whether the string contains any bad words
- */
-function isNaughty(phrase) {
-	if (!config.BAD_WORDS) return false
-
-	function _wordIsBad(word) {
-		return config.BAD_WORDS.includes(word)
-	}
-
-	phrase = phrase.replace(/[^A-z]/g, "") // Only acknowledge letters
-	const words = phrase.split(" ") // Split into an array of words
-	return words.some(_wordIsBad) // Returns true if any word is bad, false if none are bad
-}
-
-
-/**
  * Turn this:
  *     "server - #channel": {
  *         "channelID": "876587263845753",
@@ -975,27 +995,6 @@ function elementAt(setObj, index) {
 	}
 
 	return iterator.next().value
-}
-
-
-/**
- * Parse <@6813218746128746>-type mentions into @user#1234-type mentions.
- * This way, mentions won't actually ping any users.
- * 
- * @param {string} sentence - sentence to disable pings in
- * @return {Promise<string>} sentence that won't ping anyone
- */
-async function disablePings(sentence) {
-	return await _replaceAsync(sentence, regex.mention, async mention => {
-		const userID = mention.match(regex.id)[0]
-		try {
-			const user = await client.fetchUser(userID)
-			return "@" + user.tag
-		} catch (err) {
-			console.debug(`  [DEBUG]   markov.js _disablePings() error. mention: ${mention}. userID: ${userID}.`, err)
-			return ""
-		}
-	})
 }
 
 // --- /FUNCTIONS -------------------------------------------
