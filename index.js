@@ -267,6 +267,7 @@ async function imitate(userID, channel, intimidateMode) {
 	let name = `Not ${member.displayName}`
 
 	let sentence = await markov(userID)
+	sentence = await discordCaps(sentence)
 
 	if (intimidateMode) {
 		sentence = "**" + discordCaps(sentence) + "**"
@@ -309,7 +310,7 @@ function discordCaps(sentence) {
 		if (pattern.test(word)) {
 			output.push(word)
 		} else {
-			output.push(word.upper())
+			output.push(word.toUpperCase())
 		}
 	}
 
