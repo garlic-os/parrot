@@ -253,10 +253,17 @@ ${guild.name} (ID: ${guild.id})
  * @return {Promise}
  */
 async function imitate(userID, channel, intimidateMode) {
-	const member = await channel.guild.fetchMember(userID)
-
-	let avatarURL = member.user.displayAvatarURL
-	let name = `Not ${member.displayName}`
+	if (channel.guild) {
+		// Channel is a part of a guild and the user may have
+		//   a nickname there, so use .fetchMember
+		const member = await channel.guild.fetchMember(userID)
+		avatarURL = member.user.displayAvatarURL
+		name = member.displayName
+	} else {
+		const user = await client.fetchUser(userID)
+		avatarURL = user.displayAvatarURL
+		name = user.username
+	}
 
 	let sentence = await markov(userID)
 	sentence = await disablePings(sentence)
@@ -271,6 +278,7 @@ async function imitate(userID, channel, intimidateMode) {
 		// Only change appearance if the current user to imitate
 		//   is different from the last user Schism imitated
 		if (hook.name !== name) {
+			name = `Not ${name}`
 			await hook.edit(name, avatarURL)
 		}
 
