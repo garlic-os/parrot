@@ -268,9 +268,12 @@ async function imitate(userID, channel, intimidateMode) {
 	let sentence = await markov(userID)
 	sentence = await disablePings(sentence)
 
+	let namePrefix = "Not "
+
 	if (intimidateMode) {
 		sentence = "**" + discordCaps(sentence) + "**"
 		name = name.toUpperCase()
+		namePrefix = namePrefix.toUpperCase()
 	}
 
 	const hook = hooks[channel.id]
@@ -278,7 +281,7 @@ async function imitate(userID, channel, intimidateMode) {
 		// Only change appearance if the current user to imitate
 		//   is different from the last user Schism imitated
 		if (hook.name !== name) {
-			name = `Not ${name}`
+			name = namePrefix + name
 			await hook.edit(name, avatarURL)
 		}
 
