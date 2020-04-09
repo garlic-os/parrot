@@ -1,27 +1,17 @@
-const defaults = {
-	PREFIX: "|",
-	EMBED_COLORS: {
-		"normal": "#A755B5",
-		"error": "#FF3636"
-	},
-	SPEAKING_CHANNELS: {},
-	LEARNING_CHANNELS: {},
-	NICKNAMES: {},
-	ADMINS: {},
-	BANNED: {},
-	DISABLE_LOGGING: false,
-	HOOKS: {}
-}
+const dotenv = require("dotenv").config()
+
+// If something goes wrong with dotenv, use process.env instead
+const envVars = dotenv.parsed || process.env
 
 
 // Load environment variables to config.
 // JSON parse any value that is JSON-parse-able.
-const config = defaults
-for (const key in process.env) {
+const config = require("./defaults")
+for (const key in envVars) {
 	try {
-		config[key] = JSON.parse(process.env[key])
+		config[key] = JSON.parse(envVars[key])
 	} catch (e) {
-		config[key] = process.env[key]
+		config[key] = envVars[key]
 	}
 }
 

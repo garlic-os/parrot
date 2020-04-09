@@ -59,7 +59,7 @@ const log = {
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
-  , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpi"}.`
+  , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpora"}.`
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag} (ID: ${message.author.id}).`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag} (ID: ${message.author.id}): ${message.content}`)
   , blurt:   message => console.log(`${location(message)} Randomly decided to imitate ${message.author.tag} (ID: ${message.author.id}) in response to their message.`)
@@ -78,7 +78,7 @@ const hooks = parseHooksDict(config.HOOKS)
 
 const client   = new Discord.Client({disableEveryone: true})
 const learning = require("./schism/learning")(client, corpusUtils)
-const markov   = require("./schism/markov")(client, corpusUtils)
+const markov   = require("./schism/markov")(corpusUtils)
 
 
 // (Hopefully) save before shutting down
@@ -146,8 +146,10 @@ client.on("message", async message => {
 			if (message.isMentioned(client.user) // Mentioned
 			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
+                message.channel.startTyping()
 				const userID = await randomUserID(message.guild)
-				imitate(userID, message.channel)
+				await imitate(userID, message.channel)
+                message.channel.stopTyping()
 			}
 
 			// Command
@@ -286,6 +288,7 @@ async function imitate(userID, channel, intimidateMode) {
 		}
 
 		hookSendQueue.push([hook, sentence])
+        return
 	} else {
 		avatarURL = avatarURL.replace("?size=2048", "?size=64")
 		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
@@ -458,7 +461,9 @@ async function handleCommand(message) {
 		}
 
 
-		, imitate: async () => {			
+		, imitate: async () => {
+            message.channel.startTyping()
+
 			let userID = args[0]
 
 			if (args[0]) {
@@ -485,11 +490,13 @@ async function handleCommand(message) {
 			}
 
 			try {
-				imitate(userID, message.channel, intimidateMode)
+				await imitate(userID, message.channel, intimidateMode)
 			} catch (err) {
 				const msg = err.message || err
 				message.channel.send(embeds.error(msg))
 			}
+
+            message.channel.stopTyping()
 		}
 
 
@@ -559,7 +566,7 @@ async function handleCommand(message) {
 			if (!admin) return
 			const force = args[0] === "all"
 
-			message.channel.send(embeds.standard((force) ? "Saving all corpi..." : "Saving..."))
+			message.channel.send(embeds.standard((force) ? "Saving all corpora..." : "Saving..."))
 			try {
 				const savedCount = await corpusUtils.saveAll(force)
 				message.channel.send(embeds.standard(log.save(savedCount)))
