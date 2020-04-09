@@ -146,10 +146,10 @@ client.on("message", async message => {
 			if (message.isMentioned(client.user) // Mentioned
 			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
-                message.channel.startTyping()
+				//message.channel.startTyping()
 				const userID = await randomUserID(message.guild)
 				await imitate(userID, message.channel)
-				message.channel.stopTyping()
+				//message.channel.stopTyping()
 			}
 
 			// Command
@@ -465,7 +465,7 @@ async function handleCommand(message) {
 
 
 		, imitate: async () => {
-            message.channel.startTyping()
+			//message.channel.startTyping()
 
 			let userID = args[0]
 
@@ -499,7 +499,7 @@ async function handleCommand(message) {
 				message.channel.send(embeds.error(msg))
 			}
 
-            message.channel.stopTyping()
+			//message.channel.stopTyping()
 		}
 
 
