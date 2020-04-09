@@ -149,7 +149,7 @@ client.on("message", async message => {
                 message.channel.startTyping()
 				const userID = await randomUserID(message.guild)
 				await imitate(userID, message.channel)
-                message.channel.stopTyping()
+				message.channel.stopTyping()
 			}
 
 			// Command
@@ -284,11 +284,14 @@ async function imitate(userID, channel, intimidateMode) {
 		//   is different from the last user Schism imitated
 		if (hook.name !== name) {
 			name = namePrefix + name
-			await hook.edit(name, avatarURL)
+			await hook.edit({
+				name: name,
+				avatar: avatarURL
+			})
 		}
 
 		hookSendQueue.push([hook, sentence])
-        return
+		return
 	} else {
 		avatarURL = avatarURL.replace("?size=2048", "?size=64")
 		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
