@@ -4,7 +4,7 @@ const fs = require("fs").promises
 var autosaveInterval
 
 /**
- * A set of user IDs whose corpi have been created/modified since last S3 save.
+ * A set of user IDs whose corpora have been created/modified since last S3 save.
  * Is cleared when their corpus is saved.
  * @type {Set<string>}
  */
@@ -12,14 +12,14 @@ const unsaved = new Set()
 
 /**
  * A set of all user IDs in the S3 bucket.
- * Corpi are NOT removed from this set when saved.
+ * corpora are NOT removed from this set when saved.
  * @type {Set<string>}
  */
 const inBucket = new Set()
 
 /**
  * A set of all user IDs in cache.
- * Corpi are NOT removed from this set when saved.
+ * corpora are NOT removed from this set when saved.
  * @type {Set<string>}
  */
 const inCache = new Set()
@@ -119,7 +119,7 @@ async function append(userID, data) {
  * Upload all unsaved cache to S3
  *   and empty the list of unsaved files.
  * 
- * @param {Boolean} [force] - if true, save all corpi regardless of whether they have apparently been changed
+ * @param {Boolean} [force] - if true, save all corpora regardless of whether they have apparently been changed
  * @return {Promise<number>} number of files saved
  */
 async function saveAll(force) {
@@ -150,14 +150,14 @@ async function saveAll(force) {
 
 
 /**
- * Automatically save all corpi on an interval.
+ * Automatically save all corpora on an interval.
  * 
  * @param {number} [intervalMS=3600000] - time between autosaves in milliseconds (default: 1 hour)
  */
 function startAutosave(intervalMS=3600000) {
 	autosaveInterval = setInterval( async () => {
 		const savedCount = await saveAll()
-		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpi"}.`)
+		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpora"}.`)
 	}, intervalMS)
 }
 
