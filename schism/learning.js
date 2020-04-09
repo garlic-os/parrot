@@ -167,7 +167,7 @@ async function scrape(channel, goal) {
 	await _getBatchOfMessages(fetchOptions)
 
 	// Dump any remaining messages from scrape_buffers to
-	//   users' corpi
+	//   users' corpora
 	for (const userID in scrape_buffers) {
 		_dump(userID, scrape_buffers[userID])
 	}
