@@ -45,7 +45,7 @@ const xok = new RichEmbed()
  */
 const code = new RichEmbed()
 	.setTitle("Schism is open source!")
-	.addField("View the code, file issues, and make pull requests to help improve Schism.", "https://github.com/Grosserly/schism")
+	.addField("View the code, file issues, and make pull requests to help improve Schism.", "https://github.com/the-garlic-os/schism")
 	.setFooter("Please help me. I'm begging you.")
 
 
