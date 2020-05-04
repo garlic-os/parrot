@@ -22,6 +22,7 @@ A Markov-chain-based Discord bot that keeps a separate Markov chain for each use
 | `BAD_WORDS_URL` | URL to a newline-delimited list of words that Schism will filter before saving messages to a corpus | `https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/raw/master/en` | `undefined` (Optional) |
 | `DISABLE_LOGS` | Silence in the console. Keep Schism from outputting any logs. | (`true`/`false`) | `false` (Schism will log stuff like normal) |
 | `HOOKS` | Dictionary of information for making Webhooks. Discord uses a different Webhook for each channel. | `{ "server - #channel": { "channelID": "7219805712958755", "hookID": "12719203749023570", "token": "g1BnrhcmqmgKBveZrFzgRPaB8SBGET0m.3tX0U2.C5e8xwjQshTO7dzayXQ" } }` | `{}` (**Required**) |
+| `AYY_LMAO` | When truthy, Schism will say "lmao" when someone says "ayy". | (`true`/`false`) | `false` |
 
 
 ## TODO
