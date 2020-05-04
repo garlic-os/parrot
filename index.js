@@ -157,6 +157,11 @@ client.on("message", async message => {
 			        && !message.author.bot) { // Not a bot
 				handleCommand(message)
 			}
+		   
+		   	// ayy lmao	
+			else if (message.content.toLowerCase() === "ayy" && config.AYY_LMAO) {	
+				message.channel.send("lmao")	
+			}
 			
 			// Nothing special
 			else if (blurtChance()) { // Maybe imitate someone anyway
