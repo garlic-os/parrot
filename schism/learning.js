@@ -210,7 +210,7 @@ function learnFrom(message) {
 				setTimeout( async () => {
 					const payload = learnFrom_buffers[authorID].join("\n")
 					await corpusUtils.append(authorID, payload)
-					console.log(`[LEARNING] Learned from ${message.author.tag} (ID: ${authorID}): ${payload.slice(0, -1)}`)
+					console.log(`[LEARNING] Learned from ${message.author.tag} (ID: ${authorID}): ${payload}`)
 					learnFrom_buffers[authorID] = []
 				}, 5000) // Five seconds
 			}
