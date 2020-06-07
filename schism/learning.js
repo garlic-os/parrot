@@ -208,7 +208,7 @@ function learnFrom(message) {
 			//   only if their buffer is empty.
 			if (learnFrom_buffers[authorID].length === 0) {
 				setTimeout( async () => {
-					const payload = learnFrom_buffers[authorID].join("\n")
+					const payload = learnFrom_buffers[authorID].join("\n") + "\n"
 					await corpusUtils.append(authorID, payload)
 					console.log(`[LEARNING] Learned from ${message.author.tag} (ID: ${authorID}): ${payload}`)
 					learnFrom_buffers[authorID] = []
