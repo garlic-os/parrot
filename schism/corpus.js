@@ -82,7 +82,7 @@ async function load(userID) {
 		_addToCache(userID, corpus) // Not in cache, so cache this corpus
 		return corpus
 	}
-	throw `[corpus.load()] User not found: ${userID}`
+	throw `No data available on user with ID ${userID}`
 }
 
 
