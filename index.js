@@ -103,7 +103,7 @@ client.on("ready", () => {
 		const [ hook, sentence ] = pair
 		hook.send(sentence)
 			.then(log.imitate.hook)
-	}, 1000) // One second
+	}, 2000)
 
 	// "Watching everyone"
 	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
