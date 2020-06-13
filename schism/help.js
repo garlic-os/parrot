@@ -55,6 +55,12 @@ module.exports = {
 		syntax: `${prefix}servers`
 	}
 
+	, channels: {
+		admin: true,
+		desc: `List the visible text channels in a server Schism is in.`,
+		syntax: `${prefix}channels <serverID>`
+	}
+
 	, speaking: {
 		admin: true,
 		desc: `List all the channels of a server that Schism can speak in.`,
