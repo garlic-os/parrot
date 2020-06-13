@@ -9,19 +9,19 @@ module.exports = {
 
 	, imitate: {
 		admin: false,
-		desc: `Imitate a user.`,
-		syntax: `${prefix}imitate <user>`
+		desc: `Imitate yourself.`,
+		syntax: `${prefix}imitate`
 	}
 
 	, intimidate: {
 		admin: false,
-		desc: `**IMITATE A USER.**`,
-		syntax: `${prefix}intimidate <user>`
+		desc: `**IMITATE YOURSELF.**`,
+		syntax: `${prefix}intimidate`
 	}
 
 	, save: {
 		admin: true,
-		desc: `Upload all unsaved cache to S3.`,
+		desc: `Upload unsaved cache to S3.`,
 		syntax: `${prefix}save ["all"]`
 	}
 
@@ -71,5 +71,29 @@ module.exports = {
 		admin: false,
 		desc: `Get information on how to find Schism on GitHub.`,
 		syntax: `${prefix}[code|github|source]`
+	}
+
+	, forget: {
+		admin: false,
+		desc: `Remove your data from Schism.`,
+		syntax: `${prefix}forget`
+	}
+
+	, eula: {
+		admin: false,
+		desc: `View Schism's End User License Agreement.`,
+		syntax: `${prefix}eula`
+	}
+
+	, agree: {
+		admin: false,
+		desc: `Agree to Schism's EULA.`,
+		syntax: `${prefix}agree`
+	}
+
+	, disagree: {
+		admin: false,
+		desc: `Disagree to Schism's EULA (Schism will not be able to imitate you).`,
+		syntax: `${prefix}disagree`
 	}
 }
