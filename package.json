@@ -7,7 +7,6 @@
         "aws-sdk": "^2.543.0",
         "console-stamp": "^0.2.9",
         "discord.js": "11.6.4",
-        "dotenv": "^8.2.0",
-        "markov-strings": "^3.0.0-beta.0"
+        "dotenv": "^8.2.0"
     }
 }
