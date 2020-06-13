@@ -1,4 +1,3 @@
-const Markov = require("markov-strings").default
 var corpusUtils
 
 

@@ -1,0 +1,8 @@
+TL;DR: In order to imitate you, Schism stores your messages.
+
+Schism's main functionality is to imitate users. To do this, Schism collects and stores the text contents of the messages you send in select channels. When you tell Schism to imitate you, your stored messages are processed through an algorithm designed to generate new sentences that sound like you. The text content of the messages Schism collects are kept by <@206235904644349953>, indefinitely, on a remote file server based in the US. <@206235904644349953> reserves the right to erase part or all of your data at any time if it is found to be in violation of Discord's ToS, /r/Ooer's rules, and/or US law.
+
+You, at any time, have the right to:
+1) request a copy of your data.
+2) request the deletion of your data.
+3. revoke your consent to this agreement, at which point Schism's ability to imitate you will be paused. Note that revoking your agreement does not automatically delete your data.

@@ -14,9 +14,9 @@ const s3 = new AWS.S3()
 /**
  * Remove an element from any array by value.
  * 
- * @param {Array} array - array to modify
+ * @param {any[]} array - array to modify
  * @param {any} element - element to find and remove
- * @return {Array} the modified array
+ * @return {any[]} the modified array
  */
 function removeFrom(array, element) {
 	const index = array.indexOf(element)
@@ -28,7 +28,7 @@ function removeFrom(array, element) {
 
 
 /**
- * Download a file from S3_BUCKET_NAME.
+ * Download a corpus from S3_BUCKET_NAME by userID.
  * 
  * @param {string} userID - ID of a corpus to download from the S3 bucket
  * @return {Promise<string>} data from bucket
@@ -58,6 +58,32 @@ async function read(userID) {
 
 
 /**
+ * Download a file by path to file.
+ * 
+ * @param {string} path - path to the file
+ */
+async function readFile(path) {
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME, 
+		Key: `${process.env.CORPUS_DIR}/${path}`
+	}
+
+	try {
+		const { Body } = await s3.getObject(params).promise()
+
+		if (!Body) {
+			throw `Empty response at path: ${path}`
+		}
+
+		return Body.toString() // Convert Buffer to string
+	} catch (err) {
+		err.message = `Error fetching "${path}" from database: ` + err.message
+		throw err
+	}
+}
+
+
+/**
  * Upload (and overwrite) a corpus in S3_BUCKET_NAME.
  * 
  * @param {string} userID - user ID's corpus to upload/overwrite
@@ -66,7 +92,7 @@ async function read(userID) {
  */
 async function write(userID, data) {
 	if (!userID) {
-		throw `s3.write() received invalid ID: ${userID}`
+		throw `Failed to write file: invalid user ID: ${userID}`
 	}
 
 	const params = {
@@ -75,6 +101,47 @@ async function write(userID, data) {
 		Body: Buffer.from(data, "UTF-8")
 	}
 	return await s3.upload(params).promise()
+}
+
+
+/**
+ * Upload (and overwrite) a file in S3_BUCKET_NAME.
+ * 
+ * @param {string} path - path to file to upload/overwrite
+ * @param {string} data - data to write 
+ * @return {Promise<Object>} success response
+ */
+async function writeFile(path, data) {
+	if (!path) {
+		throw `Failed to write file: invalid path: ${path}`
+	}
+
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME,
+		Key: `${process.env.CORPUS_DIR}/${path}`,
+		Body: Buffer.from(data, "UTF-8")
+	}
+	return await s3.upload(params).promise()
+}
+
+
+/**
+ * Delete a corpus from S3_BUCKET_NAME.
+ *
+ * @param {string} userID - user ID's corpus to delete
+ * @return {Promise} s3.deleteObject() response
+ */
+async function remove(userID) {
+	if (!userID) {
+		throw `s3.remove() received invalid ID: ${userID}`
+	}
+
+	const params = {
+		Bucket: process.env.S3_BUCKET_NAME, 
+		Key: `${process.env.CORPUS_DIR}/${userID}.txt`
+	}
+
+	return await s3.deleteObject(params).promise()
 }
 
 
@@ -101,8 +168,12 @@ async function listUserIDs() {
 }
 
 
+
 module.exports = {
 	read,
 	write,
+	remove,
+	readFile,
+	writeFile,
 	listUserIDs
 }

@@ -1,5 +1,6 @@
 const config = require("./config.js")
 const escapedPrefix = _escape(config.PREFIX)
+const { consenting } = require("./corpus")
 
 var client
 var corpusUtils
@@ -142,6 +143,12 @@ async function scrape(channel, goal) {
 			// Message has text (sometimes it can just be a picture)
 			if (message.content && message.author.id !== client.user.id) {
 				const authorID = message.author.id
+
+				// Filter out messages from users to haven't agreed to the EULA
+				if (!consenting.has(authorID)) {
+					return
+				}
+
 				if (!scrape_buffers[authorID]) {
 					scrape_buffers[authorID] = ""
 				}
@@ -189,6 +196,10 @@ const learnFrom_buffers = {}
  */
 function learnFrom(message) {
 	const authorID = message.author.id
+
+	if (!consenting.has(authorID)) {
+		return
+	}
 
 	if (_isNaughty(message.content)) {
 		const msg = `Bad word detected.

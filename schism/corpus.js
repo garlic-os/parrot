@@ -1,5 +1,6 @@
 const fs = require("fs").promises
-    , s3 = require("./s3")
+const s3 = require("./s3")
+const TrackerSet = require("./tracker-set")
 
 var autosaveInterval
 
@@ -26,6 +27,16 @@ const inCache = new Set()
 
 
 /**
+ * A set of the user IDs of the users who consent to Schism's data collection.
+ * After the scheduled purge of unconsenting users' information on Aug. 1, 2020,
+ *   this will be removed in favor of refusal to store information without
+ *   the user's prior consent.
+ * @type {Set<string>}
+ */
+const consenting = new TrackerSet()
+
+
+/**
  * Populate inBucket with the user IDs in the S3 bucket.
  */
 const inBucketReady = (async () => {
@@ -44,13 +55,42 @@ const inCacheReady = (async () => {
 	try {
 		await fs.mkdir("cache")
 	} catch (err) {
-		if (err.code !== "EEXIST") throw err
+		if (err.code !== "EEXIST") {
+			// If the other is something other than fs complaining that the folder already exists,
+			//   then Schism should probably throw that
+			throw err
+		}
 	}
 
 	const filenames = await fs.readdir("./cache")
 	for (const filename of filenames) {
 		const userID = filename.slice(0, -4) // Remove last four characters (file extension)
 		inCache.add(userID)
+	}
+})()
+
+
+const consentingReady = (async () => {
+	let userIDs;
+	
+	// Read consenting.json if it exists
+	try {
+		userIDs = await s3.readFile("consenting.json")
+		userIDs = JSON.parse(userIDs)
+	} catch (err) {
+		// Skip the last part and just write a new file if it doesn't exist
+		if (err.code === "NoSuchKey") {
+			console.warn("[corpus.js] consenting.json does not exist; creating it...")
+			userIDs = []
+		} else if (err.code === "SyntaxError") {
+			console.warn(`[corpus.js] consenting.json is corrupt and will be overwritten.\nconsenting.json:\n${userIDs}`)
+			userIDs = []
+		}
+	}
+
+	// Populate the Set with the contents of consenting.json
+	for (const userID of userIDs) {
+		consenting.add(userID)
 	}
 })()
 
@@ -65,6 +105,10 @@ const inCacheReady = (async () => {
  * @return {Promise<string>} [userID]'s corpus
  */
 async function load(userID) {
+	if (!consenting.has(userID)) {
+		throw `NOPERMISSION`
+	}
+
 	// If in cache, serve from cache
 	try {
 		return await _readFromCache(userID)
@@ -73,8 +117,6 @@ async function load(userID) {
 			throw err                //   because it couldn't find the file
 		}
 	}
-
-	await inBucketReady
 
 	// Else, if in the S3 bucket, serve from the S3 bucket
 	if (inBucket.has(userID)) {
@@ -94,9 +136,9 @@ async function load(userID) {
  * @return {Promise<void>} nothing
  */
 async function append(userID, data) {
-	await inCacheReady
-	await inBucketReady
-
+	if (!consenting.has(userID)) {
+		throw `NOPERMISSION`
+	}
 	/**
 	* If the corpus is in the S3 bucket but not cached,
 	*   download the corpus from S3 to have a complete
@@ -115,6 +157,15 @@ async function append(userID, data) {
 }
 
 
+async function forget(userID) {
+	inBucket.delete(userID)
+	inCache.delete(userID)
+	unsaved.delete(userID)
+	_removeFromCache(userID)
+	s3.remove(userID)
+}
+
+
 /**
  * Upload all unsaved cache to S3
  *   and empty the list of unsaved files.
@@ -122,19 +173,18 @@ async function append(userID, data) {
  * @param {Boolean} [force] - if true, save all corpora regardless of whether they have apparently been changed
  * @return {Promise<number>} number of files saved
  */
-async function saveAll(force) {
+async function save(force) {
 	let setToSave
 
 	if (force) {
-		await inCacheReady
 		setToSave = inCache
 	} else {
 		setToSave = unsaved
 	}
 
-	if (setToSave.size === 0) throw `Nothing to save.`
-
-	await inBucketReady
+	if (setToSave.size === 0 && !consenting.modified) {
+		throw `Nothing to save.`
+	}
 
 	var savedCount = 0
 	for (const userID of setToSave) {
@@ -145,7 +195,21 @@ async function saveAll(force) {
 	}
 
 	unsaved.clear()
-	return savedCount
+
+	if (consenting.modified) {
+		s3.writeFile("consenting.json", JSON.stringify([...consenting]))
+		consenting.modified = false
+
+		return {
+			corpora: savedCount,
+			consenting: true
+		}
+	}
+
+	return {
+		corpora: savedCount,
+		consenting: false
+	}
 }
 
 
@@ -156,7 +220,7 @@ async function saveAll(force) {
  */
 function startAutosave(intervalMS=3600000) {
 	autosaveInterval = setInterval( async () => {
-		const savedCount = await saveAll()
+		const savedCount = await save()
 		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpora"}.`)
 	}, intervalMS)
 }
@@ -171,7 +235,7 @@ function stopAutosave() {
 
 
 /**
- * Combine Sets inCache and inBucket for one Set of
+ * Combine Sets inCache and inBucket into one Set of
  *   the IDs of all the users Schism can imitate.
  * 
  * Made by jameslk: https://stackoverflow.com/a/32001750
@@ -179,9 +243,6 @@ function stopAutosave() {
  * @return {Set<string>} all user IDs
  */
 async function allUserIDs() {
-	await inCacheReady
-	await inBucketReady
-
 	return new Set(
 		function*() {
 			yield* inCache
@@ -192,26 +253,25 @@ async function allUserIDs() {
 
 
 /**
- * Add data to a file to cache.
+ * Add data to a corpus in cache.
  * 
- * @param {string} userID - name of file to append to (minus extension)
+ * @param {string} userID - ID whose corpus file to append to
  * @param {string} data - data to append
- * @return {Promise<void>} nothing
+ * @return {Promise} fs.appendFile() response
  */
 async function _addToCache(userID, data) {
-	await inCacheReady
-
-	await fs.appendFile(`./cache/${userID}.txt`, data)
+	const fsResponse = await fs.appendFile(`./cache/${userID}.txt`, data)
 	inCache.add(userID)
 	unsaved.add(userID)
+	return fsResponse
 }
 
 
 /**
- * Read a file from cache.
+ * Read a corpus from cache.
  * 
- * @param {string} userID - name of file to read (minus extension)
- * @return {Promise<string>} file's contents
+ * @param {string} userID - ID whose corpus file to read
+ * @return {Promise<string>} corpus file's contents
  */
 async function _readFromCache(userID) {
 	const data = await fs.readFile(`./cache/${userID}.txt`, "UTF-8")
@@ -220,10 +280,24 @@ async function _readFromCache(userID) {
 }
 
 
+/**
+ * Remove a corpus from cache.
+ * 
+ * @param {string} userID - ID whose corpus file to delete
+ * @return {Promise} fs.unlink() response
+ */
+async function _removeFromCache(userID) {
+	return await fs.unlink(`./cache/${userID}.txt`)
+}
+
+
 module.exports = {
+    ready: Promise.all([inCacheReady, inBucketReady, consentingReady]),
+	consenting,
+	forget,
 	load,
 	append,
-	saveAll,
+	save,
 	startAutosave,
 	stopAutosave,
 	allUserIDs
