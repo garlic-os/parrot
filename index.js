@@ -138,41 +138,37 @@ client.on("ready", () => {
 
 
 client.on("message", async message => {
-	const authorID = message.author.id
-	const channelID = message.channel.id
+	const { author, channel, content } = message
 
-	if (message.content.length > 0 // Not empty
+	if (content.length > 0 // Not empty
 	   && !isBanned(authorID) // Not banned from using Schism
 	   && !message.webhookID // Not a Webhook
-	   && message.author.id !== client.user.id) { // Not self
+	   && author.id !== client.user.id) { // Not self
 
 	   if (canSpeakIn(channelID) // Channel is listed in SPEAKING_CHANNELS or is a DM channel
-		  || message.channel.type === "dm") {
+		  || channel.type === "dm") {
 
 			// Ping
 			if (message.isMentioned(client.user) // Mentioned
-			&& !message.content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
+			&& !content.includes(" ")) { // Has no spaces (i.e. contains nothing but a ping))
 				log.pinged(message)
-				//message.channel.startTyping()
-				const userID = await randomUserID(message.guild)
-				await imitate(userID, message.channel)
-				//message.channel.stopTyping()
+				await imitate(author, channel)
 			}
 
 			// Command
-			else if (message.content.startsWith(config.PREFIX) // Starts with the command prefix
-			        && !message.author.bot) { // Not a bot
+			else if (content.startsWith(config.PREFIX) // Starts with the command prefix
+			        && !author.bot) { // Not a bot
 				handleCommand(message)
 			}
 		   
 		   	// ayy lmao	
-			else if (message.content.toLowerCase() === "ayy" && config.AYY_LMAO) {	
-				message.channel.send("lmao")	
+			else if (content.toLowerCase() === "ayy" && config.AYY_LMAO) {	
+				channel.send("lmao")	
 			}
 		}
 
 		if (learningIn(channelID) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
-		   && !message.content.startsWith(config.PREFIX)) { // Not a command
+		   && !content.startsWith(config.PREFIX)) { // Not a command
 			learning.learnFrom(message)
 		}
 	}
@@ -255,53 +251,73 @@ ${guild.name} (ID: ${guild.id})
 /**
  * Send a message imitating a user.
  * 
- * @param {string} userID - ID corresponding to a user to imitate
+ * @param {DiscordUser} user - user to imitate
  * @param (Channel) channel - channel to send the message to
  * @param {Boolean} intimidateMode - when true, put message in **BOLD ALL CAPS**
  * @return {Promise}
  */
-async function imitate(userID, channel, intimidateMode) {
-	if (channel.guild) {
-		// Channel is a part of a guild and the user may have
-		//   a nickname there, so use .fetchMember
-		const member = await channel.guild.fetchMember(userID)
-		avatarURL = member.user.displayAvatarURL
-		name = member.displayName
-	} else {
-		const user = await client.fetchUser(userID)
-		avatarURL = user.displayAvatarURL
-		name = user.username
-	}
-
-	let sentence = await markov(userID)
-	sentence = await disablePings(sentence)
-
-	let namePrefix = "Not "
-
-	if (intimidateMode) {
-		sentence = "**" + discordCaps(sentence) + "**"
-		name = name.toUpperCase()
-		namePrefix = namePrefix.toUpperCase()
-	}
-
-	const hook = hooks[channel.id]
-	if (hook) {
-		// Only change appearance if the current user to imitate
-		//   is different from the last user Schism imitated
-		if (hook.name !== name) {
-			name = namePrefix + name
-			await hook.edit({
-				name: name,
-				avatar: avatarURL
-			})
+async function imitate(user, channel, intimidateMode) {
+	try{
+		if (channel.guild) {
+			// Channel is a part of a guild and the user may have
+			//   a nickname there, so use .fetchMember
+			const member = await channel.guild.fetchMember(user.id)
+			avatarURL = member.user.displayAvatarURL
+			name = member.displayName
+		} else {
+			avatarURL = user.displayAvatarURL
+			name = user.username
 		}
 
-		hookSendQueue.push([hook, sentence])
-		return
-	} else {
-		avatarURL = avatarURL.replace("?size=2048", "?size=64")
-		channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
-			.then(message => log.imitate.text([message, name, sentence]))
+		let sentence;
+		
+		try {
+			sentence = await markov(user.id)
+		} catch (err) {
+			if (err === "NOPERMISSION") {
+				channel.send(embeds.consent(caller))
+					.then( () => log.consent([message, caller]))
+				return
+			}
+		}
+		
+		sentence = await disablePings(sentence)
+
+		let namePrefix = "Not "
+
+		if (intimidateMode) {
+			sentence = "**" + discordCaps(sentence) + "**"
+			name = name.toUpperCase()
+			namePrefix = namePrefix.toUpperCase()
+		}
+
+		const hook = hooks[channel.id]
+		if (hook) {
+			// Only change appearance if the current user to imitate
+			//   is different from the last user Schism imitated
+			if (hook.name !== name) {
+				name = namePrefix + name
+				await hook.edit({
+					name: name,
+					avatar: avatarURL
+				})
+			}
+
+			hookSendQueue.push([hook, sentence])
+			return
+		} else {
+			avatarURL = avatarURL.replace("?size=2048", "?size=64")
+			channel.send(`${name}​ be like:\n${sentence}\n${avatarURL}`)
+				.then(message => log.imitate.text([message, name, sentence]))
+		}
+
+	} catch (err) {
+		const msg = `Error while trying to imitate ${user.tag}: ${err}`
+		logError(msg)
+		if (err.stack) {
+			console.error(err.stack)
+		}
+		channel.send(embeds.error(msg))
 	}
 }
 
@@ -483,21 +499,7 @@ async function handleCommand(message) {
 
 
 		, imitate: async () => {
-			try {
-				await imitate(caller.id, message.channel, intimidateMode)
-			} catch (err) {
-				if (err === "NOPERMISSION") {
-					message.channel.send(embeds.consent(caller))
-						.then( () => log.consent([message, caller]))
-				} else {
-					const msg = `Error while trying to imitate ${caller.tag}: ${err}`
-					logError(msg)
-					if (err.stack) {
-						console.error(err.stack)
-					}
-					message.channel.send(embeds.error(msg))
-				}
-			}
+			await imitate(caller, message.channel, intimidateMode)
 		}
 
 		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
