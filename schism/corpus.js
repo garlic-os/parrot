@@ -235,24 +235,6 @@ function stopAutosave() {
 
 
 /**
- * Combine Sets inCache and inBucket into one Set of
- *   the IDs of all the users Schism can imitate.
- * 
- * Made by jameslk: https://stackoverflow.com/a/32001750
- * 
- * @return {Set<string>} all user IDs
- */
-async function allUserIDs() {
-	return new Set(
-		function*() {
-			yield* inCache
-			yield* inBucket
-		}()
-	)
-}
-
-
-/**
  * Add data to a corpus in cache.
  * 
  * @param {string} userID - ID whose corpus file to append to
@@ -299,6 +281,5 @@ module.exports = {
 	append,
 	save,
 	startAutosave,
-	stopAutosave,
-	allUserIDs
+	stopAutosave
 }
