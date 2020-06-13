@@ -664,8 +664,38 @@ async function handleCommand(message) {
 				embed.addField(server.name, server.id, true)
 			})
 
-			message.author.send(embed)
+			caller.send(embed)
 				.then(console.log(`${location(message)} Listed servers to ${caller.tag}.`))
+		}
+
+
+		, channels: () => {
+			if (!isAdmin(caller.id)) return
+
+			if (!args[0]) {
+				caller.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}channels [server ID]`))
+					.then(log.error)
+				return
+			}
+
+			const guild = client.guilds.get(args[0])
+			if (!guild) {
+				caller.send(embeds.error("Invalid server ID"))
+					.then(log.error)
+			}
+
+			const embed = new Discord.RichEmbed()
+				.setTitle(`${guild.name} (ID: ${guild.id})`)
+				.setDescription("Visible text channels:")
+
+			guild.channels.tap(channel => {
+				if (channel.type === "text") {
+					embed.addField(`#${channel.name}`, channel.id, true)
+				}
+			})
+
+			caller.send(embed)
+				.then(console.log(`${location(message)} Listed visible text channels in ${guild.name} (ID: ${guild.id}) to ${caller.tag}.`))
 		}
 
 
@@ -673,19 +703,19 @@ async function handleCommand(message) {
 			if (!isAdmin(caller.id)) return
 
 			if (!args[0]) {
-				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
+				caller.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
 					.then(log.error)
 				return
 			}
 
 			const guild = client.guilds.get(args[0])
 			if (!guild) {
-				message.author.send(embeds.error("Invalid server ID"))
+				caller.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
 			const embed = new Discord.RichEmbed()
 				.setTitle(`${guild.name} (ID: ${guild.id})`)
-				.setDescription("Can speak in these channels")
+				.setDescription("Can speak in these channels:")
 
 			guild.channels.tap(channel => {
 				if (canSpeakIn(channel.id)) {
@@ -693,8 +723,8 @@ async function handleCommand(message) {
 				}
 			})
 
-			message.author.send(embed)
-				.then(console.log(`${location(message)} Listed speaking channels for ${guild.name} (ID: ${guild.id}) to ${message.author.tag}.`))
+			caller.send(embed)
+				.then(console.log(`${location(message)} Listed speaking channels for ${guild.name} (ID: ${guild.id}) to ${caller.tag}.`))
 		}
 
 
@@ -702,19 +732,19 @@ async function handleCommand(message) {
 			if (!isAdmin(caller.id)) return
 
 			if (!args[0]) {
-				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
+				caller.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
 					.then(log.error)
 				return
 			}
 
 			const guild = client.guilds.get(args[0])
 			if (!guild) {
-				message.author.send(embeds.error("Invalid server ID"))
+				caller.send(embeds.error("Invalid server ID"))
 					.then(log.error)
 			}
 			const embed = new Discord.RichEmbed()
 				.setTitle(`${guild.name} (ID: ${guild.id})`)
-				.setDescription("Learning in these channels")
+				.setDescription("Learning in these channels:")
 
 			guild.channels.tap(channel => {
 				if (learningIn(channel.id)) {
@@ -722,7 +752,7 @@ async function handleCommand(message) {
 				}
 			})
 
-			message.author.send(embed)
+			caller.send(embed)
 				.then(console.log(`${location(message)} Listed learning channels for ${guild.name} (ID: ${guild.id}) to ${caller.tag}.`))
 		}
 	}
