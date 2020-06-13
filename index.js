@@ -49,20 +49,24 @@ if (config.BAD_WORDS_URL) {
 }
 
 
+// The bigger this gets, the more ashamed I become of it
 const log = {
-	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].fields[0].value}`)
+	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].description}`)
   , imitate: {
 		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
 		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	}
   , forget:  ([message, user]) => console.log(`${location(message)} Forgot user ${user.tag} (ID: ${user.id}).`)
-  , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].fields[0].value}`)
+  , consent: ([message, user]) => console.log(`${location(message)} Sent the "need consent" message for user ${user.tag} (ID: ${user.id}).`)
+  , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].description}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
-  , save:    count   => `Saved ${count} ${(count === 1) ? "corpus" : "corpora"}.`
+  , save:    ({ corpora, consenting })  => `Saved ${consenting ? "the user agreement record and " : ""} ${corpora} ${(corpora === 1) ? "corpus" : "corpora"}.`
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag} (ID: ${message.author.id}).`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag} (ID: ${message.author.id}): ${message.content}`)
-  , blurt:   message => console.log(`${location(message)} Randomly decided to imitate ${message.author.tag} (ID: ${message.author.id}) in response to their message.`)
+  , eula:    message => console.log(`${location(message)} Sent the EULA.`)
+  , agree:   message => console.log(`${location(message)} Sent the agreement confirmation.`)
+  , disagree: message => console.log(`${location(message)} Sent the disagreement confirmation.`)
 }
 
 
@@ -80,11 +84,14 @@ const client   = new Discord.Client({disableEveryone: true})
 const learning = require("./schism/learning")(client, corpusUtils)
 const markov   = require("./schism/markov")(corpusUtils)
 
+const ExpirableSet = require("./schism/expirable-set")
+const confirmations = new ExpirableSet()
+
 
 // (Hopefully) save before shutting down
 process.on("SIGTERM", async () => {
 	console.info("Saving changes...")
-	const savedCount = await corpusUtils.saveAll()
+	const savedCount = await corpusUtils.save()
 	console.info(log.save(savedCount))
 })
 
@@ -161,12 +168,6 @@ client.on("message", async message => {
 		   	// ayy lmao	
 			else if (message.content.toLowerCase() === "ayy" && config.AYY_LMAO) {	
 				message.channel.send("lmao")	
-			}
-			
-			// Nothing special
-			else if (blurtChance()) { // Maybe imitate someone anyway
-				log.blurt(message)
-				imitate(authorID, message.channel)
 			}
 		}
 
@@ -385,10 +386,9 @@ async function handleCommand(message) {
 	log.command(message)
 
 	const args = message.content.slice(config.PREFIX.length).split(/ +/)
-	let command = args.shift().toLowerCase()
+	const command = args.shift().toLowerCase()
 
 	const caller = message.author
-	const admin = isAdmin(caller.id)
 
 	let intimidateMode = false
 
@@ -405,7 +405,7 @@ async function handleCommand(message) {
 			
 			// Individual command
 			if (help.hasOwnProperty(args[0])) {
-				if (help[args[0]].admin && !admin) { // Command is admin only and user is not an admin
+				if (help[args[0]].admin && !isAdmin(caller.id)) { // Command is admin only and user is not an admin
 					caller.send(embeds.error("Don't ask questions you aren't prepared to handle the asnwers to."))
 						.then(log.error)
 					return
@@ -415,18 +415,22 @@ async function handleCommand(message) {
 			// All commands
 			} else {
 				for (const [command, properties] of Object.entries(help)) {
-					if (!(properties.admin && !admin)) { // If the user is not an admin, do not show admin-only commands
+					if (!(properties.admin && !isAdmin(caller.id))) { // If the user is not an admin, do not show admin-only commands
 						embed.addField(command, properties.desc + "\n" + properties.syntax)
 					}
 				}
 			}
 			caller.send(embed) // DM the user the help embed instead of putting it in chat since it's kinda big
 				.then(log.help)
+
+			if (message.channel.type !== "dm") {
+				message.reply("you have been sent help.")
+			}
 		}
 
 
 		, scrape: async () => {
-			if (!admin) {
+			if (!isAdmin(caller.id)) {
 				message.channel.send(embeds.error("You aren't allowed to use this command."))
 					.then(log.error)
 				return
@@ -463,97 +467,161 @@ async function handleCommand(message) {
 			}
 			catch (err) {
 				logError(err)
-				message.channel.send(embeds.error(err))
+				message.channel.send(embeds.error(`Error while scraping: ${err}`))
 					.then(log.error)
+			}
+		}
+
+
+		, eula: async () => {
+			const sentMessage = await caller.send(embeds.eula)
+			log.eula(sentMessage)
+			if (message.channel.type !== "dm") {
+				message.reply("Schism's End User License Agreement has been DM'd to you.")
 			}
 		}
 
 
 		, imitate: async () => {
-			//message.channel.startTyping()
-
-			let userID = args[0]
-
-			if (args[0]) {
-				// If args[0] is "me", use the sender's ID.
-				// Otherwise, if it is a number, use it as an ID.
-				// If it can't be a number, maybe it's a <@ping>. Try to convert it.
-				// If it's not actually a ping, use a random ID.
-				if (args[0].toLowerCase() === "me") {
-					userID = caller.id
-				} else {
-					if (isNaN(args[0])) {
-						userID = mentionToUserID(args[0]) || await randomUserID(message.guild)
-					}
-				}
-			} else {
-				userID = await randomUserID(message.guild)
-			}
-
-			// Schism can't imitate herself
-			if (userID === client.user.id) {
-				message.channel.send(embeds.xok)
-					.then(log.xok)
-				return
-			}
-
 			try {
-				await imitate(userID, message.channel, intimidateMode)
+				await imitate(caller.id, message.channel, intimidateMode)
 			} catch (err) {
-				const msg = err.message || err
-				message.channel.send(embeds.error(msg))
+				if (err === "NOPERMISSION") {
+					message.channel.send(embeds.consent(caller))
+						.then( () => log.consent([message, caller]))
+				} else {
+					const msg = `Error while trying to imitate ${caller.tag}: ${err}`
+					logError(msg)
+					if (err.stack) {
+						console.error(err.stack)
+					}
+					message.channel.send(embeds.error(msg))
+				}
 			}
-
-			//message.channel.stopTyping()
 		}
+
+		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
+		, get imitateme() { return this.imitate }
+		, get imitate_me() { return this.imitate }
+		, get intimidateme() { return this.imitate }
+		, get intimidate_me() { return this.imitate }
 
 
 		, forget: async () => {
-			let userID = mentionToUserID(args[0])
+			let forgeteeID = mentionToUserID(args[0])
 
-			// Specified a user to forget and that user isn't their self
-			if (userID && userID !== caller.id) {
-				if (admin) {
-					userID = mentionToUserID(userID)
-				} else {
+			// Specified a user to forget and that user isn't themself
+			if (forgeteeID && forgeteeID !== caller.id) {
+				if (!isAdmin(caller.id)) {
 					message.channel.send(embeds.error("Only admins can force-forget other users."))
 						.then(log.error)
 					return
 				}
 			} else { // No user specified
-				userID = caller.id
+				forgeteeID = caller.id
+			}
+			
+			try {
+				const forgetee = await client.fetchUser(forgeteeID)
+
+				message.channel.send(embeds.confirmForget(caller, forgetee))
+					.then(log.confirmForget)
+
+				// Open a 30 second window to confirm this forget command for this caller-forgettee pair
+				const pair = JSON.stringify([caller.id, forgetee.id])
+				confirmations.addWithExpiry(pair, 30000)
+
+			} catch (err) {
+				logError(err)
+				err = err.message || err
+				const msg = `Error while preparing to forget ${forgetee.tag} (ID: ${forgetee.id}): ${err}`
+				message.channel.send(embeds.error(msg))
+					.then(log.error)
+				dmTheAdmins(msg)
+			}
+		}
+
+		, get forgetme()  { return this.forget }
+		, get forget_me() { return this.forget }
+
+
+		, confirmforget: async () => {
+			let forgeteeID = mentionToUserID(args[0])
+
+			if (forgeteeID && forgeteeID !== caller.id) {
+				// Admin check is probably not necessary at this state, but
+				//   this is pretty significant, so better safe than sorry
+				if (!isAdmin(caller.id)) {
+					message.channel.send(embeds.error("Only admins can force-forget other users."))
+						.then(log.error)
+					return
+				}
+			} else { // No user specified
+				forgeteeID = caller.id
 			}
 
 			try {
-				const user = await client.fetchUser(userID)
-				corpusUtils.forget(userID)
-				message.channel.send(embeds.standard(`Forgot user ${user.tag}.`))
-					.then(() => log.forget([message, user]))
-				dmTheAdmins(`Forgot user ${user.tag} (ID: ${user.id}).`)
+				const forgetee = await client.fetchUser(forgeteeID)
+
+				// Stringifying as a workaround for finicky object comparisons:
+				// https://stackoverflow.com/questions/29760644/storing-arrays-in-es6-set-and-accessing-them-by-value
+				const pair = JSON.stringify([caller.id, forgetee.id])
+
+				console.debug(pair)
+
+				if (!confirmations.has(pair)) {
+					// Confirmation either never existed or has expired
+					message.channel.send(embeds.confirmationExpired(caller, forgetee))
+						.then(log.confirmationExpired)
+					return
+				}
+
+				corpusUtils.forget(forgetee.id)
+
+				message.channel.send(embeds.forgot(caller, forgetee))
+					.then(() => log.forget([message, forgetee]))
+				dmTheAdmins(`Forgot user ${forgetee.tag} (ID: ${forgetee.id}).`)
+
 			} catch (err) {
 				logError(err)
-				message.channel.send(embeds.error(err))
+				err = err.message || err
+				const msg = `Error while forgetting ${forgetee.tag} (ID: ${forgetee.id}): ${err}`
+				message.channel.send(embeds.error(msg))
 					.then(log.error)
+				dmTheAdmins(msg)
 			}
 		}
 
 
+		, agree: () => {
+			corpusUtils.consenting.add(caller.id)
+			message.channel.send(embeds.agree(caller))
+				.then(log.agree)
+		}
+
+		, disagree: () => {
+			corpusUtils.consenting.delete(caller.id)
+			message.channel.send(embeds.disagree(caller))
+				.then(log.disagree)
+		}
+
+
 		, embed: () => {
-			if (!admin || !args[0]) return
+			if (!isAdmin(caller.id) || !args[0]) return
 			message.channel.send(embeds.standard(args.join(" ")))
 				.then(log.say)
 		}
 
 
 		, error: () => {
-			if (!admin || !args[0]) return
+			if (!isAdmin(caller.id) || !args[0]) return
 			message.channel.send(embeds.error(args.join(" ")))
 				.then(log.error)
 		}
 
 
 		, xok: () => {
-			if (!admin) return
+			if (!isAdmin(caller.id)) return
 			message.channel.send(embeds.xok)
 				.then(log.xok)
 		}
@@ -564,31 +632,28 @@ async function handleCommand(message) {
 				.then(log.say)
 		}
 
-
-		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 		, get github() { return this.code }
 		, get source() { return this.code }
 
 
 		, save: async () => {
-			if (!admin) return
+			if (!isAdmin(caller.id)) return
 			const force = args[0] === "all"
 
-			message.channel.send(embeds.standard((force) ? "Saving all corpora..." : "Saving..."))
+			message.channel.send(embeds.standard((force) ? "Saving everything..." : "Saving..."))
 			try {
-				const savedCount = await corpusUtils.saveAll(force)
-				message.channel.send(embeds.standard(log.save(savedCount)))
+				const saveReport = await corpusUtils.save(force)
+				message.channel.send(embeds.standard(log.save(saveReport)))
 					.then(log.say)
 			} catch (err) {
-				logError(err.stack)
-				message.channel.send(embeds.error(err))
+				message.channel.send(embeds.error(`Error while saving: ${err}`))
 					.then(log.error)
 			}
 		}
 
 
 		, servers: () => {
-			if (!admin) return
+			if (!isAdmin(caller.id)) return
 
 			const embed = new Discord.RichEmbed()
 				.setTitle("Member of these servers:")
@@ -603,7 +668,7 @@ async function handleCommand(message) {
 
 
 		, speaking: () => {
-			if (!admin) return
+			if (!isAdmin(caller.id)) return
 
 			if (!args[0]) {
 				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}speaking [server ID]`))
@@ -632,7 +697,7 @@ async function handleCommand(message) {
 
 
 		, learning: () => {
-			if (!admin) return
+			if (!isAdmin(caller.id)) return
 
 			if (!args[0]) {
 				message.author.send(embeds.error(`Missing server ID\nSyntax: ${config.PREFIX}learning [server ID]`))
@@ -661,9 +726,8 @@ async function handleCommand(message) {
 	}
 
 	// Special case modifier for |imitate
-	if (command === "intimidate") {
+	if (["intimidate", "intimidateme", "intimidate_me"].includes(command)) {
 		intimidateMode = true
-		command = "imitate"
 	}
 
 	// Execute the corresponding command from the commands dictionary
@@ -704,17 +768,6 @@ async function updateNicknames(nicknameDict) {
 
 
 /**
- * 0.05% chance to return true; 99.95% chance to return false.
- * The chance that Schism will choose to respond to a mundane message.
- * 
- * @return {Boolean} True/false
- */
-function blurtChance() {
-	return Math.random() * 100 <= 0.05 // 0.05% chance
-}
-
-
-/**
  * Get status name from a status code.
  * 
  * @param {number} code - status code
@@ -726,16 +779,24 @@ function status(code) {
 
 
 /**
- * Get a user ID from a mention string (e.g. <@120957139230597299>.
+ * Check if a string is a mention.
  * 
- * Pings start with <@, end with >, and do NOT contain :'s.
- * Not containing :'s is important since emojis do.
+ * @param {string} str
+ * @return {Boolean}
+ */
+function isMention(str) {
+	return regex.mention.test(str)
+}
+
+
+/**
+ * Get a user ID from a mention string (e.g. <@120957139230597299>).
  * 
  * @param {string} mention - string with a user ID
  * @return {?string} userID
  */
 function mentionToUserID(mention) {
-	return (regex.mention.test(mention))
+	return (isMention(mention))
 		? mention.match(regex.id)[0]
 		: null
 }
@@ -743,14 +804,15 @@ function mentionToUserID(mention) {
 
 /**
  * Is [val] in [obj]?
+ * Faster than Object.values(obj).includes().
  * 
  * @param {any} val
  * @param {Object} object
  * @return {Boolean}
  */
 function has(val, obj) {
-	for (const i in obj) {
-		if (obj[i] === val) {
+	for (const key in obj) {
+		if (obj[key] === val) {
 			return true
 		}
 	}
@@ -952,7 +1014,7 @@ function location(message) {
 		if (type === "text") {
 			return `[${message.guild.name} - #${message.channel.name}]`
 		} else if (type === "dm") {
-			return `[Direct message]`
+			return `[DM to ${message.channel.recipient.tag}]`
 		} else {
 			return `[Unknown: ${type}]`
 		}
