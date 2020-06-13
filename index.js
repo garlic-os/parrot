@@ -141,7 +141,7 @@ client.on("message", async message => {
 	const { author, channel, content } = message
 
 	if (content.length > 0 // Not empty
-	   && !isBanned(authorID) // Not banned from using Schism
+	   && !isBanned(author.id) // Not banned from using Schism
 	   && !message.webhookID // Not a Webhook
 	   && author.id !== client.user.id) { // Not self
 
