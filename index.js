@@ -57,7 +57,7 @@ const log = {
 		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	}
   , forget:  ([message, user]) => console.log(`${location(message)} Forgot user ${user.tag} (ID: ${user.id}).`)
-  , consent: ([message, user]) => console.log(`${location(message)} Sent the "need consent" message for user ${user.tag} (ID: ${user.id}).`)
+  , consent: user => console.log(`Sent the "need consent" message to user ${user.tag} (ID: ${user.id}).`)
   , error:   message => console.log(`${location(message)} Sent the error message: ${message.embeds[0].description}`)
   , xok:     message => console.log(`${location(message)} Sent the XOK message.`)
   , help:    message => console.log(`${location(message)} Sent the Help message.`)
@@ -276,7 +276,7 @@ async function imitate(user, channel, intimidateMode) {
 		} catch (err) {
 			if (err === "NOPERMISSION") {
 				channel.send(embeds.consent(user))
-					.then( () => log.consent([message, user]))
+					.then( () => log.consent(user))
 				return
 			} else {
 				throw err
