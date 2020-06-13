@@ -145,7 +145,7 @@ client.on("message", async message => {
 	   && !message.webhookID // Not a Webhook
 	   && author.id !== client.user.id) { // Not self
 
-	   if (canSpeakIn(channelID) // Channel is listed in SPEAKING_CHANNELS or is a DM channel
+	   if (canSpeakIn(channel.id) // Channel is listed in SPEAKING_CHANNELS or is a DM channel
 		  || channel.type === "dm") {
 
 			// Ping
@@ -167,7 +167,7 @@ client.on("message", async message => {
 			}
 		}
 
-		if (learningIn(channelID) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
+		if (learningIn(channel.id) // Channel is listed in LEARNING_CHANNELS (no learning from DMs)
 		   && !content.startsWith(config.PREFIX)) { // Not a command
 			learning.learnFrom(message)
 		}
@@ -1042,49 +1042,5 @@ function isEmpty(obj) {
 	return true
 }
 
-
-/**
- * Choose a random user ID that Schism can imitate.
- * 
- * @param {Guild} guild - Guild from which to choose a random user
- * @return {Promise<string>} userID
- */
-async function randomUserID(guild) {
-	const userIDs = await corpusUtils.allUserIDs()
-	let tries = 0
-	while (++tries < 100) {
-		const index = ~~(Math.random() * userIDs.size - 1)
-		const userID = elementAt(userIDs, index)
-		try {
-			await guild.fetchMember(userID) // Make sure the user in is this server
-			return userID
-		} catch (e) {
-			console.debug(`  [DEBUG]   randomUserID() error ${userID}`)
-		} // The user doesn't exist; loop and *try* again
-	}
-	throw `randomUserID(): Failed to find a userID after ${tries} attempts`
-}
-
-
-/**
- * Get an element from a Set.
- * 
- * @param {Set} setObj - Set to get the element from
- * @param {number} index - position of element in the Set
- * @return ?{any} [index]th element in the Set
- */
-function elementAt(setObj, index) {
-	if (index < 0 || index > setObj.size - 1) {
-		return // Index out of range; return undefined
-	}
-	const iterator = setObj.values()
-	for (let i=0; i<index-1; ++i) {
-		// Increment the iterator index-1 times.
-		// The iterator value after this one is the element we want.
-		iterator.next()
-	}
-
-	return iterator.next().value
-}
 
 // --- /FUNCTIONS -------------------------------------------
