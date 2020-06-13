@@ -257,7 +257,7 @@ ${guild.name} (ID: ${guild.id})
  * @return {Promise}
  */
 async function imitate(user, channel, intimidateMode) {
-	try{
+	try {
 		if (channel.guild) {
 			// Channel is a part of a guild and the user may have
 			//   a nickname there, so use .fetchMember
@@ -269,15 +269,17 @@ async function imitate(user, channel, intimidateMode) {
 			name = user.username
 		}
 
-		let sentence;
+		let sentence
 		
 		try {
 			sentence = await markov(user.id)
 		} catch (err) {
 			if (err === "NOPERMISSION") {
-				channel.send(embeds.consent(caller))
-					.then( () => log.consent([message, caller]))
+				channel.send(embeds.consent(user))
+					.then( () => log.consent([message, user]))
 				return
+			} else {
+				throw err
 			}
 		}
 		
@@ -568,8 +570,6 @@ async function handleCommand(message) {
 				// Stringifying as a workaround for finicky object comparisons:
 				// https://stackoverflow.com/questions/29760644/storing-arrays-in-es6-set-and-accessing-them-by-value
 				const pair = JSON.stringify([caller.id, forgetee.id])
-
-				console.debug(pair)
 
 				if (!confirmations.has(pair)) {
 					// Confirmation either never existed or has expired
