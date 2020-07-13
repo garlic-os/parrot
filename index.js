@@ -505,9 +505,10 @@ async function handleCommand(message) {
 		}
 
 		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
-		, get imitateme() { return this.imitate }
-		, get imitate_me() { return this.imitate }
-		, get intimidateme() { return this.imitate }
+		, get imitateme()     { return this.imitate }
+		, get imitate_me()    { return this.imitate }
+		, get intimidate()    { return this.imitate }
+		, get intimidateme()  { return this.imitate }
 		, get intimidate_me() { return this.imitate }
 
 
