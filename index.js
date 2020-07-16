@@ -1,7 +1,7 @@
 // Permissions code: 67584
 // Send messages, read message history
 
-const config = require("./schism/config")
+const config = require("./parrot/config")
 
 
 // Log errors when in production; crash when not in production
@@ -72,19 +72,19 @@ const log = {
 
 // Lots of consts
 const Discord     = require("discord.js")
-const corpusUtils = require("./schism/corpus")
-const embeds      = require("./schism/embeds")
-const help        = require("./schism/help")
-const regex       = require("./schism/regex")
+const corpusUtils = require("./parrot/corpus")
+const embeds      = require("./parrot/embeds")
+const help        = require("./parrot/help")
+const regex       = require("./parrot/regex")
 
 const hookSendQueue = []
 const hooks = parseHooksDict(config.HOOKS)
 
 const client   = new Discord.Client({disableEveryone: true})
-const learning = require("./schism/learning")(client, corpusUtils)
-const markov   = require("./schism/markov")(corpusUtils)
+const learning = require("./parrot/learning")(client, corpusUtils)
+const markov   = require("./parrot/markov")(corpusUtils)
 
-const ExpirableSet = require("./schism/expirable-set")
+const ExpirableSet = require("./parrot/expirable-set")
 const confirmations = new ExpirableSet()
 
 
@@ -141,7 +141,7 @@ client.on("message", async message => {
 	const { author, channel, content } = message
 
 	if (content.length > 0 // Not empty
-	   && !isBanned(author.id) // Not banned from using Schism
+	   && !isBanned(author.id) // Not banned from using Parrot
 	   && !message.webhookID // Not a Webhook
 	   && author.id !== client.user.id) { // Not self
 
@@ -176,10 +176,10 @@ client.on("message", async message => {
 
 
 /**
- * When Schism is added to a server,
+ * When Parrot is added to a server,
  *   DM the admins and log a message containing
  *   information about the server to help the
- *   admins set up Schism there.
+ *   admins set up Parrot there.
  */
 client.on("guildCreate", guild => {
 	const embed = new Discord.RichEmbed()
@@ -296,7 +296,7 @@ async function imitate(user, channel, intimidateMode) {
 		const hook = hooks[channel.id]
 		if (hook) {
 			// Only change appearance if the current user to imitate
-			//   is different from the last user Schism imitated
+			//   is different from the last user Parrot imitated
 			if (hook.name !== name) {
 				name = namePrefix + name
 				await hook.edit({
@@ -495,7 +495,7 @@ async function handleCommand(message) {
 			const sentMessage = await caller.send(embeds.eula)
 			log.eula(sentMessage)
 			if (message.channel.type !== "dm") {
-				message.reply("Schism's End User License Agreement has been DM'd to you.")
+				message.reply("Parrot's End User License Agreement has been DM'd to you.")
 			}
 		}
 
@@ -785,7 +785,7 @@ async function updateNicknames(nicknameDict) {
 		const [ serverID, nickname ] = nicknameDict[serverName]
 		const server = client.guilds.get(serverID)
 		if (!server) {
-			console.warn(`Nickname configured for a server that Schism is not in. Nickname could not be set in ${serverName} (${serverID}).`)
+			console.warn(`Nickname configured for a server that Parrot is not in. Nickname could not be set in ${serverName} (${serverID}).`)
 			continue
 		}
 		server.me.setNickname(nickname)
@@ -995,7 +995,7 @@ async function channelTable(channelDict) {
 
 /**
  * Generate an object containing stats about
- *   all the nicknames Schism has.
+ *   all the nicknames Parrot has.
  * 
  * @param {Object} nicknameDict - Dictionary of nicknames
  * @return {Promise<Object>} Object intended to be console.table'd

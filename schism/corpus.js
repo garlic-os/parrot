@@ -27,7 +27,7 @@ const inCache = new Set()
 
 
 /**
- * A set of the user IDs of the users who consent to Schism's data collection.
+ * A set of the user IDs of the users who consent to Parrot's data collection.
  * After the scheduled purge of unconsenting users' information on Aug. 1, 2020,
  *   this will be removed in favor of refusal to store information without
  *   the user's prior consent.
@@ -57,7 +57,7 @@ const inCacheReady = (async () => {
 	} catch (err) {
 		if (err.code !== "EEXIST") {
 			// If the other is something other than fs complaining that the folder already exists,
-			//   then Schism should probably throw that
+			//   then Parrot should probably throw that
 			throw err
 		}
 	}
@@ -145,7 +145,7 @@ async function append(userID, data) {
 	*   copy in cache.
 	* If not, either the corpus is already cached or the
 	*   corpus does not exist at all;
-	*   in either case, Schism does not need to download
+	*   in either case, Parrot does not need to download
 	*   the corpus from S3 and can add just the new data.
 	*/
 	if (inBucket.has(userID) && !inCache.has(userID)) {

@@ -58,7 +58,7 @@ function _lastMessageID(messages) {
  * @return {Promise} corpusUtils.append() promise
  */
 function _dump(userID, data) {
-	// Filter out Schism commands
+	// Filter out Parrot commands
 	const filter = new RegExp(`^${escapedPrefix}.+`, "gim")
 	const filteredData = data.replace(filter, "")
 
@@ -213,7 +213,7 @@ function learnFrom(message) {
 			learnFrom_buffers[authorID] = []
 		}
 
-		// Don't learn from a message if it's just pinging Schism
+		// Don't learn from a message if it's just pinging Parrot
 		if (message.content !== `<@${client.user.id}>` && message.content !== `<@!${client.user.id}>`) {
 			// Set a timeout to wait for the user to be quiet
 			//   only if their buffer is empty.

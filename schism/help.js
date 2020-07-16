@@ -51,55 +51,55 @@ module.exports = {
 
 	, servers: {
 		admin: true,
-		desc: `List all the servers Schism is a member of.`,
+		desc: `List all the servers Parrot is a member of.`,
 		syntax: `${prefix}servers`
 	}
 
 	, channels: {
 		admin: true,
-		desc: `List the visible text channels in a server Schism is in.`,
+		desc: `List the visible text channels in a server Parrot is in.`,
 		syntax: `${prefix}channels <serverID>`
 	}
 
 	, speaking: {
 		admin: true,
-		desc: `List all the channels of a server that Schism can speak in.`,
+		desc: `List all the channels of a server that Parrot can speak in.`,
 		syntax: `${prefix}speaking <serverID>`
 	}
 
 	, learning: {
 		admin: true,
-		desc: `List all the channels of a server that Schism is learning from.`,
+		desc: `List all the channels of a server that Parrot is learning from.`,
 		syntax: `${prefix}learning <serverID>`
 	}
 
 	, code: {
 		admin: false,
-		desc: `Get information on how to find Schism on GitHub.`,
+		desc: `Get information on how to find Parrot on GitHub.`,
 		syntax: `${prefix}[code|github|source]`
 	}
 
 	, forget: {
 		admin: false,
-		desc: `Remove your data from Schism.`,
+		desc: `Remove your data from Parrot.`,
 		syntax: `${prefix}forget`
 	}
 
 	, eula: {
 		admin: false,
-		desc: `View Schism's End User License Agreement.`,
+		desc: `View Parrot's End User License Agreement.`,
 		syntax: `${prefix}eula`
 	}
 
 	, agree: {
 		admin: false,
-		desc: `Agree to Schism's EULA.`,
+		desc: `Agree to Parrot's EULA.`,
 		syntax: `${prefix}agree`
 	}
 
 	, disagree: {
 		admin: false,
-		desc: `Disagree to Schism's EULA (Schism will not be able to imitate you).`,
+		desc: `Disagree to Parrot's EULA (Parrot will not be able to imitate you).`,
 		syntax: `${prefix}disagree`
 	}
 }

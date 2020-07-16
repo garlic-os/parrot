@@ -7,7 +7,7 @@ var corpusUtils
  * https://gist.github.com/kevincennis/5440878
  * 
  * I have modified this algorithm to be better for one-time use,
- *   since Schism will only use a Markov once before
+ *   since Parrot will only use a Markov once before
  *   throwing it away to make a new one with different data.
  * 
  * @param {string} corpus - big body of text to make a new, similar-sounding sentence from
