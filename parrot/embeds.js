@@ -113,7 +113,7 @@ const xok = new RichEmbed()
  */
 const code = new RichEmbed()
 	.setTitle("Parrot is open source!")
-	.addField("View the code, file issues, and make pull requests to help improve Parrot.", "https://github.com/Grosserly/parrot")
+	.addField("View the code, file issues, and make pull requests to help improve Parrot.", "https://github.com/the-garlic-os/parrot")
 	.setFooter("Please help me. I'm begging you.")
 
 
