@@ -112,8 +112,8 @@ client.on("ready", () => {
 			.then(log.imitate.hook)
 	}, 2000)
 
-	// "Watching everyone"
-	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "WATCHING" })
+	// "Listening to everyone"
+	client.user.setActivity(`everyone (${config.PREFIX}help)`, { type: "LISTENING" })
 		.then( ({ game }) => console.info(`Activity set: ${status(game.type)} ${game.name}`))
 
 	channelTable(config.SPEAKING_CHANNELS).then(table => {
@@ -810,7 +810,7 @@ async function updateNicknames(nicknameDict) {
  * @return {string} status name
  */
 function status(code) {
-	return ["Playing", "Streaming", "Listening", "Watching"][code]
+	return ["Playing", "Streaming", "Listening to", "Watching"][code]
 }
 
 
