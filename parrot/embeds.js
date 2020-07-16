@@ -28,9 +28,9 @@ function consent(user) {
 	return new RichEmbed()
 		.setColor(colors.normal)
 		.setAuthor(user.tag, user.avatarURL)
-		.setTitle(`${user.tag}, did you agree to Parrot's End User License Agreement?`)
-		.setDescription(`View the full End User License Agreement with \`${prefix}eula\`, then make your decision with \`${prefix}agree\` or \`${prefix}disagree\`.`)
-		.setFooter("Parrot keeps your messages to gain an impression of how you speak. You must agree to the End User License Agreement before Parrot can imitate you.")
+		.setTitle(`${user.tag}, did you agree to Parrot's Terms of Service?`)
+		.setDescription(`View the full Terms of Service with \`${prefix}terms\`, then make your decision with \`${prefix}agree\` or \`${prefix}disagree\`.`)
+		.setFooter("Parrot keeps your messages to gain an impression of how you speak. You must agree to the Terms of Service before Parrot can imitate you.")
 }
 
 
@@ -38,8 +38,8 @@ function agree(user) {
 	return new RichEmbed()
 		.setColor(colors.normal)
 		.setAuthor(user.tag, user.avatarURL)
-		.setDescription("You have agreed to Parrot's End User License Agreement. You can now make Parrot imitate you!")
-		.setFooter(`View the full EULA: ${prefix}eula • Revoke consent: ${prefix}disagree`)
+		.setDescription("You have agreed to Parrot's Terms of Service. You can now make Parrot imitate you!")
+		.setFooter(`View the full Terms of Service: ${prefix}terms • Revoke consent: ${prefix}disagree`)
 }
 
 
@@ -47,8 +47,8 @@ function disagree(user) {
 	return new RichEmbed()
 		.setColor(colors.normal)
 		.setAuthor(user.tag, user.avatarURL)
-		.setDescription("You have disagreed to Parrot's End User License Agreement. Parrot will no longer be able to imitate you.")
-		.setFooter(`View the full EULA: ${prefix}eula • Restore consent: ${prefix}agree`)
+		.setDescription("You have disagreed to Parrot's Terms of Service. Parrot will no longer be able to imitate you.")
+		.setFooter(`View the full Terms of Service: ${prefix}terms • Restore consent: ${prefix}agree`)
 }
 
 
@@ -113,16 +113,16 @@ const xok = new RichEmbed()
  */
 const code = new RichEmbed()
 	.setTitle("Parrot is open source!")
-	.addField("View the code, file issues, and make pull requests to help improve Parrot.", "https://github.com/Grosserly/parrot")
+	.addField("View the code, file issues, and make pull requests to help improve Parrot.", "https://github.com/the-garlic-os/parrot")
 	.setFooter("Please help me. I'm begging you.")
 
 
 /**
- * A pre-made embed containing Parrot's End User License Agreement.
+ * A pre-made embed containing Parrot's Terms of Service.
  */
-const eula = new RichEmbed()
-	.setTitle("Parrot's End User License Agreement")
-	.setDescription(fs.readFileSync("./eula.txt")) // Yes, this will break if it pushes the embed over 6,000 characters
+const terms = new RichEmbed()
+	.setTitle("Parrot's Terms of Service")
+	.setDescription(fs.readFileSync("./terms-of-service.txt")) // Yes, this will break if it pushes the embed over 6,000 characters
 
 
 module.exports = {
@@ -136,5 +136,5 @@ module.exports = {
 	error,
 	xok,
 	code,
-	eula
+	terms
 }

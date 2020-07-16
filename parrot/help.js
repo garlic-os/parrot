@@ -85,21 +85,21 @@ module.exports = {
 		syntax: `${prefix}forget`
 	}
 
-	, eula: {
+	, terms: {
 		admin: false,
-		desc: `View Parrot's End User License Agreement.`,
-		syntax: `${prefix}eula`
+		desc: `View Parrot's Terms of Service.`,
+		syntax: `${prefix}terms`
 	}
 
 	, agree: {
 		admin: false,
-		desc: `Agree to Parrot's EULA.`,
+		desc: `Agree to Parrot's Terms of Service.`,
 		syntax: `${prefix}agree`
 	}
 
 	, disagree: {
 		admin: false,
-		desc: `Disagree to Parrot's EULA (Parrot will not be able to imitate you).`,
+		desc: `Disagree to Parrot's Terms of Service (Parrot will not be able to imitate you).`,
 		syntax: `${prefix}disagree`
 	}
 }

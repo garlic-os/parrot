@@ -64,7 +64,7 @@ const log = {
   , save:    ({ corpora, consenting })  => `Saved ${consenting ? "the user agreement record and " : ""} ${corpora} ${(corpora === 1) ? "corpus" : "corpora"}.`
   , pinged:  message => console.log(`${location(message)} Pinged by ${message.author.tag} (ID: ${message.author.id}).`)
   , command: message => console.log(`${location(message)} Received a command from ${message.author.tag} (ID: ${message.author.id}): ${message.content}`)
-  , eula:    message => console.log(`${location(message)} Sent the EULA.`)
+  , terms:   message => console.log(`${location(message)} Sent the Terms of Service.`)
   , agree:   message => console.log(`${location(message)} Sent the agreement confirmation.`)
   , disagree: message => console.log(`${location(message)} Sent the disagreement confirmation.`)
 }
@@ -491,20 +491,23 @@ async function handleCommand(message) {
 		}
 
 
-		, eula: async () => {
-			const sentMessage = await caller.send(embeds.eula)
-			log.eula(sentMessage)
+		, terms: async () => {
+			const sentMessage = await caller.send(embeds.terms)
+			log.terms(sentMessage)
 			if (message.channel.type !== "dm") {
-				message.reply("Parrot's End User License Agreement has been DM'd to you.")
+				message.reply("Parrot's Terms of Service has been DM'd to you.")
 			}
 		}
+		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
+		, get tos()              { return this.imitate }
+		, get termsofservice()   { return this.imitate }
+		, get terms_of_service() { return this.imitate }
+		, get eula()             { return this.imitate }
 
 
 		, imitate: async () => {
 			await imitate(caller, message.channel, intimidateMode)
 		}
-
-		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 		, get imitateme()     { return this.imitate }
 		, get imitate_me()    { return this.imitate }
 		, get intimidate()    { return this.imitate }

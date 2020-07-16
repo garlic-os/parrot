@@ -144,7 +144,7 @@ async function scrape(channel, goal) {
 			if (message.content && message.author.id !== client.user.id) {
 				const authorID = message.author.id
 
-				// Filter out messages from users to haven't agreed to the EULA
+				// Filter out messages from users to haven't agreed to the Terms of Service
 				if (!consenting.has(authorID)) {
 					return
 				}
