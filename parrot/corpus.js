@@ -1,29 +1,29 @@
-const fs = require("fs").promises
-const s3 = require("./s3")
-const TrackerSet = require("./tracker-set")
+const fs = require("fs").promises;
+const s3 = require("./s3");
+const TrackerSet = require("./tracker-set");
 
-var autosaveInterval
+var autosaveInterval;
 
 /**
  * A set of user IDs whose corpora have been created/modified since last S3 save.
  * Is cleared when their corpus is saved.
  * @type {Set<string>}
  */
-const unsaved = new Set()
+const unsaved = new Set();
 
 /**
  * A set of all user IDs in the S3 bucket.
  * corpora are NOT removed from this set when saved.
  * @type {Set<string>}
  */
-const inBucket = new Set()
+const inBucket = new Set();
 
 /**
  * A set of all user IDs in cache.
  * corpora are NOT removed from this set when saved.
  * @type {Set<string>}
  */
-const inCache = new Set()
+const inCache = new Set();
 
 
 /**
@@ -33,18 +33,18 @@ const inCache = new Set()
  *   the user's prior consent.
  * @type {Set<string>}
  */
-const consenting = new TrackerSet()
+const consenting = new TrackerSet();
 
 
 /**
  * Populate inBucket with the user IDs in the S3 bucket.
  */
 const inBucketReady = (async () => {
-	const userIDs = await s3.listUserIDs()
+	const userIDs = await s3.listUserIDs();
 	for (const userID of userIDs) {
-		inBucket.add(userID)
+		inBucket.add(userID);
 	}
-})()
+})();
 
 
 /**
@@ -53,46 +53,46 @@ const inBucketReady = (async () => {
 const inCacheReady = (async () => {
 	// Create directory ./cache/ if it doesn't exist
 	try {
-		await fs.mkdir("cache")
+		await fs.mkdir("cache");
 	} catch (err) {
 		if (err.code !== "EEXIST") {
 			// If the other is something other than fs complaining that the folder already exists,
 			//   then Parrot should probably throw that
-			throw err
+			throw err;
 		}
 	}
 
-	const filenames = await fs.readdir("./cache")
+	const filenames = await fs.readdir("./cache");
 	for (const filename of filenames) {
-		const userID = filename.slice(0, -4) // Remove last four characters (file extension)
-		inCache.add(userID)
+		const userID = filename.slice(0, -4); // Remove last four characters (file extension)
+		inCache.add(userID);
 	}
 })()
 
 
 const consentingReady = (async () => {
-	let userIDs;
+	let userIDs;;
 	
 	// Read consenting.json if it exists
 	try {
-		userIDs = await s3.readFile("consenting.json")
-		userIDs = JSON.parse(userIDs)
+		userIDs = await s3.readFile("consenting.json");
+		userIDs = JSON.parse(userIDs);
 	} catch (err) {
 		// Skip the last part and just write a new file if it doesn't exist
 		if (err.code === "NoSuchKey") {
-			console.warn("[corpus.js] consenting.json does not exist; creating it...")
-			userIDs = []
+			console.warn("[corpus.js] consenting.json does not exist; creating it...");
+			userIDs = [];
 		} else if (err.code === "SyntaxError") {
-			console.warn(`[corpus.js] consenting.json is corrupt and will be overwritten.\nconsenting.json:\n${userIDs}`)
-			userIDs = []
+			console.warn(`[corpus.js] consenting.json is corrupt and will be overwritten.\nconsenting.json:\n${userIDs}`);
+			userIDs = [];
 		}
 	}
 
 	// Populate the Set with the contents of consenting.json
 	for (const userID of userIDs) {
-		consenting.add(userID)
+		consenting.add(userID);
 	}
-})()
+})();
 
 
 
@@ -106,25 +106,25 @@ const consentingReady = (async () => {
  */
 async function load(userID) {
 	if (!consenting.has(userID)) {
-		throw `NOPERMISSION`
+		throw `NOPERMISSION`;
 	}
 
 	// If in cache, serve from cache
 	try {
-		return await _readFromCache(userID)
+		return await _readFromCache(userID);
 	} catch (err) {
 		if (err.code !== "ENOENT") { // Only proceed if the reason _readFromCache() failed was
-			throw err                //   because it couldn't find the file
+			throw err;               //   because it couldn't find the file
 		}
 	}
 
 	// Else, if in the S3 bucket, serve from the S3 bucket
 	if (inBucket.has(userID)) {
-		const corpus = await s3.read(userID)
-		_addToCache(userID, corpus) // Not in cache, so cache this corpus
-		return corpus
+		const corpus = await s3.read(userID);
+		_addToCache(userID, corpus); // Not in cache, so cache this corpus
+		return corpus;
 	}
-	throw `No data available on user with ID ${userID}`
+	throw `No data available on user with ID ${userID}`;
 }
 
 
@@ -137,7 +137,7 @@ async function load(userID) {
  */
 async function append(userID, data) {
 	if (!consenting.has(userID)) {
-		throw `NOPERMISSION`
+		throw `NOPERMISSION`;
 	}
 	/**
 	* If the corpus is in the S3 bucket but not cached,
@@ -149,20 +149,20 @@ async function append(userID, data) {
 	*   the corpus from S3 and can add just the new data.
 	*/
 	if (inBucket.has(userID) && !inCache.has(userID)) {
-		const corpus = await s3.read(userID)
-		data = corpus + data
+		const corpus = await s3.read(userID);
+		data = corpus + data;
 	}
 
-	_addToCache(userID, data)
+	_addToCache(userID, data);
 }
 
 
 async function forget(userID) {
-	inBucket.delete(userID)
-	inCache.delete(userID)
-	unsaved.delete(userID)
-	_removeFromCache(userID)
-	s3.remove(userID)
+	inBucket.delete(userID);
+	inCache.delete(userID);
+	unsaved.delete(userID);
+	_removeFromCache(userID);
+	s3.remove(userID);
 }
 
 
@@ -174,42 +174,38 @@ async function forget(userID) {
  * @return {Promise<number>} number of files saved
  */
 async function save(force) {
-	let setToSave
-
-	if (force) {
-		setToSave = inCache
-	} else {
-		setToSave = unsaved
-	}
+	const setToSave = (force)
+		? inCache
+		: unsaved;
 
 	if (setToSave.size === 0 && !consenting.modified) {
-		throw `Nothing to save.`
+		throw `Nothing to save.`;
 	}
 
-	var savedCount = 0
+	var savedCount = 0;
 	for (const userID of setToSave) {
-		const corpus = await _readFromCache(userID)
-		await s3.write(userID, corpus)
-		++savedCount
-		inBucket.add(userID)
+		const corpus = await _readFromCache(userID);
+		await s3.write(userID, corpus);
+		++savedCount;
+		inBucket.add(userID);
 	}
 
-	unsaved.clear()
+	unsaved.clear();
 
 	if (consenting.modified) {
-		s3.writeFile("consenting.json", JSON.stringify([...consenting]))
-		consenting.modified = false
+		s3.writeFile("consenting.json", JSON.stringify([...consenting]));
+		consenting.modified = false;
 
 		return {
 			corpora: savedCount,
 			consenting: true
-		}
+		};
 	}
 
 	return {
 		corpora: savedCount,
 		consenting: false
-	}
+	};
 }
 
 
@@ -220,9 +216,9 @@ async function save(force) {
  */
 function startAutosave(intervalMS=3600000) {
 	autosaveInterval = setInterval( async () => {
-		const savedCount = await save()
-		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpora"}.`)
-	}, intervalMS)
+		const savedCount = await save();
+		console.log(`[CORPUS AUTOSAVE] Saved ${savedCount} ${(savedCount === 1) ? "corpus" : "corpora"}.`);
+	}, intervalMS);
 }
 
 
@@ -230,7 +226,7 @@ function startAutosave(intervalMS=3600000) {
  * Stop autosaving.
  */
 function stopAutosave() {
-	clearInterval(autosaveInterval)
+	clearInterval(autosaveInterval);
 }
 
 
@@ -242,10 +238,10 @@ function stopAutosave() {
  * @return {Promise} fs.appendFile() response
  */
 async function _addToCache(userID, data) {
-	const fsResponse = await fs.appendFile(`./cache/${userID}.txt`, data)
-	inCache.add(userID)
-	unsaved.add(userID)
-	return fsResponse
+	const fsResponse = await fs.appendFile(`./cache/${userID}.txt`, data);
+	inCache.add(userID);
+	unsaved.add(userID);
+	return fsResponse;
 }
 
 
@@ -256,9 +252,11 @@ async function _addToCache(userID, data) {
  * @return {Promise<string>} corpus file's contents
  */
 async function _readFromCache(userID) {
-	const data = await fs.readFile(`./cache/${userID}.txt`, "UTF-8")
-	if (data === "") throw { code: "ENOENT" }
-	return data
+	const data = await fs.readFile(`./cache/${userID}.txt`, "UTF-8");
+	if (data === "") {
+		throw { code: "ENOENT" };
+	}
+	return data;
 }
 
 
@@ -269,7 +267,7 @@ async function _readFromCache(userID) {
  * @return {Promise} fs.unlink() response
  */
 async function _removeFromCache(userID) {
-	return await fs.unlink(`./cache/${userID}.txt`)
+	return await fs.unlink(`./cache/${userID}.txt`);
 }
 
 
@@ -281,5 +279,5 @@ module.exports = {
 	append,
 	save,
 	startAutosave,
-	stopAutosave
-}
+	stopAutosave,
+};

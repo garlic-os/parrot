@@ -3,17 +3,17 @@
  */
 class TrackerSet extends Set {
 	add(value) {
-		this.modified = true
-		super.add(value)
-		return this
+		this.modified = true;
+		super.add(value);
+		return this;
 	}
 
 	delete(value) {
-		this.modified = true
-		super.delete(value)
-		return this
+		this.modified = true;
+		super.delete(value);
+		return this;
 	}
 }
 
 
-module.exports = TrackerSet
+module.exports = TrackerSet;

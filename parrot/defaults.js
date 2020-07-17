@@ -10,5 +10,5 @@ module.exports = {
 	ADMINS: {},
 	BANNED: {},
 	DISABLE_LOGGING: false,
-	HOOKS: {}
-}
+	HOOKS: {},
+};

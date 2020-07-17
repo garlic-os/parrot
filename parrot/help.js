@@ -1,4 +1,4 @@
-const prefix = require("./config").PREFIX
+const prefix = require("./config").PREFIX;
 
 module.exports = {
 	help: {
@@ -101,5 +101,5 @@ module.exports = {
 		admin: false,
 		desc: `Disagree to Parrot's Terms of Service (Parrot will not be able to imitate you).`,
 		syntax: `${prefix}disagree`
-	}
-}
+	},
+};

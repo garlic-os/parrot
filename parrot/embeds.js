@@ -1,8 +1,8 @@
-const fs = require("fs")
-const { RichEmbed } = require("discord.js")
-const config = require("./config")
-const colors = config.EMBED_COLORS
-const prefix = config.PREFIX
+const fs = require("fs");
+const { RichEmbed } = require("discord.js");
+const config = require("./config");
+const colors = config.EMBED_COLORS;
+const prefix = config.PREFIX;
 
 /**
  * Generate a Discord Rich Embed message.
@@ -14,13 +14,13 @@ const prefix = config.PREFIX
 function standard(str, author) {
 	const embed = new RichEmbed()
 		.setColor(colors.normal)
-		.setDescription(str)
+		.setDescription(str);
 
 	if (author) {
-		embed.setAuthor(author.tag, author.avatarURL)
+		embed.setAuthor(author.tag, author.avatarURL);
 	}
 
-	return embed
+	return embed;
 }
 
 
@@ -30,7 +30,7 @@ function consent(user) {
 		.setAuthor(user.tag, user.avatarURL)
 		.setTitle(`${user.tag}, did you agree to Parrot's Terms of Service?`)
 		.setDescription(`View the full Terms of Service with \`${prefix}terms\`, then make your decision with \`${prefix}agree\` or \`${prefix}disagree\`.`)
-		.setFooter("Parrot keeps your messages to gain an impression of how you speak. You must agree to the Terms of Service before Parrot can imitate you.")
+		.setFooter("Parrot keeps your messages to gain an impression of how you speak. You must agree to the Terms of Service before Parrot can imitate you.");
 }
 
 
@@ -39,7 +39,7 @@ function agree(user) {
 		.setColor(colors.normal)
 		.setAuthor(user.tag, user.avatarURL)
 		.setDescription("You have agreed to Parrot's Terms of Service. You can now make Parrot imitate you!")
-		.setFooter(`View the full Terms of Service: ${prefix}terms • Revoke consent: ${prefix}disagree`)
+		.setFooter(`View the full Terms of Service: ${prefix}terms • Revoke consent: ${prefix}disagree`);
 }
 
 
@@ -48,29 +48,29 @@ function disagree(user) {
 		.setColor(colors.normal)
 		.setAuthor(user.tag, user.avatarURL)
 		.setDescription("You have disagreed to Parrot's Terms of Service. Parrot will no longer be able to imitate you.")
-		.setFooter(`View the full Terms of Service: ${prefix}terms • Restore consent: ${prefix}agree`)
+		.setFooter(`View the full Terms of Service: ${prefix}terms • Restore consent: ${prefix}agree`);
 }
 
 
 function confirmForget(caller, forgetee) {
-	const self = caller.id === forgetee.id
+	const self = caller.id === forgetee.id;
 	return new RichEmbed()
 		.setColor(colors.normal)
 		.setAuthor(caller.tag, caller.avatarURL)
 		.setTitle(`Are you sure you want Parrot to forget ${self ? "you" : `**${forgetee.tag}**`}?`)
 		.setDescription(`To confirm, do \`${prefix}confirmforget${self ? "" : ` @${forgetee.username}`}\` within the next 30 seconds.`)
-		.setFooter(`${self ? "Your" : "This user's"} data will be permanently erased from Parrot's servers.`)
+		.setFooter(`${self ? "Your" : "This user's"} data will be permanently erased from Parrot's servers.`);
 
 }
 
 
 function confirmationExpired(caller, forgetee) {
-	const self = caller.id === forgetee.id
+	const self = caller.id === forgetee.id;
 	return new RichEmbed()
 		.setColor(colors.normal)
 		.setAuthor(caller.tag, caller.avatarURL)
 		.setTitle("No pending confirmation")
-		.setDescription(`There is no pending confirmation for you to delete ${self ? "your" : `**${forgetee.tag}**'s`} data. This means that either the confirmation window has expired, or that you have never requested for Parrot to forget ${self ? "you" : `**${forgetee.tag}**`}.`)
+		.setDescription(`There is no pending confirmation for you to delete ${self ? "your" : `**${forgetee.tag}**'s`} data. This means that either the confirmation window has expired, or that you have never requested for Parrot to forget ${self ? "you" : `**${forgetee.tag}**`}.`);
 }
 
 
@@ -79,7 +79,7 @@ function forgot(caller, forgetee) {
 		.setColor(colors.normal)
 		.setAuthor(caller.tag, caller.avatarURL)
 		.setTitle(`Forgot **${forgetee.tag}**.`)
-		.setDescription(`This user's data has been permanently erased from Parrot's servers.`)
+		.setDescription(`This user's data has been permanently erased from Parrot's servers.`);
 }
 
 
@@ -92,7 +92,7 @@ function forgot(caller, forgetee) {
 function error(err) {
 	return new RichEmbed()
 		.setColor(colors.error)
-		.setDescription(err)
+		.setDescription(err);
 }
 
 
@@ -104,7 +104,7 @@ const xok = new RichEmbed()
 	.attachFiles(["./img/xok.png"])
 	.setColor(colors.error)
 	.setTitle("Error")
-	.setImage("attachment://xok.png")
+	.setImage("attachment://xok.png");
 
 
 /**
@@ -114,7 +114,7 @@ const xok = new RichEmbed()
 const code = new RichEmbed()
 	.setTitle("Parrot is open source!")
 	.addField("View the code, file issues, and make pull requests to help improve Parrot.", "https://github.com/the-garlic-os/parrot")
-	.setFooter("Please help me. I'm begging you.")
+	.setFooter("Please help me. I'm begging you.");
 
 
 /**
@@ -122,7 +122,7 @@ const code = new RichEmbed()
  */
 const terms = new RichEmbed()
 	.setTitle("Parrot's Terms of Service")
-	.setDescription(fs.readFileSync("./terms-of-service.txt")) // Yes, this will break if it pushes the embed over 6,000 characters
+	.setDescription(fs.readFileSync("./terms-of-service.txt")); // Yes, this will break if it pushes the embed over 6,000 characters
 
 
 module.exports = {
@@ -136,5 +136,5 @@ module.exports = {
 	error,
 	xok,
 	code,
-	terms
-}
+	terms,
+};

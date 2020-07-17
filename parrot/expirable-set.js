@@ -10,14 +10,14 @@ class ExpirableSet extends Set {
 	 * @return {ExpirableSet} self
 	 */
 	addWithExpiry(value, lifespan=30000) {
-		this.add(value)
+		this.add(value);
 
 		setTimeout( () => {
-			this.delete(value)
-		}, lifespan)
+			this.delete(value);
+		}, lifespan);
 
-		return this
+		return this;
 	}
 }
 
-module.exports = ExpirableSet
+module.exports = ExpirableSet;

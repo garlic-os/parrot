@@ -1,14 +1,14 @@
-const AWS  = require("aws-sdk")
-const path = require("path")
+const AWS  = require("aws-sdk");
+const path = require("path");
 
 // Configure AWS-SDK to access an S3 bucket
 AWS.config.update({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
 	secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-	region: process.env.AWS_REGION
-})
+	region: process.env.AWS_REGION,
+});
 
-const s3 = new AWS.S3()
+const s3 = new AWS.S3();
 
 
 /**
@@ -19,11 +19,11 @@ const s3 = new AWS.S3()
  * @return {any[]} the modified array
  */
 function removeFrom(array, element) {
-	const index = array.indexOf(element)
+	const index = array.indexOf(element);
 	if (index > -1) {
-		array.splice(index, 1)
+		array.splice(index, 1);
 	}
-	return array
+	return array;
 }
 
 
@@ -35,24 +35,24 @@ function removeFrom(array, element) {
  */
 async function read(userID) {
 	if (!userID) {
-		throw `s3.read() received invalid ID: ${userID}`
+		throw `s3.read() received invalid ID: ${userID}`;
 	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: `${process.env.CORPUS_DIR}/${userID}.txt`
-	}
+		Key: `${process.env.CORPUS_DIR}/${userID}.txt`,
+	};
 
 	try {
-		const { Body } = await s3.getObject(params).promise()
+		const { Body } = await s3.getObject(params).promise();
 
 		if (!Body) {
-			throw `Empty response at path: ${path}`
+			throw `Empty response at path: ${path}`;
 		}
 
-		return Body.toString() // Convert Buffer to string
+		return Body.toString(); // Convert Buffer to string
 	} catch (err) {
-		throw `[s3.read(${userID})] ${err}`
+		throw `[s3.read(${userID})] ${err}`;
 	}
 }
 
@@ -65,20 +65,20 @@ async function read(userID) {
 async function readFile(path) {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: `${process.env.CORPUS_DIR}/${path}`
-	}
+		Key: `${process.env.CORPUS_DIR}/${path}`,
+	};
 
 	try {
-		const { Body } = await s3.getObject(params).promise()
+		const { Body } = await s3.getObject(params).promise();
 
 		if (!Body) {
-			throw `Empty response at path: ${path}`
+			throw `Empty response at path: ${path}`;
 		}
 
-		return Body.toString() // Convert Buffer to string
+		return Body.toString(); // Convert Buffer to string
 	} catch (err) {
-		err.message = `Error fetching "${path}" from database: ` + err.message
-		throw err
+		err.message = `Error fetching "${path}" from database: ` + err.message;
+		throw err;
 	}
 }
 
@@ -92,15 +92,15 @@ async function readFile(path) {
  */
 async function write(userID, data) {
 	if (!userID) {
-		throw `Failed to write file: invalid user ID: ${userID}`
+		throw `Failed to write file: invalid user ID: ${userID}`;
 	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Key: `${process.env.CORPUS_DIR}/${userID}.txt`,
-		Body: Buffer.from(data, "UTF-8")
-	}
-	return await s3.upload(params).promise()
+		Body: Buffer.from(data, "UTF-8"),
+	};
+	return await s3.upload(params).promise();
 }
 
 
@@ -113,15 +113,15 @@ async function write(userID, data) {
  */
 async function writeFile(path, data) {
 	if (!path) {
-		throw `Failed to write file: invalid path: ${path}`
+		throw `Failed to write file: invalid path: ${path}`;
 	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Key: `${process.env.CORPUS_DIR}/${path}`,
-		Body: Buffer.from(data, "UTF-8")
-	}
-	return await s3.upload(params).promise()
+		Body: Buffer.from(data, "UTF-8"),
+	};
+	return await s3.upload(params).promise();
 }
 
 
@@ -133,15 +133,15 @@ async function writeFile(path, data) {
  */
 async function remove(userID) {
 	if (!userID) {
-		throw `s3.remove() received invalid ID: ${userID}`
+		throw `s3.remove() received invalid ID: ${userID}`;
 	}
 
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME, 
-		Key: `${process.env.CORPUS_DIR}/${userID}.txt`
-	}
+		Key: `${process.env.CORPUS_DIR}/${userID}.txt`,
+	};
 
-	return await s3.deleteObject(params).promise()
+	return await s3.deleteObject(params).promise();
 }
 
 
@@ -154,17 +154,17 @@ async function listUserIDs() {
 	const params = {
 		Bucket: process.env.S3_BUCKET_NAME,
 		Prefix: process.env.CORPUS_DIR + "/",
-	}
+	};
 	
-	const { Contents } = await s3.listObjectsV2(params).promise()
+	const { Contents } = await s3.listObjectsV2(params).promise();
 
 	// Remove an unwanted entry named "corpus"
-	removeFrom(Contents, "corpus")
+	removeFrom(Contents, "corpus");
 
-	return Contents.map( ({ Key }) => {
+	return Contents.map( ({ Key }) => 
 		// Remove file extension and preceding path
-		return path.basename(Key.replace(/\.[^/.]+$/, ""))
-	})
+		path.basename(Key.replace(/\.[^/.]+$/, ""))
+	);
 }
 
 
@@ -175,5 +175,5 @@ module.exports = {
 	remove,
 	readFile,
 	writeFile,
-	listUserIDs
-}
+	listUserIDs,
+};

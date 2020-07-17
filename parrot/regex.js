@@ -4,21 +4,21 @@ module.exports = {
 	 * 
 	 * @type {RegExp}
 	 */
-	mention: /<@(!*)[0-9]+>/g
+	mention: /<@(!*)[0-9]+>/g,
 
 	/**
 	 * A role mention.
 	 * 
 	 * @type {RegExp}
 	 */
-	, role: /<@(&*)[0-9]+>/g
+	role: /<@(&*)[0-9]+>/g,
 
 	/**
 	 * The string of numbers inside an instance of <@[userID]>.
 	 * 
 	 * @type {RegExp}
 	 */
-	, id: /[0-9]+/
+	id: /[0-9]+/,
 
 	/**
 	 * Things that should not be capitalized:
@@ -27,5 +27,12 @@ module.exports = {
 	 * 
 	 * @type {RegExp}
 	 */
-	, doNotCapitalize: /(^<.*>$)|(^.+:\/\/.+$)/
-}
+	doNotCapitalize: /(^<.*>$)|(^.+:\/\/.+$)/,
+
+	/**
+	 * An alphanumeric character.
+	 * 
+	 * @type {RegExp}
+	 */
+	alphanumeric: /^[a-z0-9]+$/i,
+};

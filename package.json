@@ -6,6 +6,7 @@
     },
     "dependencies": {
         "aws-sdk": "^2.543.0",
+        "axios": "^0.19.2",
         "console-stamp": "^0.2.9",
         "discord.js": "11.6.4",
         "dotenv": "^8.2.0"
