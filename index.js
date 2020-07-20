@@ -500,10 +500,10 @@ async function handleCommand(message) {
 			}
 		},
 		// Command aliases using getters: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
-		get tos()              { return this.imitate; },
-		get termsofservice()   { return this.imitate; },
-		get terms_of_service() { return this.imitate; },
-		get eula()             { return this.imitate; },
+		get tos()              { return this.terms; },
+		get termsofservice()   { return this.terms; },
+		get terms_of_service() { return this.terms; },
+		get eula()             { return this.terms; },
 
 
 		imitate: async () => {
