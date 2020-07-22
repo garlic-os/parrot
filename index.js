@@ -54,7 +54,7 @@ const log = {
 	say:     message => console.log(`${location(message)} Said: ${message.embeds[0].description}`),
 	imitate: {
 		text: ([ message, name, sentence ]) => console.log(`${location(message)} Imitated ${name}, saying: ${sentence}`),
-		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(4)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
+		hook: hookRes => console.log(`${location(hookRes)} Imitated ${hookRes.author.username.substring(9)} (ID: ${hookRes.author.id}), saying: ${hookRes.content}`)
 	},
 	forget:  ([message, user]) => console.log(`${location(message)} Forgot user ${user.tag} (ID: ${user.id}).`),
 	consent: user => console.log(`Sent the "need consent" message to user ${user.tag} (ID: ${user.id}).`),
@@ -286,7 +286,7 @@ async function imitate(user, channel, intimidateMode) {
 		
 		sentence = await disablePings(sentence);
 
-		let namePrefix = "Not ";
+		let namePrefix = "(Parrot) ";
 
 		if (intimidateMode) {
 			sentence = "**" + discordCaps(sentence) + "**";
