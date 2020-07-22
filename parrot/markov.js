@@ -21,7 +21,12 @@ async function generateSentence(userID) {
 	let phrase = "";
 
 	for (let i = 0; i < sentenceCount; ++i) {
-		phrase += chain.generate();
+		let addition = "";
+		do {
+			addition = chain.generate();
+		} while (!addition);
+
+		phrase += addition;
 	}
 
 	return phrase;
