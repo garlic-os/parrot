@@ -71,7 +71,7 @@ const inCacheReady = (async () => {
 
 
 const consentingReady = (async () => {
-	let userIDs;;
+	let userIDs;
 	
 	// Read consenting.json if it exists
 	try {
