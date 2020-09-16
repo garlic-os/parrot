@@ -480,7 +480,7 @@ async function handleCommand(message) {
 
 
 			try {
-				const messagesAdded = await scrape(channel, howManyMessages);
+				const messagesAdded = await learning.scrape(channel, howManyMessages);
 				message.channel.send(embeds.standard(`Added ${messagesAdded} messages.`))
 					.then(log.say);
 			}
