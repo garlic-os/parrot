@@ -8,10 +8,6 @@
         //   Map apparently exists
         "target": "es6",
 
-        // Required (get it?) to accomodate discord.js's incompatibilities
-        //   with `import`
-        "esModuleInterop": true,
-
         // Required for ES6 and upward?
         "moduleResolution": "node",
 

@@ -1,6 +1,6 @@
 {
   "name": "parrot-2",
-  "version": "1.0.0",
+  "version": "0.1.2",
   "description": "Imitate everyone individually.",
   "repository": {
     "type": "git",
@@ -15,6 +15,7 @@
   "author": "garlicOS®",
   "license": "ISC",
   "dependencies": {
+    "chalk": "^4.1.0",
     "discord.js": "^12.3.1",
     "discord.js-commando": "github:discordjs/Commando",
     "dotenv": "^8.2.0",

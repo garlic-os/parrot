@@ -22,7 +22,7 @@ export class SizeCappedMap extends Map {
         return this;
     }
 
-    setMaxSize(newMaxSize: number) {
+    setMaxSize(newMaxSize: number): this {
         if (newMaxSize < 0) {
             throw "Size cannot be negative";
         }
@@ -30,5 +30,6 @@ export class SizeCappedMap extends Map {
         while (this.size > this.maxSize) {
             this.delete(this.keyArray.shift());
         }
+        return this;
     }
 }
