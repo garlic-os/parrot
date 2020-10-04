@@ -3,6 +3,7 @@
  */
 
 import type { DMChannel, TextChannel, User } from "discord.js";
+import type { EventEmitter } from "events";
 
 
 // discord.js works in such a way that you have to do all this just to get the
@@ -31,3 +32,10 @@ export const firstOf = (thing: any): any => {
     }
     return thing;
 };
+
+
+export const when = (eventEmitter: EventEmitter, eventName: string): Promise<any> => {
+    return new Promise( (resolve) => {
+        eventEmitter.once(eventName, resolve);
+    });
+}

@@ -1,5 +1,7 @@
+import { Snowflake } from "discord.js";
+
 export interface WebhookConfig {
-    id: string;
+    id: Snowflake;
     token: string;
 }
 

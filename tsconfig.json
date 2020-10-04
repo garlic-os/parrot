@@ -4,8 +4,8 @@
         "sourceMap": true,
         "strict": true,
 
-        // Required for working with Maps because no working polyfill for
-        //   Map apparently exists
+        // ES6 or higher required for Maps and Sets since their polyfills
+        //   are broken
         "target": "es6",
 
         // Required for ES6 and upward?

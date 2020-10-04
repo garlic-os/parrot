@@ -1,12 +1,14 @@
-import { Message, User } from "discord.js";
+import type { Message, User } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
+import type { ParrotPurpl } from "../../modules/parrot-purpl";
 
 import { chainManager } from "../../app";
 import { webhookManager } from "../../app";
-import { Command } from "discord.js-commando";
 import { colors } from "../../modules/colors";
 import * as utils from "../../modules/utils";
+import { Command } from "discord.js-commando";
 
+const prefix = process.env.COMMAND_PREFIX;
 
 interface ImitateCommandArguments {
     user: User;
@@ -14,7 +16,7 @@ interface ImitateCommandArguments {
 }
 
 
-const sendImitationMessage = async (text: string, user: User, message: CommandoMessage): Promise<Message> => {
+const sendImitationMessage = async (message: CommandoMessage, user: User, text: string): Promise<Message> => {
     const nickname = await utils.resolveNickname(user, message.channel);
     const webhook = webhookManager.get(message.channel.id);
 
@@ -76,16 +78,36 @@ export default class ImitateCommand extends Command {
     }
     
 
-    async run(message: CommandoMessage, { user, startword }: ImitateCommandArguments): Promise<Message> {
-        const chain = chainManager.get(user.id);
-
-        if (!chain) {
-            const messages = await message.embed({
-                color: colors.red,
-                title: "Error",
-                description: `No data available for user ${user.tag}`,
-            });
-            return utils.firstOf(messages);
+    run(message: CommandoMessage, { user, startword }: ImitateCommandArguments): null {
+        let chain: ParrotPurpl;
+        // Sheesh this part is messy
+        try {
+            chain = chainManager.get(user.id);
+        } catch (err) {
+            if (err.code === "NOTREG") {
+                const notRegisteredText = `You aren't registered with Parrot yet. You need to do that before Parrot can collect your messages or imitate you.
+To get started, read the privacy policy (\`${prefix}policy\`) then register with \`${prefix}register\`.`;
+                message.embed({
+                    title: "Whoa, sod buster!",
+                    color: colors.red,
+                    description: notRegisteredText,
+                    footer: {
+                        text: `If you believe this message was received in error, please contact ${this.client.owners[0].tag}`,
+                    },
+                });
+                return null;
+            } else if (err.code === "NODATA") {
+                message.embed({
+                    title: "who are you",
+                    color: colors.red,
+                    description: `No data available for user ${user.tag}`,
+                    footer: {
+                        text: `If you believe this message was received in error, please contact ${this.client.owners[0].tag}`,
+                    },
+                });
+                return null;
+            }
+            throw err;
         }
 
         const sentenceCount = ~~(Math.random() * 4 + 1); // 1-5 sentences
@@ -95,19 +117,23 @@ export default class ImitateCommand extends Command {
         let phrase = "";
 
         for (let i = 0; i < sentenceCount; ++i) { // haha ++i
-            let sentence = "";
-            // We have to expect to try multiple times to get valid output
-            //   from .generate() because sometimes it returns an empty
-            //   string.
-            do {
-                sentence = chain.generate();
-            } while (!sentence);
-    
-            phrase += sentence;
-
+            try {
+                phrase += chain.generate() + " ";
+            } catch (err) {
+                if (err.code !== "DREWBLANK") {
+                    throw err;
+                }
+                message.embed({
+                    color: colors.red,
+                    title: "Error",
+                    description: err.message,
+                });
+                return null;
+            }
             chain.config.from = "";
         }
 
-        return sendImitationMessage(phrase, user, message);
+        sendImitationMessage(message, user, phrase);
+        return null;
     }
 };

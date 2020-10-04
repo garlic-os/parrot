@@ -1,8 +1,10 @@
+import { Snowflake } from "discord.js";
+
 import { config } from "../../config";
 import { WebhookClient } from "discord.js";
 
 export class WebhookManager extends Map {
-    get(channelID: string): WebhookClient | null {
+    get(channelID: Snowflake): WebhookClient | null {
         if (this.has(channelID)) {
             return super.get(channelID);
         }

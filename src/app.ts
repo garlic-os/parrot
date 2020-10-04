@@ -28,7 +28,7 @@ export const client = new CommandoClient({
     },
 });
 
-export const corpusManager = new CorpusManager(path.join(__dirname, "../../corpora/"));
+export const corpusManager = new CorpusManager(path.join(__dirname, "../corpora/"));
 export const chainManager = new ChainManager(parseInt(<string>process.env.CACHE_SIZE));
 export const webhookManager = new WebhookManager();
 

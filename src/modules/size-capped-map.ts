@@ -17,7 +17,7 @@ export class SizeCappedMap extends Map {
         if (!this.has(key) && this.size === this.maxSize) {
             this.delete(this.keyArray.shift());
         }
-        this.set(key, value);
+        super.set(key, value);
         this.keyArray.push(key);
         return this;
     }
