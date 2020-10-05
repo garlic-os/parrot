@@ -4,7 +4,7 @@ interface RequiredEnvVars {
     DISCORD_BOT_TOKEN: string;
 };
 
-export const verifyEnvVars = (input: any): void => {
+export const verifyEnvVars = (input: NodeJS.ProcessEnv): void => {
     const schema: Record<keyof RequiredEnvVars, string> = {
         CACHE_SIZE: "number",
         COMMAND_PREFIX: "string",

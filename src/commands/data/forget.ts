@@ -3,6 +3,7 @@ import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { Command } from "discord.js-commando";
 import { colors } from "../../modules/colors";
+import * as embeds from "../../modules/embeds";
 import { corpusManager } from "../../app";
 
 const prefix = process.env.COMMAND_PREFIX;
@@ -36,24 +37,21 @@ export default class ForgetCommand extends Command {
     }
     
 
-    run(message: CommandoMessage, { user }: ForgetCommandArguments): null {
-        // Only Parrot's owner can make Parrot forget other users.
+    async run(message: CommandoMessage, { user }: ForgetCommandArguments): Promise<null> {
+        // If the user to forget is not the one sending the command,
+        //   make sure the user sending the command is an owner first.
         if (message.author !== user && !this.client.isOwner(message.author)) {
-            message.embed({
-                title: "Verboten",
-                color: colors.red,
-                description: "You may not make Parrot forget anyone but yourself.",
-            });
+            message.embed(embeds.forgetPermissionDenied);
             return null;
         }
 
-        corpusManager.delete(message.author.id);
+        if (await corpusManager.has(user.id)) {
+            corpusManager.delete(user.id);
+            message.embed(embeds.forgot(user));
+        } else {
+            message.embed(embeds.noData(user));
+        }
 
-        message.embed({
-            title: `Forgot ${user.tag}.`,
-            color: colors.gray,
-            description: `${user.username}'s data has been deleted from Parrot's datastore. Parrot will not be able to imitate this user until they post more messages or do \`${prefix}quickstart\` again.`,
-        });
         return null;
     }
 };

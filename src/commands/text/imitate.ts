@@ -1,10 +1,11 @@
+import type { ParrotPurpl } from "../../modules/parrot-purpl";
 import type { Message, User } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
-import type { ParrotPurpl } from "../../modules/parrot-purpl";
 
 import { chainManager } from "../../app";
 import { webhookManager } from "../../app";
 import { colors } from "../../modules/colors";
+import * as embeds from "../../modules/embeds";
 import * as utils from "../../modules/utils";
 import { Command } from "discord.js-commando";
 
@@ -23,7 +24,7 @@ const sendImitationMessage = async (message: CommandoMessage, user: User, text: 
     // The funny ternary operator
     const messages = (webhook) ? (
         await webhook.send(text, {
-            username: nickname,
+            username: "(Parrot)" + nickname,
             avatarURL: user.displayAvatarURL(),
         })
     ) : (
@@ -31,7 +32,7 @@ const sendImitationMessage = async (message: CommandoMessage, user: User, text: 
         //   available in the given channel.
         await message.embed({
             author: {
-                name: nickname,
+                name: "(Parrot)" + nickname,
                 iconURL: user.displayAvatarURL(),
             },
             color: colors.purple,
@@ -50,12 +51,12 @@ export default class ImitateCommand extends Command {
 			memberName: "imitate",
 			aliases: ["parrot"],
 			group: "text",
-            description: "Make Parrot imitate the target user.",
+            description: "Make Parrot imitate someone.",
             details: "Parrot will use a Markov Chain constructed from this user's recorded message history to create a new message that sounds like it came from them.",
-            format: `${process.env.COMMAND_PREFIX}imitate [user]`,
+            format: `${prefix}imitate [user]`,
             examples: [
-                `\`${process.env.COMMAND_PREFIX}imitate @TheLegend27\``,
-                `\`${process.env.COMMAND_PREFIX}imitate me\``,
+                `\`${prefix}imitate @TheLegend27\``,
+                `\`${prefix}imitate me\``,
             ],
             throttling: {
                 usages: 2,
@@ -78,33 +79,18 @@ export default class ImitateCommand extends Command {
     }
     
 
-    run(message: CommandoMessage, { user, startword }: ImitateCommandArguments): null {
+    async run(message: CommandoMessage, { user, startword }: ImitateCommandArguments): Promise<null> {
         let chain: ParrotPurpl;
-        // Sheesh this part is messy
         try {
-            chain = chainManager.get(user.id);
+            chain = await chainManager.get(user.id);
+
         } catch (err) {
             if (err.code === "NOTREG") {
-                const notRegisteredText = `You aren't registered with Parrot yet. You need to do that before Parrot can collect your messages or imitate you.
-To get started, read the privacy policy (\`${prefix}policy\`) then register with \`${prefix}register\`.`;
-                message.embed({
-                    title: "Whoa, sod buster!",
-                    color: colors.red,
-                    description: notRegisteredText,
-                    footer: {
-                        text: `If you believe this message was received in error, please contact ${this.client.owners[0].tag}`,
-                    },
-                });
+                message.embed(embeds.notRegistered);
                 return null;
-            } else if (err.code === "NODATA") {
-                message.embed({
-                    title: "who are you",
-                    color: colors.red,
-                    description: `No data available for user ${user.tag}`,
-                    footer: {
-                        text: `If you believe this message was received in error, please contact ${this.client.owners[0].tag}`,
-                    },
-                });
+            }
+            else if (err.code === "NODATA") {
+                message.embed(embeds.noData(user));
                 return null;
             }
             throw err;
@@ -123,11 +109,7 @@ To get started, read the privacy policy (\`${prefix}policy\`) then register with
                 if (err.code !== "DREWBLANK") {
                     throw err;
                 }
-                message.embed({
-                    color: colors.red,
-                    title: "Error",
-                    description: err.message,
-                });
+                message.embed(embeds.errorMessage(err));
                 return null;
             }
             chain.config.from = "";

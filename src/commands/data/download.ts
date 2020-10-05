@@ -1,14 +1,12 @@
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { Command } from "discord.js-commando";
-import { colors } from "../../modules/colors";
+import * as embeds from "../../modules/embeds";
 import { corpusManager } from "../../app";
 
 import * as fs from "fs";
 import * as FormData from "form-data";
 import axios from "axios";
-
-const prefix = process.env.COMMAND_PREFIX;
 
 
 export default class DownloadCommand extends Command {
@@ -28,8 +26,15 @@ export default class DownloadCommand extends Command {
     
 
     async run(message: CommandoMessage): Promise<null> {
-        const corpusFilePath = corpusManager.pathTo(message.author.id);
+        const corpusFilePath = await corpusManager.pathTo(message.author.id);
 
+        if (!corpusFilePath) {
+            message.embed(embeds.noData(message.author));
+            return null;
+        }
+
+        // Create an artificial HTML form to put the file in.
+        // It's weird but that's how you POST files
         const form = new FormData();
         form.append("file", fs.createReadStream(corpusFilePath));
 
@@ -45,21 +50,14 @@ export default class DownloadCommand extends Command {
             },
         });
 
+        // Dig the new download URL out of the response data.
         const { url } = JSON.parse(response.data);
 
-        await message.author.send({
-            title: "Link to download your data",
-            description: url,
-            footer: {
-                text: "Link expires in 6 hours.",
-            },
-        });
+        // DM the user their download link.
+        await message.author.send(embeds.dataDownloadLink(url));
 
-        message.embed({
-            title: "Download ready",
-            color: colors.green,
-            description: "A link to download your data has been DM'd to you.",
-        });
+        // Tell them to check their DMs.
+        message.embed(embeds.downloadReady);
         return null;
     }
 };

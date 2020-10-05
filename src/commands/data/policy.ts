@@ -1,14 +1,7 @@
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
-import * as fs from "fs";
-import * as path from "path";
 import { Command } from "discord.js-commando";
-import { colors } from "../../modules/colors";
-
-const prefix = process.env.COMMAND_PREFIX;
-
-const policyPath = path.join(__dirname, "../../../privacy-policy.txt");
-const policy: string = fs.readFileSync(policyPath, "utf-8");
+import { policy } from "../../modules/embeds";
 
 
 export default class PolicyCommand extends Command {
@@ -29,14 +22,7 @@ export default class PolicyCommand extends Command {
     
 
     run(message: CommandoMessage): null {
-        message.embed({
-            title: "Privacy Policy",
-            color: colors.purple,
-            description: policy,
-            footer: {
-                text: `${prefix}register • ${prefix}unregister`,
-            },
-        });
+        message.embed(policy);
         return null;
     }
 };

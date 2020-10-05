@@ -1,10 +1,12 @@
-import { Snowflake } from "discord.js";
+import type { Corpus, Maybe, MaybeArray } from "..";
+import type { Snowflake } from "discord.js";
 
 import { ensureDirectory } from "./ensure-directory";
 import { DiskSet } from "./disk-set";
-import * as path from "path";
-import * as fs from "fs";
 import { chainManager } from "../app";
+import * as path from "path";
+import { promises as fs } from "fs";
+import { Message } from "discord.js";
 
 /**
  * Provides methods for accessing elements in
@@ -37,19 +39,35 @@ export class CorpusManager {
     }
 
 
-    // Append data to a user's corpus.
-    // Also add that data to any Markov Chain they might have cached.
-    add(userID: Snowflake, content: string): this {
-        this.assertRegistration(userID);
-
-        const corpusPath = path.join(this.dir, userID + ".txt");
-        fs.appendFileSync(corpusPath, content);
-        
-        const cachedChain = chainManager.cache.get(userID);
-        if (cachedChain) {
-            cachedChain.update(content);
+    // Record a message to a user's corpus.
+    // Also update any Markov Chain they might have cached with that data.
+    async add(userID: Snowflake, messages: MaybeArray<Message>): Promise<this> {
+        if (!(await this.has(userID))) {
+            // Create empty file
+            const corpusPath = path.join(this.dir, userID + ".json");
+            fs.open(corpusPath, "w");
         }
 
+        // Ensure the message(s) is/are in an array so we're
+        //   always able to just for-loop over it.
+        if (messages instanceof Message) {
+            messages = [messages];
+        }
+
+        const cachedChain = chainManager.cache.get(userID);
+        const corpus = await this.get(userID);
+
+        for (const message of messages) {
+            corpus[message.id] = {
+                content: message.content,
+                timestamp: message.createdTimestamp,
+            };
+            if (cachedChain) {
+                cachedChain.update(message.content);
+            }
+        }
+
+        this.set(userID, corpus);
         return this;
     }
 
@@ -57,31 +75,30 @@ export class CorpusManager {
     // Get a corpus by user ID.
     // Throws ENOENT if the corpus does not exist.
     // Throws NOTREG if the user is registered.
-    get(userID: Snowflake): string[] {
+    async get(userID: Snowflake): Promise<Corpus> {
         this.assertRegistration(userID);
 
-        const corpusPath = path.join(this.dir, userID + ".txt");
-        return fs.readFileSync(corpusPath, "utf-8")
-            .replace("\r", "")
-            .split("\n");
+        const corpusPath = path.join(this.dir, userID + ".json");
+        const jsonData = await fs.readFile(corpusPath, "utf-8");
+        return JSON.parse(jsonData);
     }
 
 
     // Create or overwrite a corpus, adding it to the filesystem and to cache.
-    set(userID: Snowflake, corpus: string[]): this {
+    async set(userID: Snowflake, corpus: Corpus): Promise<this> {
         this.assertRegistration(userID);
 
-        const corpusPath = path.join(this.dir, userID + ".txt");
-        fs.writeFileSync(corpusPath, JSON.stringify(corpus));
+        const corpusPath = path.join(this.dir, userID + ".json");
+        await fs.writeFile(corpusPath, JSON.stringify(corpus));
         return this;
     }
 
 
     // Delete a user's corpus file from disk.
-    delete(userID: Snowflake): boolean {
-        const corpusPath = path.join(this.dir, userID + ".txt");
+    async delete(userID: Snowflake): Promise<boolean> {
+        const corpusPath = path.join(this.dir, userID + ".json");
         try {
-            fs.unlinkSync(corpusPath);
+            await fs.unlink(corpusPath);
         } catch (err) {
             return false;
         }
@@ -89,13 +106,24 @@ export class CorpusManager {
     }
 
 
-    has(userID: Snowflake): boolean {
-        const corpusPath = path.join(this.dir, userID + ".txt");
-        return fs.existsSync(corpusPath);
+    async has(userID: Snowflake): Promise<boolean> {
+        const corpusPath = path.join(this.dir, userID + ".json");
+        try {
+            await fs.stat(corpusPath);
+            return true;
+        } catch (err) {
+            if (err.code === "ENOENT") {
+                return false;
+            }
+            throw err;
+        }
     }
 
 
-    pathTo(userID: Snowflake): string {
-        return path.join(this.dir, userID + ".txt");
+    async pathTo(userID: Snowflake): Promise<Maybe<string>> {
+        if (await this.has(userID)) {
+            return path.join(this.dir, userID + ".json");
+        }
+        return null;
     }
 }

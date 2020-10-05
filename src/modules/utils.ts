@@ -38,4 +38,4 @@ export const when = (eventEmitter: EventEmitter, eventName: string): Promise<any
     return new Promise( (resolve) => {
         eventEmitter.once(eventName, resolve);
     });
-}
+};
