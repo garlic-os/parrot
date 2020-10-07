@@ -1,14 +1,16 @@
+import type { Corpus } from "../..";
 import type { Collection, Snowflake } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
-import { MessageCollector, Message } from "discord.js";
+import { Message } from "discord.js";
 import { Command } from "discord.js-commando";
 import { corpusManager } from "../../app";
 import { colors } from "../../modules/colors";
 import { config } from "../../../config";
 import * as utils from "../../modules/utils";
 import * as embeds from "../../modules/embeds";
-import { Corpus } from "../..";
+import { learnFrom } from "../../modules/learning";
+import { ChannelCrawler } from "../../modules/channel-crawler";
 
 
 export default class QuickstartCommand extends Command {
@@ -39,7 +41,7 @@ export default class QuickstartCommand extends Command {
         }
         // Show the user where they can use Quickstart within this server
         //   if they use the command in a channel where Parrot can't learn.
-        else if (!Object.keys(config.learningChannels).includes(message.channel.id)) {
+        else if (!config.learningChannels.hasOwnProperty(message.channel.id)) {
             message.embed(embeds.quickstartChoices(message.channel.guild));
             return null;
         }
@@ -64,59 +66,77 @@ export default class QuickstartCommand extends Command {
 
         // Show Parrot's progress on scraping this user's message history.
         const messages = await message.embed({
-            title: "Scanning...",
-            color: colors.blue,
+            title: "Quickstart",
+            color: colors.purple,
+            fields: [
+                {
+                    name: "Scanning...",
+                    value: "​", // zero width space
+                },
+            ],
         });
         const statusMessage = utils.firstOf(messages);
 
-        // Collect messages that this user sent.
+        // Make sure to only collect messages that _this_ user sent.
         const filter = (collectedMessage: Message): boolean => {
             return message.author === collectedMessage.author;
         };
 
-        // Up to 1,000 collected messages. The MessageCollector may
-        //   look at more than this many.
+        // Collect up to 1,000 messages. The crawler may look at
+        //   more than this many to get 1,000 that match the filter.
         const options = {
-            max: 1000, // Maybe 10000?
+            max: 1000, // Maybe 10,000?
         };
 
         // Start collecting messages.
-        const messageCollector = new MessageCollector(message.channel, filter, options);
+        const crawler = new ChannelCrawler(message.channel, filter, options);
 
         // Periodically update the embed that Parrot sent to show
         //   how many messages have been collected so far.
         const editLoop = setInterval( () => {
             statusMessage.edit(null, {
                 embed: {
-                    title: "Scanning...",
-                    color: colors.blue,
-                    description: `Collected ${messageCollector.collected.size} messages...`,
+                    title: "Quickstart",
+                    color: colors.purple,
+                    fields: [
+                        {
+                            name: "Scanning...",
+                            value: `Collected ${crawler.collected.size} messages...`,
+                        }
+                    ],
+                    footer: {
+                        text: `${crawler.received} total messages scanned`,
+                    },
                 },
             }); 
         }, 2000);
 
         // Add each collected message to the user's corpus.
-        messageCollector.on("collect", (collected: Collection<Snowflake, Message>) => {
-            const message = collected.last();
-            if (message instanceof Message) {
-                corpusManager.add(message.author.id, message);
-            } else {
-                console.warn("[Quickstart] Collected message was undefined???");
-            }
-        });
+        crawler.on("collect", learnFrom);
 
         // Edit the embed one last time to show that it's done,
         //   and stop the loop that updates progress.
-        messageCollector.once("end", () => {
+        crawler.once("end", () => {
             clearInterval(editLoop);
             statusMessage.edit(null, {
                 embed: {
-                    title: "Scan complete",
+                    title: "Quickstart",
                     color: colors.green,
-                    description: `Collected ${messageCollector.collected.size} messages.`,
+                    fields: [
+                        {
+                            name: "Scan complete",
+                            value: `Collected ${crawler.collected.size} messages.`,
+                        }
+                    ],
+                    footer: {
+                        text: `${crawler.received} total messages scanned`,
+                    },
                 },
             });
         });
+
+        // The Crawler has its marching orders, so now let it loose!
+        crawler.start();
 
         return null;
     }

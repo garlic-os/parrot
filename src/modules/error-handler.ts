@@ -14,6 +14,9 @@ export const handleError = (err: ErrorLike): void => {
             }
         }
     } else {
+        if (err instanceof Error) {
+            console.error(err.stack);
+        }
         throw err;
     }
 };

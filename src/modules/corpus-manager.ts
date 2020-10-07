@@ -41,11 +41,11 @@ export class CorpusManager {
 
     // Record a message to a user's corpus.
     // Also update any Markov Chain they might have cached with that data.
-    async add(userID: Snowflake, messages: MaybeArray<Message>): Promise<this> {
+    async add(userID: Snowflake, messages: MaybeArray<Message>): Promise<void> {
         if (!(await this.has(userID))) {
-            // Create empty file
+            // Create a new file with an empty JSON object
             const corpusPath = path.join(this.dir, userID + ".json");
-            fs.open(corpusPath, "w");
+            await fs.writeFile(corpusPath, "{}");
         }
 
         // Ensure the message(s) is/are in an array so we're
@@ -68,7 +68,6 @@ export class CorpusManager {
         }
 
         this.set(userID, corpus);
-        return this;
     }
 
 
@@ -85,12 +84,11 @@ export class CorpusManager {
 
 
     // Create or overwrite a corpus, adding it to the filesystem and to cache.
-    async set(userID: Snowflake, corpus: Corpus): Promise<this> {
+    async set(userID: Snowflake, corpus: Corpus): Promise<void> {
         this.assertRegistration(userID);
 
         const corpusPath = path.join(this.dir, userID + ".json");
         await fs.writeFile(corpusPath, JSON.stringify(corpus));
-        return this;
     }
 
 
