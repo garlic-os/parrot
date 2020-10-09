@@ -37,9 +37,38 @@ export interface LearningChannels {
 }
 
 export interface Config {
-    speakingChannels: SpeakingChannels;
+    ayyLmao: boolean;
+    cacheSize: number;
+    commandPrefix: string;
+    corpusDir: string;
+    discordBotToken: string;
     learningChannels: LearningChannels;
+    speakingChannels: SpeakingChannels;
+    owners: Snowflake[];
 }
+
+export interface ConfigDefaults {
+    ayyLmao: boolean;
+    cacheSize: number;
+    commandPrefix: string;
+    corpusDir: string;
+    discordBotToken: undefined;
+    learningChannels: undefined;
+    speakingChannels: undefined;
+    owners: undefined;
+}
+
+export interface PartialConfig {
+    ayyLmao?: boolean;
+    cacheSize?: number;
+    commandPrefix?: string;
+    corpusDir?: string;
+    discordBotToken: string;
+    learningChannels: LearningChannels;
+    speakingChannels: SpeakingChannels;
+    owners: Snowflake[];
+}
+
 
 export interface ImitateCommandArguments {
     user: User;

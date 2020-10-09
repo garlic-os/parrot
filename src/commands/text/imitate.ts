@@ -11,7 +11,7 @@ import * as utils from "../../modules/utils";
 import { Command } from "discord.js-commando";
 import { ParrotEmbed } from "../../modules/parrot-embed";
 
-const prefix = process.env.COMMAND_PREFIX;
+const prefix = config.commandPrefix;
 
 
 const sendImitationMessage = async (message: CommandoMessage, user: User, text: string, intimidateMode: boolean): Promise<null> => {

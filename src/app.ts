@@ -1,5 +1,5 @@
 import * as errorHandler from "./modules/error-handler";
-import { verifyEnvVars } from "./modules/verify-env-vars";
+import { config } from "./config";
 import { ChainManager } from "./modules/chain-manager";
 import { CorpusManager } from "./modules/corpus-manager";
 import { WebhookManager } from "./modules/webhook-manager";
@@ -13,34 +13,32 @@ import { CommandoClient } from "discord.js-commando";
 process.on("unhandledRejection", errorHandler.handleError);
 process.on("uncaughtException", errorHandler.handleError);
 
-// Load the .env file and make sure all the required environment
-//   variables are accounted for.
+// Load the .env file, if supplied.
 dotenv.config();
-verifyEnvVars(process.env);
 
 // Irresponsibly export the Client instance.
 export const client = new CommandoClient({
-	commandPrefix: process.env.COMMAND_PREFIX,
-    owner: "206235904644349953",
+	commandPrefix: config.commandPrefix,
+    owner: config.owners,
     disableMentions: "all",
     presence: {
         activity: {
-            name: `everyone (${process.env.COMMAND_PREFIX}help)`,
+            name: `everyone (${config.commandPrefix}help)`,
             type: "LISTENING",
         },
     },
 });
 
 // Export instances of the Managers to be used globally.
-export const corpusManager = new CorpusManager(path.join(__dirname, (process.env.CORPUS_DIR || "../corpora/")));
-export const chainManager = new ChainManager(parseInt(<string>process.env.CACHE_SIZE));
+export const corpusManager = new CorpusManager(config.corpusDir);
+export const chainManager = new ChainManager(config.cacheSize);
 export const webhookManager = new WebhookManager();
 
 // Add event listeners from /src/listeners/.
 registerListeners(client);
 
 // Start the bot.
-client.login(process.env.DISCORD_BOT_TOKEN);
+client.login(config.discordBotToken);
 
 // Modified version of the default filter to also pick up .ts files.
 // Probably won't run into .ts files in production but pretty

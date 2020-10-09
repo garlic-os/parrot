@@ -20,7 +20,7 @@ export default class ShutdownCommand extends Command {
 			group: "maintenance",
             description: "Shut down the bot.",
             details: "Bot will commit `process.exit()`.",
-            format: `${process.env.COMMAND_PREFIX}shutdown [delay]`,
+            format: `${config.commandPrefix}shutdown [delay]`,
             args: [
                 {
                     key: "delay",
