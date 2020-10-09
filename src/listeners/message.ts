@@ -1,16 +1,11 @@
 import type { Message } from "discord.js";
-import { client } from "../app";
+
+import { config } from "../config";
 import { learnFrom } from "../modules/learning";
 
-export default (message: Message): void => {
-    if (message.author.id === client.user?.id) {
-        // TODO: Log that Parrot sent a message
-        message.channel.stopTyping();
-        return;
-    }
-
+export default (message: Message) => {
     // I am a mature person making a competent Discord bot.
-    if (message.content === "ayy" && process.env.AYY_LMAO === "true") {
+    if (message.content === "ayy" && config.ayyLmao) {
         message.channel.send("lmao");
     }
 

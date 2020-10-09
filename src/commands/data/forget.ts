@@ -6,7 +6,7 @@ import { colors } from "../../modules/colors";
 import * as embeds from "../../modules/embeds";
 import { corpusManager } from "../../app";
 
-const prefix = process.env.COMMAND_PREFIX;
+const prefix = config.commandPrefix;
 
 
 interface ForgetCommandArguments {

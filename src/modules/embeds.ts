@@ -10,7 +10,7 @@ import { ParrotEmbed } from "./parrot-embed";
 import * as fs from "fs";
 import * as path from "path";
 
-const prefix = process.env.COMMAND_PREFIX;
+const prefix = config.commandPrefix;
 const policyPath = path.join(__dirname, "../../privacy-policy.txt");
 const policyText = fs.readFileSync(policyPath, "utf-8");
 

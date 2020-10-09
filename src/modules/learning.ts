@@ -17,7 +17,7 @@ const validateMessage = (message: Message): boolean => {
         content.length > 0 &&
 
         // Not a Parrot command.
-        !content.startsWith(<string>process.env.COMMAND_PREFIX) &&
+        !content.startsWith(config.commandPrefix) &&
 
         // Only learn in text channels, not DMs.
         message.channel.type === "text" &&
