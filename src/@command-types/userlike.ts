@@ -12,7 +12,7 @@ import { ArgumentType } from "discord.js-commando";
  *   - TODO: "someone"; will return a random user.
  *   - "me"; will return the message author.
  */
-export class Userlike extends ArgumentType {
+export default class Userlike extends ArgumentType {
     constructor(client: CommandoClient) {
         super(client, "userlike");
     }

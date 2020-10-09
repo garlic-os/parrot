@@ -1,6 +1,7 @@
 import type { Message } from "discord.js";
 import { corpusManager } from "../app";
 import { config } from "../../config";
+import * as regex from "./regex";
 import * as utils from "./utils";
 
 let prevTag: string = "";
@@ -18,10 +19,18 @@ const validateMessage = (message: Message): boolean => {
         // Not a Parrot command.
         !content.startsWith(<string>process.env.COMMAND_PREFIX) &&
 
-        // Lot of other bots' commands start with non-alphanumeric
-        //   characters, so if a message starts with one, Parrot
-        //   should just avoid it because it's probably a command.
-        utils.isAlphaNumeric(content[0]) &&
+        // Only learn in text channels, not DMs.
+        message.channel.type === "text" &&
+
+        // Lot of other bots' commands start with non-alphanumeric characters,
+        //   so if a message starts with one other than a known Markdown
+        //   character or special Discord character, Parrot should just avoid it
+        //   because it's probably a command.
+        (
+            regex.markdown.test(content[0]) ||
+            regex.discordStringBeginning.test(content[0]) ||
+            utils.isAlphaNumeric(content[0])
+        ) &&
 
         // Don't learn from bots.
         !message.author.bot &&
@@ -37,6 +46,18 @@ const validateMessage = (message: Message): boolean => {
 
 export const learnFrom = (message: Message): boolean => {
     if (validateMessage(message)) {
+        try {
+            corpusManager.add(message.author.id, message);
+        } catch (err) {
+            // If the user isn't registered, that's OK; just don't learn from
+            //   this message.
+            if (err.code === "NOTREG") {
+                return false;
+            } else {
+                throw err;
+            }
+        }
+
         if (prevTag === message.author.tag) {
             if (collectedCount++ === 1) {
                 utils.consoleUpdate(`Collected a message from ${message.author.tag}`);
@@ -48,8 +69,6 @@ export const learnFrom = (message: Message): boolean => {
             collectedCount = 1;
         }
 
-
-        corpusManager.add(message.author.id, message);
         return true;
     }
 

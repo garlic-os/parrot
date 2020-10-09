@@ -1,9 +1,7 @@
-/**
- * Utility functions!
- */
+import type { EventEmitter } from "events";
 
 import { Collection, DMChannel, TextChannel, User } from "discord.js";
-import type { EventEmitter } from "events";
+import * as regex from "./regex";
 
 
 // discord.js works in such a way that you have to do all this just to get the
@@ -94,4 +92,23 @@ export const consoleUpdate = (text: string): void => {
     process.stdout.clearLine(0);
     process.stdout.cursorTo(0);
     process.stdout.write(text + "\n");
+};
+
+
+// Capitalize a string in a way that remains friendly to URLs and emoji strings.
+// Made by Kaylynn: https://github.com/kaylynn234. Thank you, Kaylynn!
+export const discordCaps = (text: string): string => {
+    const pattern = regex.doNotCapitalize;
+
+    const words = text.replace(/\*/g, "").split(" ");
+    const output = [];
+	for (const word of words) {
+		if (pattern.test(word)) {
+			output.push(word);
+		} else {
+			output.push(word.toUpperCase());
+		}
+	}
+
+    return output.join(" ");
 };

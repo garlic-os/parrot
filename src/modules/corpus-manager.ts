@@ -9,10 +9,9 @@ import { promises as fs } from "fs";
 import { Message } from "discord.js";
 
 /**
- * Provides methods for accessing elements in
- *   Parrot's database of corpora.
- * Also enforces that users are registered in a
- *   file before their data can be accesed.
+ * Provides methods for accessing elements in Parrot's database of corpora.
+ * Also enforces that users are registered in
+ *   a file before their data can be accesed.
  */
 export class CorpusManager {
     private readonly dir: string;
@@ -32,6 +31,7 @@ export class CorpusManager {
     private assertRegistration(userID: Snowflake): void {
         if (!this.userRegistry.has(userID)) {
             throw {
+                name: "Not registered",
                 code: "NOTREG",
                 message: `User ${userID} is not registered`,
             };
@@ -48,8 +48,8 @@ export class CorpusManager {
             await fs.writeFile(corpusPath, "{}");
         }
 
-        // Ensure the message(s) is/are in an array so we're
-        //   always able to just for-loop over it.
+        // Ensure the message(s) is/are in an array so we're always able to just
+        //   for-loop over it.
         if (messages instanceof Message) {
             messages = [messages];
         }

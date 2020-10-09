@@ -35,8 +35,8 @@ export class ChannelCrawler extends EventEmitter {
     }
 
 
-    // A pusedo-recursive async function that scrapes the channel until a
-    //   quota is met or the top of the channel is reached.
+    // A pusedo-recursive async function that scrapes the channel until a quota
+    //   is met or the top of the channel is reached.
     private async getMessages(query: ChannelLogsQueryOptions): Promise<string> {
         const messages = Array.from((await this.channel.messages.fetch(query)).values());
         query.before = utils.lastOf(messages).id;

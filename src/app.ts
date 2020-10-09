@@ -32,7 +32,7 @@ export const client = new CommandoClient({
 });
 
 // Export instances of the Managers to be used globally.
-export const corpusManager = new CorpusManager(path.join(__dirname, "../corpora/"));
+export const corpusManager = new CorpusManager(path.join(__dirname, (process.env.CORPUS_DIR || "../corpora/")));
 export const chainManager = new ChainManager(parseInt(<string>process.env.CACHE_SIZE));
 export const webhookManager = new WebhookManager();
 

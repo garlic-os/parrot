@@ -27,6 +27,7 @@ export class ChainManager {
         } catch (err) {
             if (err.code === "ENOENT") {
                 throw {
+                    name: "No data",
                     code: "NODATA",
                     message: `No data available for user ${userID}`
                 };
@@ -37,8 +38,7 @@ export class ChainManager {
         const chain = new ParrotPurpl();
 
         for (const messageID in corpus) {
-            const { content } = corpus[messageID];
-            chain.update(corpus, content);
+            chain.update(corpus[messageID].content);
         }
 
         this.cache.set(userID, chain);

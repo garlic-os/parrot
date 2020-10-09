@@ -6,7 +6,7 @@ import type { ErrorLike } from "..";
 
 import { colors } from "../modules/colors";
 import { config } from "../../config";
-import { MessageEmbed } from "discord.js";
+import { ParrotEmbed } from "./parrot-embed";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -15,7 +15,7 @@ const policyPath = path.join(__dirname, "../../privacy-policy.txt");
 const policyText = fs.readFileSync(policyPath, "utf-8");
 
 
-export const registrationSuccess = new MessageEmbed({
+export const registrationSuccess = new ParrotEmbed({
     title: "✅ Registered!",
     color: colors.green,
     description: "Now Parrot can start learning your speech patterns and imitate you.",
@@ -31,14 +31,14 @@ export const registrationSuccess = new MessageEmbed({
 });
 
 
-export const unregistrationSuccess = new MessageEmbed({
+export const unregistrationSuccess = new ParrotEmbed({
     title: "Unregistered!",
     color: colors.gray,
     description: `Parrot will no longer be able to imitate you, and it has stopped collecting your messages.\n\n_If you're done with Parrot and don't want it to have your messages anymore, or if you just want a fresh start, you can do \`${prefix}forget me\` and your data will be permanently deleted from Parrot's datastore._`,
 });
 
 
-export const policy = new MessageEmbed({
+export const policy = new ParrotEmbed({
     title: "Privacy Policy",
     color: colors.purple,
     description: policyText,
@@ -48,49 +48,56 @@ export const policy = new MessageEmbed({
 });
 
 
-export const notRegistered = new MessageEmbed({
+export const notRegistered = new ParrotEmbed({
+    title: "Not registered",
+    color: colors.red,
+    description: "That user isn't registered yet. They need to do that before Parrot can collect their messages and imitate them.",
+});
+
+
+export const notRegisteredMe = new ParrotEmbed({
     title: "Whoa, sod buster!",
     color: colors.red,
     description: `You aren't registered with Parrot yet. You need to do that before Parrot can collect your messages or imitate you.\nTo get started, read the privacy policy (\`${prefix}policy\`) then register with \`${prefix}register\`.`,
 });
 
 
-export const quickstartWindowPassed = new MessageEmbed({
+export const quickstartWindowPassed = new ParrotEmbed({
     title: "You're already started!",
     color: colors.red,
     description: "You are no longer eligible for quickstart because Parrot has already recorded more than 100 of your messages.",
 });
 
 
-export const noQuickstartInDMs = new MessageEmbed({
+export const noQuickstartInDMs = new ParrotEmbed({
     title: "Quickstart not available here",
     color: colors.red,
     description: `Quickstart is only available in servers. Try running \`${prefix}quickstart\` again in a server that Parrot is in.`,
 });
 
 
-export const downloadReady = new MessageEmbed({
+export const downloadReady = new ParrotEmbed({
     title: "Download ready",
     color: colors.green,
     description: "A link to download your data has been DM'd to you.",
 });
 
 
-export const youAreRegistered = new MessageEmbed({
+export const youAreRegistered = new ParrotEmbed({
     title: "✅ You are registered.",
     color: colors.purple,
     description: "Parrot can learn from your messages and imitate you.",
 });
 
 
-export const youAreNotRegistered = new MessageEmbed({
+export const youAreNotRegistered = new ParrotEmbed({
     title: "❌ You are not registered.",
     color: colors.purple,
     description: "Parrot can not learn from your messages and imitate you.",
 });
 
 
-export const forgetPermissionDenied = new MessageEmbed({
+export const forgetPermissionDenied = new ParrotEmbed({
     title: "Verboten",
     color: colors.red,
     description: "You may not make Parrot forget anyone but yourself.",
@@ -98,8 +105,9 @@ export const forgetPermissionDenied = new MessageEmbed({
 
 
 export const dataDownloadLink = (url: string) => {
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "Link to download your data",
+        color: colors.purple,
         description: url,
         footer: {
             text: "Link expires in 6 hours.",
@@ -109,7 +117,7 @@ export const dataDownloadLink = (url: string) => {
 
 
 export const forgot = ({ tag, username }: User) => {
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: `Forgot ${tag}.`,
         color: colors.gray,
         description: `${username}'s data has been deleted from Parrot's datastore. Parrot will not be able to imitate this user until they post more messages or do \`${prefix}quickstart\` again.`,
@@ -122,7 +130,7 @@ export const errorMessage = (err: ErrorLike) => {
         err = err.message;
     }
     
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "Error",
         color: colors.red,
         description: err,
@@ -131,10 +139,10 @@ export const errorMessage = (err: ErrorLike) => {
 
 
 export const noData = ({ username }: User) => {
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "who are you",
         color: colors.red,
-        description: `No data available for user ${username}`,
+        description: `No data available for user ${username}.`,
     });
 };
 
@@ -149,7 +157,7 @@ export const speakingIn = (guild: Guild) => {
         });
     }
 
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "Parrot can speak in these channels:",
         fields,
     });
@@ -166,7 +174,7 @@ export const learningIn = (guild: Guild) => {
         });
     }
 
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "Parrot can learn in these channels:",
         fields,
     });
@@ -174,7 +182,7 @@ export const learningIn = (guild: Guild) => {
 
 
 export const quickstartChoices = (guild: Guild) => {
-    return new MessageEmbed({
+    return new ParrotEmbed({
         title: "Quickstart Channels",
         color: colors.purple,
         description: `Quickstart is available in channels where Parrot can learn from your messages. Try running \`${prefix}quickstart\` again in one of these channels:`,

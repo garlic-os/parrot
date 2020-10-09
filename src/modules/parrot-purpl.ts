@@ -16,6 +16,7 @@ export class ParrotPurpl extends MarkovChain {
             // The Markov Chain "drew a blank". Try as it might,
             //   for some reason it just couldn't come up with
             //   anything to say.
+            name: "Drew a blank",
             code: "DREWBLANK",
             message: "Failed to generate a sentence after 1000 attempts",
         };

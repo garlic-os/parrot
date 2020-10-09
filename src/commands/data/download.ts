@@ -51,7 +51,7 @@ export default class DownloadCommand extends Command {
         });
 
         // Dig the new download URL out of the response data.
-        const { url } = JSON.parse(response.data);
+        const { url } = response.data;
 
         // DM the user their download link.
         await message.author.send(embeds.dataDownloadLink(url));

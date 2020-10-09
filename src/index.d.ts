@@ -1,4 +1,4 @@
-import type { Snowflake } from "discord.js";
+import type { Snowflake, User } from "discord.js";
 
 
 export type ErrorLike = Error | string | { code: string, message: string };
@@ -39,4 +39,9 @@ export interface LearningChannels {
 export interface Config {
     speakingChannels: SpeakingChannels;
     learningChannels: LearningChannels;
+}
+
+export interface ImitateCommandArguments {
+    user: User;
+    startword: string;
 }
