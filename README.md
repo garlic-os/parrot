@@ -18,6 +18,7 @@ I'm going to assume you have already:
 2. `npm install`.
 3. Create a copy of "defaults.ts" called "config.ts" inside of "src/", then follow the [config documentation](#configuration) to configure Parrot.
 4. `npm start`.
+5. Change the user ID in `privacy-policy.txt` with yours, or whomever will host the bot.
 
 ## Configuration
 **Required**
