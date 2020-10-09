@@ -6,7 +6,7 @@ import { Message } from "discord.js";
 import { Command } from "discord.js-commando";
 import { corpusManager } from "../../app";
 import { colors } from "../../modules/colors";
-import { config } from "../../../config";
+import { config } from "../../config";
 import * as utils from "../../modules/utils";
 import * as embeds from "../../modules/embeds";
 import { learnFrom } from "../../modules/learning";

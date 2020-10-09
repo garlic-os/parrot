@@ -1,7 +1,7 @@
 import type { Maybe } from "..";
 import type { Snowflake } from "discord.js";
 
-import { config } from "../../config";
+import { config } from "../config";
 import { WebhookClient } from "discord.js";
 
 export class WebhookManager extends Map {

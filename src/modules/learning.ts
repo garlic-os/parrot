@@ -1,6 +1,6 @@
 import type { Message } from "discord.js";
 import { corpusManager } from "../app";
-import { config } from "../../config";
+import { config } from "../config";
 import * as regex from "./regex";
 import * as utils from "./utils";
 

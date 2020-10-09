@@ -5,7 +5,7 @@ import type { EmbedField, Guild, User } from "discord.js";
 import type { ErrorLike } from "..";
 
 import { colors } from "../modules/colors";
-import { config } from "../../config";
+import { config } from "../config";
 import { ParrotEmbed } from "./parrot-embed";
 import * as fs from "fs";
 import * as path from "path";
