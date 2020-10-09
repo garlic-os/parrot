@@ -17,6 +17,7 @@ To keep things simple, I'm going to assume you already:
 4. Fill in the [environment variables](#environment-variables).
 5. Locate "config.ts" inside of "src/" and follow the Config interface to configure Parrot for the channels you want it to be able to learn and speak in.
 6. `npm start`.
+7. You _might_ have to change the user ID out in privacy-policy.txt with yours because I _might_ have hardcoded it with mine. Sorry.
 
 ## Environment Variables
 **Required**
