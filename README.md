@@ -9,16 +9,16 @@ Parrot has to collect users' messages to work, so to ensure that no one's messag
 
 ## Setup
 For now, if you want Parrot on your server, you have to run it yourself.  
-I'm going to assume you have already:
-- created a Discord bot in the Discord Developer Portal and you have its Token onhand
-- enabled Developer Mode in Discord's settings (to get user and channel IDs)
-- installed node.js
 
-1. Download the repo and extract the project somewhere.
-2. `npm install`.
-3. Create a copy of `"src/defaults.ts"` called `"src/config.ts"`, then follow the [config documentation](#configuration) to configure Parrot.
-4. Change the user ID in `"privacy-policy.txt"` with yours, or whomever will host the bot.
-5. `npm start`.
+
+1. Create a Discord bot in the Discord Developer Portal and you have its Token onhand.
+2. Enable Developer Mode in Discord's settings so you can get user and channel IDs.
+3. If you don't have it already, install node.js.
+4. Download the repo and extract the project somewhere.
+5. `npm install`.
+6. Create a copy of `"src/defaults.ts"` called `"src/config.ts"`, then follow the [config documentation](#configuration) to configure Parrot.
+7. Change the user ID in `"privacy-policy.txt"` with yours, or whomever will host the bot.
+8. `npm start`.
 
 ## Configuration
 Configure Parrot through `"src/config.ts"`. If it doesn't exist, create it by copying the contents of `"src/defaults.ts"` into a new file.
