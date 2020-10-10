@@ -112,3 +112,8 @@ export const discordCaps = (text: string): string => {
 
     return output.join(" ");
 };
+
+
+export const removeDuplicates = (array: any[]): any[] => {
+    return Array.from(new Set(array));
+};

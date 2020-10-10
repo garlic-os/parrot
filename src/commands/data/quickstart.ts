@@ -1,5 +1,4 @@
 import type { Corpus } from "../..";
-import type { Collection, Snowflake } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { Message } from "discord.js";
@@ -101,7 +100,7 @@ export default class QuickstartCommand extends Command {
                     fields: [
                         {
                             name: "Scanning...",
-                            value: `Collected ${crawler.collected.size} messages...`,
+                            value: `Collected ${crawler.collected.array().length} messages...`,
                         }
                     ],
                     footer: {
@@ -111,13 +110,11 @@ export default class QuickstartCommand extends Command {
             }); 
         }, 2000);
 
-        // Add each collected message to the user's corpus.
-        crawler.on("collect", learnFrom);
-
         // Edit the embed one last time to show that it's done,
         //   and stop the loop that updates progress.
         crawler.once("end", () => {
             clearInterval(editLoop);
+            const messages = crawler.collected.array();
             statusMessage.edit(null, {
                 embed: {
                     title: "Quickstart",
@@ -125,7 +122,7 @@ export default class QuickstartCommand extends Command {
                     fields: [
                         {
                             name: "Scan complete",
-                            value: `Collected ${crawler.collected.size} messages.`,
+                            value: `Collected ${messages.length} messages.`,
                         }
                     ],
                     footer: {
@@ -133,6 +130,7 @@ export default class QuickstartCommand extends Command {
                     },
                 },
             });
+            learnFrom(messages);
         });
 
         // The Crawler has its marching orders, so now let it loose!

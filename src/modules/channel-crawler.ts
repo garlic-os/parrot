@@ -44,9 +44,9 @@ export class ChannelCrawler extends EventEmitter {
         // If there are no more messages or a quota has been met, stop crawling.
         if (messages.length === 0) {
             return "channelBeginningReached";
-        } else if (this.options.max && this.options.max >= this.collected.size) {
+        } else if (this.options.max && this.collected.size >= this.options.max) {
             return "limit";
-        } else if (this.options.maxProcessed && this.options.maxProcessed >= this.received) {
+        } else if (this.options.maxProcessed && this.received >= this.options.maxProcessed) {
             return "processedLimit";
         }
         
