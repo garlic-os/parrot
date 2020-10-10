@@ -1,8 +1,7 @@
-import { Message } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
-import { firstOf } from "../../modules/utils";
 import { client } from "../../app";
+import { config } from "../../config";
 import { Command } from "discord.js-commando";
 
 
@@ -34,20 +33,20 @@ export default class ShutdownCommand extends Command {
     }
     
 
-    async run(message: CommandoMessage, { delay }: ShutdownCommandArguments): Promise<Message> {
+    async run(message: CommandoMessage, { delay }: ShutdownCommandArguments): Promise<null> {
         let output = "Shutting down";
         output += (delay > 0) ?
             ` in ${delay} milliseconds...` :
             "...";
 
-        const messages = await message.say(output);
         client.emit("warn", output);
+        await message.say(output);
 
         setTimeout( () => {
             client.destroy();
             process.exit();
         }, delay);
 
-        return firstOf(messages);
+        return null;
     }
 };

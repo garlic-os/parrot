@@ -6,6 +6,7 @@ import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 import { chainManager } from "../../app";
 import { webhookManager } from "../../app";
 import { colors } from "../../modules/colors";
+import { config } from "../../config";
 import * as embeds from "../../modules/embeds";
 import * as utils from "../../modules/utils";
 import { Command } from "discord.js-commando";
@@ -99,11 +100,16 @@ export default class ImitateCommand extends Command {
                 } else {
                     embed = embeds.notRegistered;
                 }
-                await message.embed(embed);
+                message.embed(embed);
                 return null;
             }
             if (err.code === "NODATA") {
-                await message.embed(embeds.noData(user));
+                message.embed(embeds.noData(user));
+                return null;
+            }
+            if (err instanceof SyntaxError) {
+                // Failed to JSON-parse corpus
+                message.embed(embeds.corpusCorrupt(user));
                 return null;
             }
             throw err;
@@ -123,13 +129,13 @@ export default class ImitateCommand extends Command {
                 if (err.code !== "DREWBLANK") {
                     throw err;
                 }
-                await message.embed(embeds.errorMessage(err));
+                message.embed(embeds.errorMessage(err));
                 return null;
             }
             chain.config.from = "";
         }
 
-        await sendImitationMessage(message, user, phrase, intimidateMode);
+        sendImitationMessage(message, user, phrase, intimidateMode);
         return null;
     }
 }
