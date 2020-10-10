@@ -2,11 +2,8 @@ import type { User } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { Command } from "discord.js-commando";
-import { colors } from "../../modules/colors";
 import * as embeds from "../../modules/embeds";
 import { corpusManager } from "../../app";
-
-const prefix = config.commandPrefix;
 
 
 interface ForgetCommandArguments {
