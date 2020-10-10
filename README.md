@@ -21,6 +21,8 @@ I'm going to assume you have already:
 5. `npm start`.
 
 ## Configuration
+Configure Parrot through `"src/config.ts"`. If it doesn't exist, create it by copying the contents of `"src/defaults.ts"` into a new file.
+
 **Required**
 - `discordBotToken` - The Bot Token generated for your copy of Parrot on the Discord Developer Portal.
 - `learningChannels` - A dictionary of key-value pairs for channels Parrot can learn in, keys being the channel IDs and the values being human-readable comments/names for those channels.
