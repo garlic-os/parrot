@@ -16,12 +16,12 @@ For now, if you want Parrot on your server, you have to run it yourself.
 3. If you don't have it already, install node.js.
 4. Download the repo and extract the project somewhere.
 5. `npm install`.
-6. Create a copy of `"src/defaults.ts"` called `"src/config.ts"`, then follow the [config documentation](#configuration) to configure Parrot.
+6. Create a copy of `"src/config.template.ts"` called `"src/config.ts"`, then follow the [config documentation](#configuration) to configure Parrot.
 7. Change the user ID in `"privacy-policy.txt"` with yours, or whomever will host the bot.
 8. `npm start`.
 
 ## Configuration
-Configure Parrot through `"src/config.ts"`. If it doesn't exist, create it by copying the contents of `"src/defaults.ts"` into a new file.
+Configure Parrot through `"src/config.ts"`. If it doesn't exist, create it by copying the contents of `"src/config.template.ts"` into a new file.
 
 **Required**
 - `discordBotToken` - The Bot Token generated for your copy of Parrot on the Discord Developer Portal.
