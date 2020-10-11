@@ -14,15 +14,16 @@ export class WebhookManager extends Map {
         }
 
         // Create a WebhookClient from the information in
-        //   config.speakingChannels corresponding to the given
-        //   channel ID.
+        //   config.speakingChannels corresponding to the given channel ID.
         // Cache this WebhookClient for next time.
-        if (config.speakingChannels.hasOwnProperty(channelID)) {
-            const { id, token } = config.speakingChannels[channelID];
+        const webhookConfig = config.speakingChannels[channelID];
+        if (webhookConfig) {
+            const { id, token } = webhookConfig;
             const webhook = new WebhookClient(id, token);
             this.set(channelID, webhook);
             return webhook;
+        } else {
+            return null;
         }
-        return null;
     }
 }

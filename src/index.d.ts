@@ -27,7 +27,8 @@ export interface WebhookConfig {
 
 export interface SpeakingChannels {
     // Key: channel ID
-    [key: string]: WebhookConfig;
+    // If value is null, use text mode in this channel.
+    [key: string]: Maybe<WebhookConfig>;
 }
 
 export interface LearningChannels {
