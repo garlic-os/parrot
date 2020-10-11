@@ -4,9 +4,10 @@ import type { Corpus } from "..";
 import { corpusManager } from "../app";
 import { SizeCappedMap } from "./size-capped-map";
 import { ParrotPurpl } from "./parrot-purpl";
+import { ParrotError } from "./parrot-error";
 
 export class ChainManager {
-    readonly cache: SizeCappedMap;
+    readonly cache: SizeCappedMap<Snowflake, ParrotPurpl>;
 
     constructor(maxCacheSize: number) {
         this.cache = new SizeCappedMap(maxCacheSize);
@@ -15,10 +16,10 @@ export class ChainManager {
     
     // Get a Markov Chain by user ID;
     //   from cache if it's cached, from corpus if it's not.
-    // Null if there is no corpus for this user ID.
     async get(userID: Snowflake): Promise<ParrotPurpl> {
-        if (this.cache.has(userID)) {
-            return this.cache.get(userID);
+        const cachedChain = this.cache.get(userID);
+        if (cachedChain) {
+            return cachedChain;
         }
         
         let corpus: Corpus;
@@ -26,11 +27,11 @@ export class ChainManager {
             corpus = await corpusManager.get(userID);
         } catch (err) {
             if (err.code === "ENOENT") {
-                throw {
+                throw new ParrotError({
                     name: "No data",
                     code: "NODATA",
                     message: `No data available for user ${userID}`
-                };
+                });
             }
             throw err;
         }

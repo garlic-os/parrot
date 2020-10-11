@@ -1,14 +1,16 @@
-import type { Snowflake, Message } from "discord.js";
+import type { Message } from "discord.js";
 import { corpusManager } from "../app";
 import { config } from "../config";
+import { ParrotError } from "./parrot-error";
 import * as regex from "./regex";
 import * as utils from "./utils";
 
 
 // A message must pass all of these checks before
 //   Parrot can learn from it.
-const validateMessage = (message: Message): boolean => {
+export const validateMessage = (message: Message): boolean => {
     const { channel, content } = message;
+
     return (
         // Text content not empty.
         content.length > 0 &&
@@ -41,7 +43,12 @@ const validateMessage = (message: Message): boolean => {
 };
 
 
-export const learnFrom = (messages: Message | Message[]): number => {
+// Add a Message or array of Messages to a user's corpus.
+// Every Message in the array must be from the same user.
+// You can also skip the validation check if you want, but of course make sure
+//   you know what you're doing if you do that.
+// (That advice is unsolicited. I do not know what I am doing.)
+export const learnFrom = async (messages: Message | Message[], skipValidation: boolean=false): Promise<number> => {
     if (!(messages instanceof Array)) {
         messages = [messages];
     }
@@ -52,19 +59,21 @@ export const learnFrom = (messages: Message | Message[]): number => {
     //   Corpus Manager adds every message passed to it at the same time to
     //   the same user.
     if (!messages.every(message => message.author.id === user.id)) {
-        throw {
+        throw new ParrotError({
             name: "Too many authors",
             code: "ERRTMA",
             message: "Every message in an array passed into learnFrom() must have the same author",
-        };
+        });
     }
 
-    // Only keep messages that pass all of validateMessage()'s checks
-    messages = messages.filter(validateMessage);
+    // Only keep messages that pass all of validateMessage()'s checks.
+    if (!skipValidation) {
+        messages = messages.filter(validateMessage);
+    }
 
     // Add these messages to this user's corpus.
     try {
-        corpusManager.add(user.id, messages);
+        await corpusManager.add(user.id, messages);
     } catch (err) {
         // If the user isn't registered, that's OK; just don't learn from
         //   this message.
@@ -73,13 +82,6 @@ export const learnFrom = (messages: Message | Message[]): number => {
         } else {
             throw err;
         }
-    }
-
-    // Log results.
-    if (messages.length === 1) {
-        console.log(`Collected a message from ${user.tag}`);
-    } else {
-        console.log(`Collected ${messages.length} messages from ${user.tag}`);
     }
 
     return messages.length;

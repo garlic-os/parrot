@@ -2,6 +2,8 @@
 // Algorithm: Letter-based Markov text generator.
 // Keith Enevoldsen, thinkzone.wlonk.com
 
+import { ParrotError } from "./parrot-error";
+
 const pick_match_index = (text: string, target: string, nchars: number) => {
     // Find all sets of matching target characters.
     var nmatches = 0;
@@ -28,11 +30,11 @@ const pick_char = (text: string, target: string, level: number, nchars: number) 
     while (true) {
         targetIndex = text.indexOf(target, targetIndex + 1);
         if (targetIndex === -1 || targetIndex >= nchars) {
-            throw {
+            throw new ParrotError({
                 name: "Range Error",
                 code: "RANGE",
                 message: "Index out of range. I have no idea why this happens.",
-            }
+            });
         } else if (matchIndex === nmatches) {
             // If this new index is out of bounds, return an empty string instead of undefined.
             return text[targetIndex + level - 1] || "";

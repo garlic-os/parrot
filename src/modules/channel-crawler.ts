@@ -5,7 +5,11 @@ import type {
 
 import { Collection } from "discord.js";
 import { EventEmitter } from "events";
-import * as utils from "./utils";
+import message from "../listeners/message";
+
+type ChannelCrawlerEndReason = "channelBeginningReached" | "limit" | "processedLimit";
+type UserReason = string;
+
 
 // This is what I thought Discord.MessageCollector was going to be.
 // Turns out MessageCollector does something different, so I made
@@ -35,14 +39,24 @@ export class ChannelCrawler extends EventEmitter {
     }
 
 
+    private lastMessage(messages: Message[]): Message | undefined {
+        for (let i = messages.length; i > 0; --i) {
+            if (messages[i]) {
+                return messages[i];
+            }
+        }
+        return undefined;
+    };
+
+
     // A pusedo-recursive async function that scrapes the channel until a quota
     //   is met or the top of the channel is reached.
-    private async getMessages(query: ChannelLogsQueryOptions): Promise<string> {
-        const messages = Array.from((await this.channel.messages.fetch(query)).values());
-        query.before = utils.lastOf(messages).id;
+    private async getMessages(query: ChannelLogsQueryOptions): Promise<ChannelCrawlerEndReason | UserReason> {
+        const messages = (await this.channel.messages.fetch(query)).array();
+        const lastMessage = this.lastMessage(messages);
 
         // If there are no more messages or a quota has been met, stop crawling.
-        if (messages.length === 0) {
+        if (messages.length === 0 || !lastMessage) {
             return "channelBeginningReached";
         } else if (this.options.max && this.collected.size >= this.options.max) {
             return "limit";
@@ -51,23 +65,19 @@ export class ChannelCrawler extends EventEmitter {
         }
         
         // Start on getting the next batch.
-        // An end reason will eventually bubble up from the recursion hole.
+        query.before = lastMessage.id;
         const endReasonPromise = this.getMessages(query);
 
         this.received += messages.length;
 
-        for (let message of messages) {
+        for (const message of messages) {
             // Ended prematurely by the user
             if (this.ended) {
                 return this.userReason;
             }
 
-            // In case the message is actually in message[1].
-			// No, it is never in message[0].
-			if (message instanceof Array) {
-				message = message[1];
-            }
-
+            // Collect this message if it passes the filter;
+            //   dispose of it if it doesn't.
             if (this.filter(message)) {
                 this.collected.set(message.id, message);
                 this.emit("collect", message);
@@ -76,29 +86,31 @@ export class ChannelCrawler extends EventEmitter {
             }
         }
 
-        // Wait for all "child" calls to finish.
-        // This will not resolve until every call futher down
-        //   in the recursion hole has resolved.
+        // Wait for all "child" calls to resolve.
+        // An end reason will eventually bubble up from the recursion hole.
         return await endReasonPromise;
     }
 
 
     // Start crawling.
-    start() {
+    start(): this {
         const query: ChannelLogsQueryOptions = {
             limit: 100,
         };
 
         this.getMessages(query).then( (reason: string) => {
-            this.emit("end", this.collected, reason);
             this.ended = true;
+            this.emit("end", this.collected, reason);
         });
+
+        return this;
     }
 
 
     // Stop the crawling early.
-    stop(reason: string="user") {
+    stop(reason: string="user"): this {
         this.ended = true;
         this.userReason = reason;
+        return this;
     }
 }

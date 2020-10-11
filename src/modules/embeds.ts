@@ -1,8 +1,9 @@
 /**
- * All of Parrot's embeds are consolidated here.
+ * All of Parrot's embeds live here.
  */
 import type { EmbedField, Guild, User } from "discord.js";
 import type { ErrorLike } from "..";
+import type { ChannelCrawler } from "./channel-crawler";
 
 import { colors } from "../modules/colors";
 import { config } from "../config";
@@ -196,5 +197,68 @@ export const quickstartChoices = (guild: Guild) => {
         title: "Quickstart Channels",
         description: `Quickstart is available in channels where Parrot can learn from your messages. Try running \`${prefix}quickstart\` again in one of these channels:`,
         fields: learningIn(guild).fields,
+    });
+};
+
+
+export const quickstartScanning = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        fields: [
+            {
+                name: "Scanning...",
+                value: `Collected ${totalCollected} messages...`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
+    });
+};
+
+
+export const quickstartFinished = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        color: colors.green,
+        fields: [
+            {
+                name: "Scan complete",
+                value: `Collected ${totalCollected} messages.`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
+    });
+};
+
+
+export const quickstartNoMessages = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        color: colors.red,
+        description: "😕 Couldn't find any messages from you in this channel.",
+        fields: [
+            {
+                name: "Scan complete",
+                value: `Collected ${totalCollected} messages.`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
     });
 };
