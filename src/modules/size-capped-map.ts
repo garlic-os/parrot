@@ -1,9 +1,9 @@
 /**
  * A Map with a set maximum size. Deletes its oldest entry when at capacity.
  */
-export class SizeCappedMap extends Map {
+export class SizeCappedMap<K,V> extends Map<K,V> {
     private maxSize: number = 0;
-    private keyArray: any[];
+    private keyArray: K[];
 
     constructor(maxSize: number) {
         super();
@@ -11,11 +11,11 @@ export class SizeCappedMap extends Map {
         this.keyArray = Array.from(this.keys());
     }
 
-    set(key: any, value: any): this {
+    set(key: K, value: V): this {
         // If this is a new entry and the Map is already at its max size,
         //   delete the oldest entry.
         if (!this.has(key) && this.size === this.maxSize) {
-            this.delete(this.keyArray.shift());
+            this.delete(<K>this.keyArray.shift());
         }
         super.set(key, value);
         this.keyArray.push(key);
@@ -28,7 +28,7 @@ export class SizeCappedMap extends Map {
         }
         this.maxSize = newMaxSize;
         while (this.size > this.maxSize) {
-            this.delete(this.keyArray.shift());
+            this.delete(<K>this.keyArray.shift());
         }
         return this;
     }

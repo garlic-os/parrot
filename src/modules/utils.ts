@@ -1,5 +1,3 @@
-import type { EventEmitter } from "events";
-
 import { Collection, DMChannel, TextChannel, User } from "discord.js";
 import * as regex from "./regex";
 
@@ -62,17 +60,13 @@ export const lastOf = (thing: any): any => {
 };
 
 
-
-export const when = (eventEmitter: EventEmitter, eventName: string): Promise<any> => {
-    return new Promise( (resolve) => {
-        eventEmitter.once(eventName, resolve);
-    });
-};
-
-
-// Credit Michael Martin-Smucker
+// Made by Michael Martin-Smucker
 // https://stackoverflow.com/a/25352300
 export const isAlphaNumeric = (text: string): boolean => {
+    if (!text) {
+        return false;
+    }
+
     var code, i;
   
     for (i = 0; i < text.length; ++i) {
@@ -84,14 +78,6 @@ export const isAlphaNumeric = (text: string): boolean => {
         }
     }
     return true;
-};
-
-
-// Overwrite a line in the console.
-export const consoleUpdate = (text: string): void => {
-    process.stdout.clearLine(0);
-    process.stdout.cursorTo(0);
-    process.stdout.write(text + "\n");
 };
 
 

@@ -1,12 +1,14 @@
 /**
- * All of Parrot's embeds are consolidated here.
+ * All of Parrot's embeds live here.
  */
 import type { EmbedField, Guild, User } from "discord.js";
 import type { ErrorLike } from "..";
+import type { ChannelCrawler } from "./channel-crawler";
 
 import { colors } from "../modules/colors";
 import { config } from "../config";
 import { ParrotEmbed } from "./parrot-embed";
+import { client } from "../app";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -40,7 +42,6 @@ export const unregistrationSuccess = new ParrotEmbed({
 
 export const policy = new ParrotEmbed({
     title: "Privacy Policy",
-    color: colors.purple,
     description: policyText,
     footer: {
         text: `${prefix}register • ${prefix}unregister`,
@@ -85,14 +86,12 @@ export const downloadReady = new ParrotEmbed({
 
 export const youAreRegistered = new ParrotEmbed({
     title: "✅ You are registered.",
-    color: colors.purple,
     description: "Parrot can learn from your messages and imitate you.",
 });
 
 
 export const youAreNotRegistered = new ParrotEmbed({
     title: "❌ You are not registered.",
-    color: colors.purple,
     description: "Parrot can not learn from your messages and imitate you.",
 });
 
@@ -104,10 +103,22 @@ export const forgetPermissionDenied = new ParrotEmbed({
 });
 
 
+export const corpusCorrupt = (user: User) => {
+    return new ParrotEmbed({
+        author: {
+            name: user.tag,
+            iconURL: user.displayAvatarURL(),
+        },
+        title: "¡Ay caramba!",
+        color: colors.orange,
+        description: `Your corpus is corrupt. Please contact <@${client.owners[0].id}>.`,
+    });
+}; 
+
+
 export const dataDownloadLink = (url: string) => {
     return new ParrotEmbed({
         title: "Link to download your data",
-        color: colors.purple,
         description: url,
         footer: {
             text: "Link expires in 6 hours.",
@@ -184,8 +195,70 @@ export const learningIn = (guild: Guild) => {
 export const quickstartChoices = (guild: Guild) => {
     return new ParrotEmbed({
         title: "Quickstart Channels",
-        color: colors.purple,
         description: `Quickstart is available in channels where Parrot can learn from your messages. Try running \`${prefix}quickstart\` again in one of these channels:`,
         fields: learningIn(guild).fields,
+    });
+};
+
+
+export const quickstartScanning = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        fields: [
+            {
+                name: "Scanning...",
+                value: `Collected ${totalCollected} messages...`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
+    });
+};
+
+
+export const quickstartFinished = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        color: colors.green,
+        fields: [
+            {
+                name: "Scan complete",
+                value: `Collected ${totalCollected} messages.`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
+    });
+};
+
+
+export const quickstartNoMessages = (crawler?: ChannelCrawler) => {
+    // TODO: Would crawler.collected.size work instead?
+    const totalCollected = crawler?.collected.array().length || 0;
+    const totalScanned = crawler?.received || 0;
+
+    return new ParrotEmbed({
+        title: "Quickstart",
+        color: colors.red,
+        description: "😕 Couldn't find any messages from you in this channel.",
+        fields: [
+            {
+                name: "Scan complete",
+                value: `Collected ${totalCollected} messages.`,
+            }
+        ],
+        footer: {
+            text: `${totalScanned} total messages scanned`,
+        },
     });
 };

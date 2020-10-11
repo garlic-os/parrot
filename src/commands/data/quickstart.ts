@@ -1,5 +1,4 @@
 import type { Corpus } from "../..";
-import type { Collection, Snowflake } from "discord.js";
 import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { Message } from "discord.js";
@@ -9,7 +8,7 @@ import { colors } from "../../modules/colors";
 import { config } from "../../config";
 import * as utils from "../../modules/utils";
 import * as embeds from "../../modules/embeds";
-import { learnFrom } from "../../modules/learning";
+import { learnFrom, validateMessage } from "../../modules/learning";
 import { ChannelCrawler } from "../../modules/channel-crawler";
 
 
@@ -65,27 +64,22 @@ export default class QuickstartCommand extends Command {
         }
 
         // Show Parrot's progress on scraping this user's message history.
-        const messages = await message.embed({
-            title: "Quickstart",
-            color: colors.purple,
-            fields: [
-                {
-                    name: "Scanning...",
-                    value: "​", // zero width space
-                },
-            ],
-        });
-        const statusMessage = utils.firstOf(messages);
+        const messages = await message.embed(embeds.quickstartScanning());
+        const statusMessage: Message = utils.firstOf(messages);
 
         // Make sure to only collect messages that _this_ user sent.
         const filter = (collectedMessage: Message): boolean => {
-            return message.author === collectedMessage.author;
+            return (
+                message.author === collectedMessage.author &&
+                validateMessage(collectedMessage)
+            );
         };
 
         // Collect up to 1,000 messages. The crawler may look at
         //   more than this many to get 1,000 that match the filter.
         const options = {
-            max: 1000, // Maybe 10,000?
+            max: 1_000,
+            maxProcessed: 10_000,
         };
 
         // Start collecting messages.
@@ -95,47 +89,40 @@ export default class QuickstartCommand extends Command {
         //   how many messages have been collected so far.
         const editLoop = setInterval( () => {
             statusMessage.edit(null, {
-                embed: {
-                    title: "Quickstart",
-                    color: colors.purple,
-                    fields: [
-                        {
-                            name: "Scanning...",
-                            value: `Collected ${crawler.collected.size} messages...`,
-                        }
-                    ],
-                    footer: {
-                        text: `${crawler.received} total messages scanned`,
-                    },
-                },
+                embed: embeds.quickstartScanning(crawler),
             }); 
         }, 2000);
 
-        // Add each collected message to the user's corpus.
-        crawler.on("collect", learnFrom);
-
         // Edit the embed one last time to show that it's done,
         //   and stop the loop that updates progress.
-        crawler.once("end", () => {
+        crawler.once("end", async () => {
             clearInterval(editLoop);
-            statusMessage.edit(null, {
-                embed: {
-                    title: "Quickstart",
-                    color: colors.green,
-                    fields: [
-                        {
-                            name: "Scan complete",
-                            value: `Collected ${crawler.collected.size} messages.`,
-                        }
-                    ],
-                    footer: {
-                        text: `${crawler.received} total messages scanned`,
-                    },
-                },
-            });
+            let learnedCount = 0;
+
+            if (crawler.collected.size > 0) {
+                statusMessage.edit(null, {
+                    embed: embeds.quickstartFinished(crawler),
+                });
+
+                // Add these messages to the user's corpus.
+                // Also, skip validating these messages because they were already
+                //   validated as part of the Channel Crawler's filter.
+                learnedCount = await learnFrom(crawler.collected.array(), true);
+            } else {
+                statusMessage.edit(null, {
+                    embed: embeds.quickstartNoMessages(crawler),
+                });
+            }
+
+            // Log results.
+            if (learnedCount === 1) {
+                console.log(`Collected a message from ${message.author.tag}`);
+            } else {
+                console.log(`Collected ${learnedCount} messages from ${message.author.tag}`);
+            }
         });
 
-        // The Crawler has its marching orders, so now let it loose!
+        // The Crawler has its marching orders; now let it loose!
         crawler.start();
 
         return null;

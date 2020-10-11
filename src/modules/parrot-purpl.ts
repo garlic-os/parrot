@@ -1,3 +1,5 @@
+import { ParrotError } from "./parrot-error";
+
 // Importing returns undefined 🤷‍♂️
 const MarkovChain = require("purpl-markov-chain");
 
@@ -12,13 +14,13 @@ export class ParrotPurpl extends MarkovChain {
                 return sentence;
             }
         }
-        throw {
+        throw new ParrotError({
             // The Markov Chain "drew a blank". Try as it might,
             //   for some reason it just couldn't come up with
             //   anything to say.
             name: "Drew a blank",
             code: "DREWBLANK",
             message: "Failed to generate a sentence after 1000 attempts",
-        };
+        });
     }
 }

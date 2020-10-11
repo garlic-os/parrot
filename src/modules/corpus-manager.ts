@@ -7,6 +7,7 @@ import { chainManager } from "../app";
 import * as path from "path";
 import { promises as fs } from "fs";
 import { Message } from "discord.js";
+import { ParrotError } from "./parrot-error";
 
 /**
  * Provides methods for accessing elements in Parrot's database of corpora.
@@ -30,11 +31,11 @@ export class CorpusManager {
     //   present in the User Registry file.
     private assertRegistration(userID: Snowflake): void {
         if (!this.userRegistry.has(userID)) {
-            throw {
+            throw new ParrotError({
                 name: "Not registered",
                 code: "NOTREG",
                 message: `User ${userID} is not registered`,
-            };
+            });
         }
     }
 
@@ -42,12 +43,6 @@ export class CorpusManager {
     // Record a message to a user's corpus.
     // Also update any Markov Chain they might have cached with that data.
     async add(userID: Snowflake, messages: MaybeArray<Message>): Promise<void> {
-        if (!(await this.has(userID))) {
-            // Create a new file with an empty JSON object
-            const corpusPath = path.join(this.dir, userID + ".json");
-            await fs.writeFile(corpusPath, "{}");
-        }
-
         // Ensure the message(s) is/are in an array so we're always able to just
         //   for-loop over it.
         if (messages instanceof Message) {
@@ -55,16 +50,22 @@ export class CorpusManager {
         }
 
         const cachedChain = chainManager.cache.get(userID);
-        const corpus = await this.get(userID);
+
+        let corpus: Corpus = {};
+        try {
+            corpus = await this.get(userID);
+        } catch (err) {
+            if (err.code !== "ENOENT") {
+                throw err;
+            }
+        }
 
         for (const message of messages) {
             corpus[message.id] = {
                 content: message.content,
                 timestamp: message.createdTimestamp,
             };
-            if (cachedChain) {
-                cachedChain.update(message.content);
-            }
+            cachedChain?.update(message.content);
         }
 
         this.set(userID, corpus);
