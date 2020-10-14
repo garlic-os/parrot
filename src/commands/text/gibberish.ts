@@ -2,11 +2,10 @@ import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { gibberish } from "../../modules/gibberish";
 import { Command } from "discord.js-commando";
-import { triggerAsyncId } from "async_hooks";
 
 
 interface GibberishCommandArguments {
-    text: string;
+    text: string[];
 }
 
 
@@ -29,9 +28,6 @@ export default class GibberishCommand extends Command {
                     prompt: "Text to feed into the gibberish machine",
                     type: "string",
                     infinite: true,
-                    parse: (_: any, message: CommandoMessage): string => {
-                        return message.argString.substring(1);
-                    },
                 },
             ],
 		});
@@ -39,7 +35,9 @@ export default class GibberishCommand extends Command {
     
 
     run(message: CommandoMessage, { text }: GibberishCommandArguments): null {
-        if (text.length < 4) {
+        const input = text.join(" ");
+
+        if (input.length < 4) {
             message.reply("the input should be least 4 characters to generate gibberish.");
             return null;
         }
@@ -53,7 +51,7 @@ export default class GibberishCommand extends Command {
         //   If this happens, retry up to 999 times.
         do {
             try {
-                outputText = gibberish(text, stateSize, outputLength);
+                outputText = gibberish(input, stateSize, outputLength);
             } catch (err) {
                 if (err.code === "RANGE") {
                     if (++tries > 1000) {
@@ -62,7 +60,7 @@ export default class GibberishCommand extends Command {
                             outputLength,
                             stateSize,
                         });
-                        message.say("Error: managed to trigger the random bug that makes the gibberish generator fail, 1,000 times in a row. I give up.");
+                        message.say("Error: gibberish generator failed 1,000 times in a row. It must really not like that input.");
                         return null;
                     }
                 } else {
