@@ -90,7 +90,7 @@ export default class ImitateCommand extends Command {
     async run(message: CommandoMessage, { user, startword }: ImitateCommandArguments, intimidateMode: boolean=false): Promise<null> {
         let chain: ParrotPurpl;
         try {
-            chain = await chainManager.get(user.id);
+            chain = await chainManager.get(user);
 
         } catch (err) {
             if (err.code === "NOTREG") {
