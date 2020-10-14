@@ -11,6 +11,7 @@ import * as embeds from "../../modules/embeds";
 import * as utils from "../../modules/utils";
 import { Command } from "discord.js-commando";
 import { ParrotEmbed } from "../../modules/parrot-embed";
+import { disablePings } from "../../modules/disable-pings";
 
 const prefix = config.commandPrefix;
 
@@ -20,6 +21,8 @@ const sendImitationMessage = async (message: CommandoMessage, user: User, text: 
 
     let nickname = await utils.resolveNickname(user, message.channel);
     let namePrefix = "(Parrot) ";
+
+    text = await disablePings(text, message.channel);
 
     // When inimitate mode is enabled (through the intimidate command),
     //   capitalize the message and wrap it in bold Markdown.
@@ -39,7 +42,7 @@ const sendImitationMessage = async (message: CommandoMessage, user: User, text: 
         //   available in the given channel.
         await message.embed({
             author: {
-                name: namePrefix + nickname,
+                name: nickname,
                 iconURL: user.displayAvatarURL(),
             },
             color: colors.purple,
@@ -120,22 +123,16 @@ export default class ImitateCommand extends Command {
         chain.config.grams = ~~(Math.random() * 2 + 1); // State size 1-3
         chain.config.from = startword;
 
-        let phrase = "";
-
-        for (let i = 0; i < sentenceCount; ++i) { // haha ++i
-            try {
-                phrase += chain.generate() + " ";
-            } catch (err) {
-                if (err.code !== "DREWBLANK") {
-                    throw err;
-                }
+        try {
+            const phrase = chain.generate(sentenceCount);
+            sendImitationMessage(message, user, phrase, intimidateMode);
+        } catch (err) {
+            if (err.code === "DREWBLANK") {
                 message.embed(embeds.errorMessage(err));
-                return null;
             }
-            chain.config.from = "";
+            throw err;
         }
 
-        sendImitationMessage(message, user, phrase, intimidateMode);
         return null;
     }
 }
