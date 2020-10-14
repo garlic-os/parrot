@@ -47,7 +47,7 @@ export default class QuickstartCommand extends Command {
         // Get this user's corpus. Create a blank one if it doesn't exist.
         let corpus: Corpus;
         try {
-            corpus = await corpusManager.get(message.author.id);
+            corpus = await corpusManager.get(message.author);
         } catch (err) {
             if (err.code === "ENOENT") {
                 corpus = {};

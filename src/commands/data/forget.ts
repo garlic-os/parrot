@@ -42,8 +42,8 @@ export default class ForgetCommand extends Command {
             return null;
         }
 
-        if (await corpusManager.has(user.id)) {
-            corpusManager.delete(user.id);
+        if (await corpusManager.has(user)) {
+            corpusManager.delete(user);
             message.embed(embeds.forgot(user));
         } else {
             message.embed(embeds.noData(user));

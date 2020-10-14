@@ -1,4 +1,4 @@
-import type { Snowflake } from "discord.js";
+import type { Snowflake, User } from "discord.js";
 import type { Corpus } from "..";
 
 import { corpusManager } from "../app";
@@ -16,21 +16,21 @@ export class ChainManager {
     
     // Get a Markov Chain by user ID;
     //   from cache if it's cached, from corpus if it's not.
-    async get(userID: Snowflake): Promise<ParrotPurpl> {
-        const cachedChain = this.cache.get(userID);
+    async get(user: User): Promise<ParrotPurpl> {
+        const cachedChain = this.cache.get(user.id);
         if (cachedChain) {
             return cachedChain;
         }
         
         let corpus: Corpus;
         try {
-            corpus = await corpusManager.get(userID);
+            corpus = await corpusManager.get(user);
         } catch (err) {
             if (err.code === "ENOENT") {
                 throw new ParrotError({
                     name: "No data",
                     code: "NODATA",
-                    message: `No data available for user ${userID}`
+                    message: `No data available for user ${user.tag}`
                 });
             }
             throw err;
@@ -42,12 +42,12 @@ export class ChainManager {
             chain.update(corpus[messageID].content);
         }
 
-        this.cache.set(userID, chain);
+        this.cache.set(user.id, chain);
         return chain;
     }
 
 
-    async has(userID: Snowflake): Promise<boolean> {
-        return this.cache.has(userID) || (await corpusManager.has(userID));
+    async has(user: User): Promise<boolean> {
+        return this.cache.has(user.id) || (await corpusManager.has(user));
     }
 }

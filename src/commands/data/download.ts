@@ -26,7 +26,7 @@ export default class DownloadCommand extends Command {
     
 
     async run(message: CommandoMessage): Promise<null> {
-        const corpusFilePath = await corpusManager.pathTo(message.author.id);
+        const corpusFilePath = await corpusManager.pathTo(message.author);
 
         if (!corpusFilePath) {
             message.embed(embeds.noData(message.author));

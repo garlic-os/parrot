@@ -1,5 +1,5 @@
 import type { Corpus, Maybe, MaybeArray } from "..";
-import type { Snowflake } from "discord.js";
+import type { User } from "discord.js";
 
 import { ensureDirectory } from "./ensure-directory";
 import { DiskSet } from "./disk-set";
@@ -29,12 +29,13 @@ export class CorpusManager {
 
     // This method throws a NOTREG error if the provided user is not
     //   present in the User Registry file.
-    private assertRegistration(userID: Snowflake): void {
-        if (!this.userRegistry.has(userID)) {
+    // A special exception for bots: bots don't to be registered.
+    private assertRegistration(user: User): void {
+        if (!this.userRegistry.has(user.id) && !user.bot) {
             throw new ParrotError({
                 name: "Not registered",
                 code: "NOTREG",
-                message: `User ${userID} is not registered`,
+                message: `User ${user.id} is not registered`,
             });
         }
     }
@@ -42,18 +43,18 @@ export class CorpusManager {
 
     // Record a message to a user's corpus.
     // Also update any Markov Chain they might have cached with that data.
-    async add(userID: Snowflake, messages: MaybeArray<Message>): Promise<void> {
+    async add(user: User, messages: MaybeArray<Message>): Promise<void> {
         // Ensure the message(s) is/are in an array so we're always able to just
         //   for-loop over it.
         if (messages instanceof Message) {
             messages = [messages];
         }
 
-        const cachedChain = chainManager.cache.get(userID);
+        const cachedChain = chainManager.cache.get(user.id);
 
         let corpus: Corpus = {};
         try {
-            corpus = await this.get(userID);
+            corpus = await this.get(user);
         } catch (err) {
             if (err.code !== "ENOENT") {
                 throw err;
@@ -68,34 +69,34 @@ export class CorpusManager {
             cachedChain?.update(message.content);
         }
 
-        this.set(userID, corpus);
+        this.set(user, corpus);
     }
 
 
     // Get a corpus by user ID.
     // Throws ENOENT if the corpus does not exist.
     // Throws NOTREG if the user is registered.
-    async get(userID: Snowflake): Promise<Corpus> {
-        this.assertRegistration(userID);
+    async get(user: User): Promise<Corpus> {
+        this.assertRegistration(user);
 
-        const corpusPath = path.join(this.dir, userID + ".json");
+        const corpusPath = path.join(this.dir, user.id + ".json");
         const jsonData = await fs.readFile(corpusPath, "utf-8");
         return JSON.parse(jsonData);
     }
 
 
     // Create or overwrite a corpus, adding it to the filesystem and to cache.
-    async set(userID: Snowflake, corpus: Corpus): Promise<void> {
-        this.assertRegistration(userID);
+    async set(user: User, corpus: Corpus): Promise<void> {
+        this.assertRegistration(user);
 
-        const corpusPath = path.join(this.dir, userID + ".json");
+        const corpusPath = path.join(this.dir, user.id + ".json");
         await fs.writeFile(corpusPath, JSON.stringify(corpus));
     }
 
 
     // Delete a user's corpus file from disk.
-    async delete(userID: Snowflake): Promise<boolean> {
-        const corpusPath = path.join(this.dir, userID + ".json");
+    async delete(user: User): Promise<boolean> {
+        const corpusPath = path.join(this.dir, user.id + ".json");
         try {
             await fs.unlink(corpusPath);
         } catch (err) {
@@ -105,8 +106,8 @@ export class CorpusManager {
     }
 
 
-    async has(userID: Snowflake): Promise<boolean> {
-        const corpusPath = path.join(this.dir, userID + ".json");
+    async has(user: User): Promise<boolean> {
+        const corpusPath = path.join(this.dir, user.id + ".json");
         try {
             await fs.stat(corpusPath);
             return true;
@@ -119,9 +120,9 @@ export class CorpusManager {
     }
 
 
-    async pathTo(userID: Snowflake): Promise<Maybe<string>> {
-        if (await this.has(userID)) {
-            return path.join(this.dir, userID + ".json");
+    async pathTo(user: User): Promise<Maybe<string>> {
+        if (await this.has(user)) {
+            return path.join(this.dir, user.id + ".json");
         }
         return null;
     }
