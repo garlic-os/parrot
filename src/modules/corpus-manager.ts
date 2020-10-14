@@ -31,7 +31,7 @@ export class CorpusManager {
     //   present in the User Registry file.
     // A special exception for bots: bots don't to be registered.
     private assertRegistration(user: User): void {
-        if (!this.userRegistry.has(user.id) && !user.bot) {
+        if (!(this.userRegistry.has(user.id) || user.bot)) {
             throw new ParrotError({
                 name: "Not registered",
                 code: "NOTREG",

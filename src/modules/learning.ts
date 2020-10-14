@@ -31,9 +31,6 @@ export const validateMessage = (message: Message): boolean => {
             utils.isAlphaNumeric(content[0])
         ) &&
 
-        // Don't learn from bots.
-        !message.author.bot &&
-
         // Don't learn from Webhooks.
         !message.webhookID &&
 
@@ -61,7 +58,7 @@ export const learnFrom = async (messages: Message | Message[], skipValidation: b
     if (!messages.every(message => message.author.id === user.id)) {
         throw new ParrotError({
             name: "Too many authors",
-            code: "ERRTMA",
+            code: "TOOMANYAUTHORS",
             message: "Every message in an array passed into learnFrom() must have the same author",
         });
     }
@@ -73,7 +70,7 @@ export const learnFrom = async (messages: Message | Message[], skipValidation: b
 
     // Add these messages to this user's corpus.
     try {
-        await corpusManager.add(user.id, messages);
+        await corpusManager.add(user, messages);
     } catch (err) {
         // If the user isn't registered, that's OK; just don't learn from
         //   this message.
