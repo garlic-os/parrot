@@ -2,11 +2,10 @@ import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 
 import { gibberish } from "../../modules/gibberish";
 import { Command } from "discord.js-commando";
-import { triggerAsyncId } from "async_hooks";
 
 
 interface GibberishCommandArguments {
-    text: string;
+    text: string[];
 }
 
 
@@ -29,16 +28,15 @@ export default class GibberishCommand extends Command {
                     prompt: "Text to feed into the gibberish machine",
                     type: "string",
                     infinite: true,
-                    parse: (_: any, message: CommandoMessage): string => {
-                        return message.argString.substring(1);
-                    },
                 },
             ],
 		});
     }
     
 
-    run(message: CommandoMessage, { text }: GibberishCommandArguments): null {
+    run(message: CommandoMessage, { text: words }: GibberishCommandArguments): null {
+        const text = words.join(" ");
+
         if (text.length < 4) {
             message.reply("the input should be least 4 characters to generate gibberish.");
             return null;
