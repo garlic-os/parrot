@@ -4,7 +4,6 @@ import type { CommandoClient, CommandoMessage } from "discord.js-commando";
 import { Message } from "discord.js";
 import { Command } from "discord.js-commando";
 import { corpusManager } from "../../app";
-import { colors } from "../../modules/colors";
 import { config } from "../../config";
 import * as utils from "../../modules/utils";
 import * as embeds from "../../modules/embeds";
