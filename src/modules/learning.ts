@@ -1,5 +1,5 @@
 import type { Message } from "discord.js";
-import { corpusManager } from "../app";
+import { client, corpusManager } from "../app";
 import { config } from "../config";
 import { ParrotError } from "./parrot-error";
 import * as regex from "./regex";
@@ -30,6 +30,8 @@ export const validateMessage = (message: Message): boolean => {
             regex.discordStringBeginning.test(content[0]) ||
             utils.isAlphaNumeric(content[0])
         ) &&
+
+        message.author.id !== client?.user?.id &&
 
         // Don't learn from Webhooks.
         !message.webhookID &&

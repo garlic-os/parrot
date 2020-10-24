@@ -88,6 +88,11 @@ export default class ImitateCommand extends Command {
     
 
     async run(message: CommandoMessage, { user, startword }: ImitateCommandArguments, intimidateMode: boolean=false): Promise<null> {
+        if (this.client?.user?.id === user.id) {
+            message.say("No");
+            return null;
+        }
+
         let chain: ParrotPurpl;
         try {
             chain = await chainManager.get(user);
