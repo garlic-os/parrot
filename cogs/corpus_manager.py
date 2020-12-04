@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 from utils.types import Corpus
 
 import os
-import json
+import ujson as json  # ujson is faster
 from discord.ext import commands
 
 
@@ -13,8 +13,10 @@ class CorpusManager(Dict[User, Corpus]):
         self.corpora_dir = corpora_dir
         os.makedirs(corpora_dir, exist_ok=True)
 
+
     def _file_path_no_check(self, user: User) -> str:
         return os.path.join(self.corpora_dir, str(user.id) + ".json")
+
 
     def file_path(self, user: User) -> str:
         self.bot.registration.verify(user)
@@ -32,7 +34,7 @@ class CorpusManager(Dict[User, Corpus]):
         self.bot.registration.verify(user)
 
         if type(messages) is not list:
-            messages = [messages]
+            messages = [messages]  # type: ignore -- It's definitely a List[Message] now
 
         # TODO: Uncomment when chain.update() implemented
         # chain = self.bot.chains.cache.get(user.id, None)
@@ -62,12 +64,14 @@ class CorpusManager(Dict[User, Corpus]):
         except FileNotFoundError:
             raise KeyError(user.id)
 
+
     def __setitem__(self, user: User, corpus: Corpus) -> None:
         """ Create or overwrite a corpus file. """
         self.bot.registration.verify(user)
         corpus_path = self._file_path_no_check(user)
         with open(corpus_path, "w") as f:
             json.dump(corpus, f)
+
 
     def __delitem__(self, user: User) -> None:
         """ Delete a user's corpus. """
@@ -76,6 +80,7 @@ class CorpusManager(Dict[User, Corpus]):
             os.remove(corpus_path)
         except FileNotFoundError:
             raise KeyError(user.id)
+
 
     def has_key(self, user: User) -> bool:
         """ Check if a user's corpus is present on disk. """

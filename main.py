@@ -1,7 +1,7 @@
 from typing import List
 
 import os
-import json
+import ujson as json  # ujson is faster
 import logging
 from discord import AllowedMentions
 from discord.ext import commands

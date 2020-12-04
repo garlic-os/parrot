@@ -3,6 +3,7 @@ import requests  # TODO: replace with aiohttp
 import atexit
 import json
 import math
+import ujson as json  # ujson is faster
 from discord.ext import commands
 from typing import Optional
 from utils import Paginator

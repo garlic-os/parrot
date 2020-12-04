@@ -1,7 +1,7 @@
 from typing import Dict, Optional, Union
 
 import os
-import json
+import ujson as json  # ujson is faster
 from discord import Webhook
 from discord.ext import commands
 

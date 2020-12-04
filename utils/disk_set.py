@@ -1,5 +1,5 @@
 from typing import Iterable, Set, TypeVar
-import json
+import ujson as json  # ujson is faster
 
 T = TypeVar("T")
 
