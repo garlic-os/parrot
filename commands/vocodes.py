@@ -1,13 +1,11 @@
 import discord
-import requests  # TODO: replace with aiohttp
-import atexit
-import json
+import aiohttp
 import math
 import ujson as json  # ujson is faster
 from discord.ext import commands
 from typing import Optional
-from utils import Paginator
 from tempfile import TemporaryFile
+from utils import Paginator
 from utils.pembed import Pembed
 
 
@@ -32,7 +30,6 @@ def get_speaker(name: str) -> Optional[dict]:
     return None
 
 
-session = requests.Session()
 with open("./databases/speakers.json") as f:
     speakers = json.load(f)
     speaker_names = []
@@ -86,11 +83,11 @@ class VocodesCommands(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        # Verify proper length. Must be at least 1 character and at most 280.
-        if not (1 <= len(text) <= 280):
+        # Verify proper length. Must be at least 1 character and at most 1000.
+        if not (1 <= len(text) <= 1000):
             embed = Pembed(
                 title="Text too long",
-                description="Text must be at least 1 character and at most 280 characters long.",
+                description="Text must be at least 1 character and at most 1000 characters long.",
                 color_name="orange",
             )
             await ctx.send(embed=embed)
@@ -103,7 +100,10 @@ class VocodesCommands(commands.Cog):
             await ctx.send(embed=embed)
             return
 
-        payload = {"speaker": speaker["slug"], "text": text}
+        payload = {
+            "speaker": speaker["slug"],
+            "text": text,
+        }
 
         loading_embed = Pembed(
             title="Generating sentence...",
@@ -123,38 +123,44 @@ class VocodesCommands(commands.Cog):
 
         # Send a request to vo.codes for a clip of the given character saying
         #   the given text. The server will respond back with a .wav file.
-        response = session.post("https://mumble.stream/speak", json=payload)
+        async with aiohttp.ClientSession() as session:
+            async with session.post("https://mumble.stream/speak", json=payload) as response:
+                if response.status == 200:
+                    # Once complete, edit the message to say "success" instead of "loading"
+                    loading_embed.title = "Generated a sentence!"
+                    loading_embed.set_author(name="✅ " + speaker["name"])
+                    await loading_message.edit(embed=loading_embed)
 
-        # Once complete, edit the message to say "success" instead of "loading"
-        loading_embed.title = "Generated a sentence!"
-        loading_embed.set_author(name="✅ " + speaker["name"])
-        await loading_message.edit(embed=loading_embed)
+                    # Transform the data into a file stream.
+                    # Unfortunately, a BytesIO won't cut it here, because FFmpeg
+                    #   requires that the stream implements the fileno() method,
+                    #   and BytesIO does (can) not.
+                    # So we have to be hacky and put it into a temporary file instead.
+                    with TemporaryFile() as f:
+                        # Write the audio data to a temporary file.
+                        f.write(await response.content.read())
 
-        if response.status_code == 200:
-            # Transform the data into a file stream.
-            # Unfortunately, a BytesIO won't cut it here, because FFmpeg
-            #   requires that the stream implements the fileno() method,
-            #   and BytesIO does (can) not.
-            # So we have to be hacky and put it into a temporary file instead.
-            with TemporaryFile() as f:
-                # Write the audio data to a temporary file.
-                f.write(response.content)
+                        # Seek to the beginning to read it again.
+                        f.seek(0)
 
-                # Seek to the beginning to read it again.
-                f.seek(0)
+                        # Stream the audio over voice chat.
+                        player_in_guild.play(
+                            discord.FFmpegPCMAudio(f, pipe=True, options=["-ar 48000", "-guess_layout_max 0"])
+                        )
+                else:
+                    # Edit the loading embed to show there was an error.
+                    loading_embed.title = "oh no"
+                    loading_embed.set_author(name="❌ " + speaker["name"])
+                    await loading_message.edit(embed=loading_embed)
 
-                # Stream the audio over voice chat.
-                player_in_guild.play(
-                    discord.FFmpegPCMAudio(f, pipe=True, options=["-ar 48000"])
-                )
-        else:
-            embed = Pembed(
-                title="🤷‍♂️ Error",
-                description=f"Something went wrong while generating the speech:\n{response.status_code} {response.reason}",
-                color_name="red",
-                footer="Give it a moment and try again.",
-            )
-            await ctx.send(embed=embed)
+                    # Post a new embed explaining the error.
+                    embed = Pembed(
+                        title="🤷‍♂️ Error",
+                        description=f"Something went wrong while generating the speech:\n{response.status} {response.reason}",
+                        color_name="red",
+                        footer="Give it a moment and try again.",
+                    )
+                    await ctx.send(embed=embed)
 
     @commands.command(aliases=["speakers"])
     async def voices(self, ctx):
@@ -184,10 +190,3 @@ class VocodesCommands(commands.Cog):
 def setup(bot):
     bot.add_cog(VocodesCommands(bot))
 
-
-# Make sure to try to close the HTTP session when stopping the program
-def on_exit():
-    session.close()
-
-
-atexit.register(on_exit)
