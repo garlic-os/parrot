@@ -12,10 +12,10 @@ class LearningCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         learning_path = os.environ.get(
-            "DB_LEARNING_CHANNELS_PATH", "./databases/learning-channels.json"
+            "DB_LEARNING_CHANNELS_PATH", "data/learning-channels.json"
         )
         speaking_path = os.environ.get(
-            "DB_SPEAKING_CHANNELS_PATH", "./databases/speaking-channels.json"
+            "DB_SPEAKING_CHANNELS_PATH", "data/speaking-channels.json"
         )
 
         bot.validate_message = self.validate_message

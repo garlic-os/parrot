@@ -142,4 +142,4 @@ cython_debug/
 *.code-workspace
 
 # Parrot data storage
-databases/
+data/

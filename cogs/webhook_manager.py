@@ -52,7 +52,7 @@ class WebhookManager(Dict[int, Union[Webhook, WebhookSeed]]):
 class CorpusManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         bot.webhooks = WebhookManager(
-            os.environ.get("DB_WEBHOOKS_PATH", "./databases/webhooks.json")
+            os.environ.get("DB_WEBHOOKS_PATH", "data/webhooks.json")
         )
 
 

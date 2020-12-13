@@ -25,7 +25,7 @@ class RegistrationManager(DiskSet[int]):
 class RegistrationManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         registration_path = os.environ.get(
-            "DB_REGISTRATION_PATH", "./databases/registration.json"
+            "DB_REGISTRATION_PATH", "data/registration.json"
         )
         bot.registration = RegistrationManager(registration_path)
 
