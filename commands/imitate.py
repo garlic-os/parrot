@@ -46,7 +46,7 @@ class ImitateCommand(commands.Cog):
         # Send the sentence through the webhook.
         await webhook.send(
             content=sentence,
-            username=f"Not {user.nick}",  # MY NAME'S! NOT! NIIIIIIICK!
+            username=f"Not {user.display_name}",
             avatar_url=user.avatar_url,
             allowed_mentions=AllowedMentions.none(),
         )
