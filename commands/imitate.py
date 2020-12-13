@@ -10,7 +10,7 @@ class ImitateCommand(commands.Cog):
         self.bot = bot
 
     @commands.command(brief="Imitate someone.")
-    @commands.cooldown(2, 8, commands.BucketType.user)
+    @commands.cooldown(2, 4, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
         """ Imitate a registered user. """
         # Fetch this user's chain.
