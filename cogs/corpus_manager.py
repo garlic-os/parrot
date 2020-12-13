@@ -1,5 +1,5 @@
 from discord import User, Message
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 from utils.types import Corpus
 
 import os
@@ -34,16 +34,15 @@ class CorpusManager(Dict[User, Corpus]):
         self.bot.registration.verify(user)
 
         if type(messages) is not list:
-            messages = [messages]  # type: ignore -- It's definitely a List[Message] now
+            # No, mypy, it's definitely a List[Message] now
+            messages = [messages]  # type: ignore
 
         # TODO: Uncomment when chain.update() implemented
         # chain = self.bot.chains.cache.get(user.id, None)
-        corpus: Corpus = self.get(user, {})
+        corpus = self.get(user, None)
 
-        for message in messages:
-            # Help, how do I make mypy stop saying this
-            # Incompatible types in assignment (expression has type
-            #   "Dict[str, Any]", target has type "CorpusMessage")
+        # messages is definitely iterable
+        for message in messages:  # type: ignore
             corpus[message.id] = {
                 "content": message.content,
                 "timestamp": str(message.created_at),
@@ -63,6 +62,17 @@ class CorpusManager(Dict[User, Corpus]):
                 return json.load(f)
         except FileNotFoundError:
             raise KeyError(user.id)
+
+
+    def get(self, user: User, default: Any=None) -> Union[Corpus, Any]:
+        """
+        .get() wasn't working for some reason until I explicitly defined this
+          method ¯\_(ツ)_/¯
+        """
+        try:
+            return self.__getitem__(user)
+        except KeyError:
+            return default
 
 
     def __setitem__(self, user: User, corpus: Corpus) -> None:
