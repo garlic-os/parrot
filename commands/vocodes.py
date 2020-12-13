@@ -1,16 +1,14 @@
+from discord import ClientException
+
 import discord
+from discord.ext import commands
 import aiohttp
 import math
 import ujson as json  # ujson is faster
-from discord.ext import commands
 from typing import Optional
 from tempfile import TemporaryFile
 from utils import Paginator
 from utils.pembed import Pembed
-
-
-def to_lower(text: str) -> str:
-    return text.lower()
 
 
 def get_speaker(name: str) -> Optional[dict]:
@@ -30,38 +28,61 @@ def get_speaker(name: str) -> Optional[dict]:
     return None
 
 
-with open("./databases/speakers.json") as f:
+def in_voice_channel(ctx: commands.Context) -> bool:
+    """ Check if the bot is in the context's voice channel.  """
+    return ctx.bot.user.id in ctx.author.voice.channel.voice_states
+
+
+# Load the speakers database and an array of their names.
+with open("data/speakers.json") as f:
     speakers = json.load(f)
     speaker_names = []
     for speaker in speakers:
         speaker_names.append(speaker["name"])
-    speaker_names.sort(key=to_lower)
+    speaker_names.sort(
+        key=lambda text: text.lower()
+    )
 
 
 class VocodesCommands(commands.Cog):
     """ Make pop culture icons say whatever you want! Powered by vo.codes. """
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
+    @commands.command()
+    async def leave(self, ctx: commands.Context) -> None:
+        """ Make Parrot leave the voice channel that you are in. """
+        if ctx.author.voice is not None:
+            voice_client = ctx.author.voice.channel.voice_states.get(ctx.bot.user.id, None)
+            if voice_client is not None:
+                await voice_client.disconnect()
+                return
+
+        await ctx.send(embed=Pembed(
+            title="Error",
+            description="You must be in a voice channel with Parrot to use this command.",
+            color_name="orange",
+        ))
+
+
     @commands.command(aliases=["ditto"], usage=f"speaker name; message to speak")
-    async def vocodes(self, ctx, *, args):
+    async def vocodes(self, ctx: commands.Context, *, args: str) -> None:
         """ Make pop culture icons say whatever you want! """
 
-        player_in_guild = None
-        for player in self.bot.voice_clients:
-            if player.guild == ctx.guild:
-                player_in_guild = player
-                break
-
-        if not ctx.author.voice or player_in_guild is None:
-            embed = Pembed(
+        # Join the voice channel the context's author is in.
+        if ctx.author.voice is None:
+            await ctx.send(embed=Pembed(
                 title="Error",
-                description="You and I must both be in a voice channel to use this command.",
+                description="You must be in a voice channel to use this command.",
                 color_name="orange",
-            )
-            await ctx.send(embed=embed)
+            ))
             return
+        else:
+            try:
+                voice_client = await ctx.author.voice.channel.connect()
+            except ClientException:
+                pass
 
         """
         Command parsing code copied from crimsoBOT.
@@ -105,6 +126,11 @@ class VocodesCommands(commands.Cog):
             "text": text,
         }
 
+        if speaker['avatarUrl'].startswith("https"):
+            avatar_url = speaker['avatarUrl']
+        else:
+            avatar_url = f"https://vo.codes/avatars/{speaker['avatarUrl']}"
+
         loading_embed = Pembed(
             title="Generating sentence...",
             description=f"_{speaker['description']}_",
@@ -116,13 +142,14 @@ class VocodesCommands(commands.Cog):
         loading_embed.set_footer(
             text=f"Voice model quality: {speaker['voiceQuality'] * 10}%"
         )
-        loading_embed.set_thumbnail(url=f"https://vo.codes/avatars/{speaker['avatarUrl']}")
+        loading_embed.set_thumbnail(url=avatar_url)
 
         # Send a loading message
         loading_message = await ctx.send(embed=loading_embed)
 
         # Send a request to vo.codes for a clip of the given character saying
         #   the given text. The server will respond back with a .wav file.
+        #   (mumble.stream is vo.codes's backend server)
         async with aiohttp.ClientSession() as session:
             async with session.post("https://mumble.stream/speak", json=payload) as response:
                 if response.status == 200:
@@ -144,8 +171,14 @@ class VocodesCommands(commands.Cog):
                         f.seek(0)
 
                         # Stream the audio over voice chat.
-                        player_in_guild.play(
-                            discord.FFmpegPCMAudio(f, pipe=True, options=["-ar 48000", "-guess_layout_max 0"])
+                        voice_client.play(
+                            # mypy is complaining about overloads here even
+                            #   though this one definitely exists.
+                            discord.FFmpegPCMAudio(  # type: ignore
+                                f,
+                                pipe=True,
+                                options=["-ar 48000", "-ac 1"]
+                            )
                         )
                 else:
                     # Edit the loading embed to show there was an error.
@@ -162,8 +195,9 @@ class VocodesCommands(commands.Cog):
                     )
                     await ctx.send(embed=embed)
 
+
     @commands.command(aliases=["speakers"])
-    async def voices(self, ctx):
+    async def voices(self, ctx: commands.Context) -> None:
         """ List the speakers that Parrot can imitate through vo.codes. """
         speaker_count = len(speaker_names)
         embeds = []
@@ -183,6 +217,7 @@ class VocodesCommands(commands.Cog):
 
         paginator = Paginator.CustomEmbedPaginator(ctx)
         paginator.add_reaction("⏪", "back")
+        paginator.add_reaction("⏹", "delete")
         paginator.add_reaction("⏩", "next")
         await paginator.run(embeds)
 
