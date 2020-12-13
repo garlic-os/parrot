@@ -35,7 +35,7 @@ class ParrotMarkov(markovify.Text):
         Parse a Corpus into a format that markovify likes.
         Rows are sentences; columns are the words in the sentence.
         """
-        return [message.content.split(" ") for message in corpus.values()]
+        return [message["content"].split(" ") for message in corpus.values()]
         # sentences = []
         # for message in corpus.values():
         #     sentences.append(message.content.split(" "))
