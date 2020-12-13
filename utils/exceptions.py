@@ -15,3 +15,8 @@ class NotRegisteredError(FriendlyError):
 class NoDataError(FriendlyError):
     """ Parrot attempted to access an empty or nonexistent corpus. """
     pass
+
+
+class UserNotFoundError(FriendlyError):
+    """ Parrot attempted to get a Discord user who does not exist. """
+    pass
