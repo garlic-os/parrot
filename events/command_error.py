@@ -20,10 +20,10 @@ class CommandErrorEventHandler(commands.Cog):
             return
 
         # Display the text of Friendly Errors directly
-        if type(error.__cause__) is str and error.__cause__.startswith("Friendly Error: "):
-            error_text = error.__cause__[16:]
+        if str(error.__cause__).startswith("Friendly Error: "):
+            error_text = str(error.__cause__)[16:]
         else:
-            error_text = str(error)  # type: ignore
+            error_text = str(error)
             logging.error(f"\n{error_text}\n")
 
         embed = Pembed(
