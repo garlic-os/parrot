@@ -9,11 +9,11 @@ class Userlike(commands.Converter):
     Works with:
       - Mentions, like <@394750023975409309> and <@!394750023975409309>
       - User IDs, like 394750023975409309
-      - The string "me", which resolves to the context's author
+      - The string "me" or "myself", which resolves to the context's author
     """
 
     async def convert(self, ctx: commands.Context, text: str) -> User:
-        if text == "me":
+        if text in ("me", "myself"):
             return ctx.author
 
         # Remove all non-numeric characters
