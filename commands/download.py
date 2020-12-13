@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 from discord.ext import commands
 from utils.pembed import Pembed
 from utils.exceptions import NoDataError
@@ -19,20 +19,17 @@ class DownloadCommand(commands.Cog):
         except FileNotFoundError:
             raise NoDataError(f"No data available for user {user.name}#{user.discriminator}")
 
-        # Upload to anonfiles because it has a free upload API lmao
-        # TODO: Do anything but this
+        # Upload to file.io, a free filesharing service where the file is
+        #   deleted once it's downloaded.
         with open(corpus_file_path, "rb") as f:
-            response = requests.post(
-                "https://api.anonymousfiles.io/",
-                files={"file": f},
-                json={"expires": "6h", "no_index": "true"},
-                verify=False,
-            ).json()
+            async with aiohttp.ClientSession() as session:
+                async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
+                    download_url = (await response.json())["link"]
 
         # DM the user their download link.
         embed_download_link = Pembed(
             title="Link to download your data",
-            description=response["url"],
+            description=download_url,
         )
         embed_download_link.set_footer(text="Link expires in 6 hours.")
         await user.send(embed=embed_download_link)
