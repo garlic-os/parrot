@@ -1,4 +1,4 @@
-from discord import AllowedMentions, Permissions
+from discord import AllowedMentions
 from discord.ext import commands
 from utils.pembed import Pembed
 from utils.converters import Userlike
@@ -27,7 +27,7 @@ class ImitateCommand(commands.Cog):
             # If no webhook is available for this channel, create one as long as
             #   Parrot has the right permissions.
             # TODO: Move this logic to WebhookManager
-            if Permissions.manage_webhooks in ctx.channel.permissions_for(self.bot.user):
+            if commands.bot_has_permissions(manage_webhooks=True):
                 avatar_bytes = requests.get(self.bot.user.avatar_url).content
                 webhook = await ctx.channel.create_webhook(
                     name=f"Parrot in #{ctx.channel.name}",
