@@ -61,7 +61,7 @@ class ChannelCommands(commands.Cog):
             await ctx.send(f"✅ Now able to speak in <#{channel.id}>.")
 
 
-    @commands.group(
+    @channel.group(
         brief="Remove Parrot's learning or speaking permission somewhere.",
         invoke_without_command=True,
     )
