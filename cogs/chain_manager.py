@@ -24,9 +24,11 @@ class ChainManager(Dict[User, ParrotMarkov]):
             return chain
 
         # Otherwise, fetch their corpus and create a new Markov chain.
-        corpus = self.bot.corpora.get(user, None)
-        if corpus is None:
+        try:
+            corpus = self.bot.corpora[user]
+        except KeyError:
             raise NoDataError(f"No data available for user {user.name}#{user.discriminator}")
+            
         chain = ParrotMarkov(corpus)
 
         # Cache this Markov chain for next time.
