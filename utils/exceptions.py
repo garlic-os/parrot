@@ -1,10 +1,9 @@
 class FriendlyError(Exception):
     """ An error we can show directly to the user. """
     def __init__(self, *args: object) -> None:
+        # Add "Friendly Error: " to the beginning of the error text
         if type(args[0]) is str:
-            new_args = list(args)
-            new_args[0] = "Friendly Error: " + new_args[0]
-            args = tuple(new_args)
+            args = ("Friendly Error: " + args[0], *args[1:])
         super().__init__(*args)
 
 
