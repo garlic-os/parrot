@@ -1,4 +1,4 @@
-from typing import Union, List
+from typing import Union, List, cast
 from discord import Message, ChannelType
 
 import re
@@ -32,33 +32,34 @@ class LearningCog(commands.Cog):
     
         return (
             # Text content not empty.
-            len(content) > 0  # type: ignore
-            and
+            len(content) > 0 and
+
             # Not a Parrot command.
-            not content.startswith(self.bot.command_prefix)
-            and
+            not content.startswith(self.bot.command_prefix) and
+
             # Only learn in text channels, not DMs.
-            message.channel.type == ChannelType.text
-            and
+            message.channel.type == ChannelType.text and
+
             # Lot of bots' commands start with non-alphanumeric characters, so
             #   if a message starts with one other than a known Markdown
             #   character or special Discord character, Parrot should just
             #   avoid it because it's probably a command.
             (
-                content[0].isalnum()
-                or re.match(regex.discord_string_start, content[0])
-                or re.match(regex.markdown, content[0])
-            )
-            and
+                content[0].isalnum() or
+                re.match(regex.discord_string_start, content[0]) or
+                re.match(regex.markdown, content[0])
+            ) and
+
             # Don't learn from self.
-            message.author.id != self.bot.user.id
-            and
+            message.author.id != self.bot.user.id and
+
             # Don't learn from Webhooks.
-            not message.webhook_id
-            and
+            not message.webhook_id and
+
             # Parrot must be allowed to learn in this channel.
             message.channel.id in self.bot.learning_channels
         )
+
 
     def learn_from(
         self,
@@ -72,8 +73,11 @@ class LearningCog(commands.Cog):
           you know what you're doing if you do that.
         (That advice is unsolicited. I do not know what I am doing.)
         """
+        # Ensure that messages is a list.
+        # If it's not, make it a list with one value.
         if type(messages) is not list:
-            messages = [messages]
+            messages = [cast(Message, messages)]
+        messages = cast(List[Message], messages)
 
         user = messages[0].author
 
@@ -82,7 +86,7 @@ class LearningCog(commands.Cog):
         for message in messages:
             if message.author != user:
                 msg = (
-                    "Too many authors; every message in a list passed to "
+                    "Too many authors; every message in a list passed to "\
                     "learn_from() must have the same author."
                 )
                 raise ValueError(msg)
