@@ -19,15 +19,13 @@ class ImitateCommand(commands.Cog):
         chain = self.bot.chains[user]
         sentence = chain.make_short_sentence(500) or "Error"
 
-        print("[*] Got this far")
-
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook much faster
         #   than a user, which is crucial imitating lots of users quickly.
         webhook = self.bot.webhooks.get(ctx.channel.id, None)
         if webhook is None:
-            # If no webhook is available for this channel, create it if Parrot
-            #   has the right permissions.
+            # If no webhook is available for this channel, create one as long as
+            #   Parrot has the right permissions.
             # TODO: Move this logic to WebhookManager
             if Permissions.manage_webhooks in ctx.channel.permissions_for(self.bot.user):
                 avatar_bytes = requests.get(self.bot.user.avatar_url).content
@@ -36,7 +34,7 @@ class ImitateCommand(commands.Cog):
                     avatar=avatar_bytes,
                 )
                 self.bot.webhooks[ctx.channel.id] = webhook
-            # Otherwise, use an embed instead.
+            # Otherwise, just use an embed.
             else:
                 embed = Pembed(
                     author=user,
@@ -48,7 +46,7 @@ class ImitateCommand(commands.Cog):
         # Send the sentence through the webhook.
         await webhook.send(
             content=sentence,
-            username=f"Not {user.nick}",
+            username=f"Not {user.nick}",  # MY NAME'S! NOT! NIIIIIIICK!
             avatar_url=user.avatar_url,
             allowed_mentions=AllowedMentions.none(),
         )
