@@ -8,15 +8,23 @@ class FriendlyError(Exception):
 
 
 class NotRegisteredError(FriendlyError):
-    """ Parrot attempted to access data from an unregistered user. """
+    """ Parrot tried to access data from an unregistered user. """
     pass
 
 
 class NoDataError(FriendlyError):
-    """ Parrot attempted to access an empty or nonexistent corpus. """
+    """ Parrot tried to access an empty or nonexistent corpus. """
     pass
 
 
 class UserNotFoundError(FriendlyError):
-    """ Parrot attempted to get a Discord user who does not exist. """
+    """ Parrot tried to get a Discord user who does not exist. """
+    pass
+
+
+class UserPermissionError(FriendlyError):
+    """
+    A user tried to commit an action with Parrot that they don't have the right
+      permissions to do.
+    """
     pass
