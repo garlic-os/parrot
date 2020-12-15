@@ -1,7 +1,7 @@
 import random
 import logging
 from discord.ext import commands
-from utils.pembed import Pembed
+from utils.parrot_embed import ParrotEmbed
 from discord.ext.commands.errors import (
     CommandError,
     CommandNotFound,
@@ -26,7 +26,7 @@ class CommandErrorEventHandler(commands.Cog):
             error_text = str(error)
             logging.error(f"\n{error_text}\n")
 
-        embed = Pembed(
+        embed = ParrotEmbed(
             title=random.choice(failure_phrases),
             description=error_text,
             color_name="red",
