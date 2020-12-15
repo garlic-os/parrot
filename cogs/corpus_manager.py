@@ -1,22 +1,20 @@
 from discord import User, Message
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from utils.types import Corpus
 
 import os
 import ujson as json  # ujson is faster
 from discord.ext import commands
+from utils.exceptions import NoDataError
 
 
 class CorpusManager(Dict[User, Corpus]):
     def __init__(self, bot: commands.Bot, corpora_dir: str) -> None:
         self.bot = bot
         self.corpora_dir = corpora_dir
-        os.makedirs(corpora_dir, exist_ok=True)
-
 
     def _file_path_no_check(self, user: User) -> str:
         return os.path.join(self.corpora_dir, str(user.id) + ".json")
-
 
     def file_path(self, user: User) -> str:
         self.bot.registration.verify(user)
@@ -29,7 +27,7 @@ class CorpusManager(Dict[User, Corpus]):
         """
         Record a message to a user's corpus.
         Also, if this user's Markov Chain is cached, update it with the new
-          information, too.
+            information, too.
         """
         self.bot.registration.verify(user)
 
@@ -39,7 +37,7 @@ class CorpusManager(Dict[User, Corpus]):
 
         # TODO: Uncomment when chain.update() implemented
         # chain = self.bot.chains.cache.get(user.id, None)
-        corpus = self.get(user, None)
+        corpus = self.get(user, {})
 
         # messages is definitely iterable
         for message in messages:  # type: ignore
@@ -61,17 +59,14 @@ class CorpusManager(Dict[User, Corpus]):
             with open(corpus_path, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            raise KeyError(user.id)
+            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
 
 
-    def get(self, user: User, default: Any=None) -> Union[Corpus, Any]:
-        """
-        .get() wasn't working for some reason until I explicitly defined this
-          method ¯\_(ツ)_/¯
-        """
+    def get(self, user: User, default: Optional[Corpus]=None) -> Optional[Corpus]:
+        """ .get() wasn't working until I explicitly defined it ¯\_(ツ)_/¯ """
         try:
             return self.__getitem__(user)
-        except KeyError:
+        except NoDataError:
             return default
 
 
@@ -84,12 +79,12 @@ class CorpusManager(Dict[User, Corpus]):
 
 
     def __delitem__(self, user: User) -> None:
-        """ Delete a user's corpus. """
+        """ Delete a corpus file. """
         corpus_path = self._file_path_no_check(user)
         try:
             os.remove(corpus_path)
         except FileNotFoundError:
-            raise KeyError(user.id)
+            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
 
 
     def has_key(self, user: User) -> bool:
