@@ -1,24 +1,26 @@
-from typing import Iterable, Set, TypeVar
+from typing import Iterable, Iterator, Set, TypeVar
 import ujson as json  # ujson is faster
 
 T = TypeVar("T")
 
 
 class DiskSet(Set[T]):
-    """
-    A Set that mirrors its state to a file.
-    TODO: Every other method
-    """
+    """ A Set that mirrors its state to a file. """
 
-    def __init__(self, path: str, iterable: Iterable[T] = ()) -> None:
+    def __init__(self, path: str, iterable: Iterable[T]=()) -> None:
         self.data = set(iterable)
         self.path = path
         self.load()
         self.reload = self.load
 
     def __contains__(self, value: object) -> bool:
-        """ Redirect contains calls to the inner data set. """
         return value in self.data
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self.data)
+
+    def __len__(self) -> int:
+        return len(self.data)
 
     def load(self) -> None:
         try:
@@ -42,4 +44,12 @@ class DiskSet(Set[T]):
 
     def remove(self, element: T) -> None:
         self.data.remove(element)
+        self.save()
+
+    def discard(self, element: T) -> None:
+        self.data.discard(element)
+        self.save()
+
+    def clear(self) -> None:
+        self.data.clear()
         self.save()
