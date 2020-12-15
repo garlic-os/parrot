@@ -32,7 +32,8 @@ class LearningCog(commands.Cog):
     
         return (
             # Text content not empty.
-            len(content) > 0 and
+            # mypy giving some nonsense error that doesn't appear in runtime
+            len(content) > 0 and  # type: ignore
 
             # Not a Parrot command.
             not content.startswith(self.bot.command_prefix) and
@@ -61,17 +62,10 @@ class LearningCog(commands.Cog):
         )
 
 
-    def learn_from(
-        self,
-        messages: Union[Message, List[Message]],
-        skip_validation: bool = False,
-    ) -> int:
+    def learn_from(self, messages: Union[Message, List[Message]]) -> int:
         """
         Add a Message or array of Messages to a user's corpus.
         Every Message in the array must be from the same user.
-        You can skip the validation check if you want, but of course make sure
-          you know what you're doing if you do that.
-        (That advice is unsolicited. I do not know what I am doing.)
         """
         # Ensure that messages is a list.
         # If it's not, make it a list with one value.
@@ -85,15 +79,10 @@ class LearningCog(commands.Cog):
         #   Corpus Manager adds every message passed to it to the same user.
         for message in messages:
             if message.author != user:
-                msg = (
-                    "Too many authors; every message in a list passed to "\
-                    "learn_from() must have the same author."
-                )
-                raise ValueError(msg)
+                raise ValueError("Too many authors; every message in a list passed to learn_from() must have the same author.")
 
         # Only keep messages that pass all of validate_message()'s checks.
-        if not skip_validation:
-            messages = list(filter(self.validate_message, messages))
+        messages = list(filter(self.validate_message, messages))
 
         # Add these messages to this user's corpus.
         if len(messages) > 0:
