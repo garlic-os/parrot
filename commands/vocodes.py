@@ -8,7 +8,7 @@ import ujson as json  # ujson is faster
 from typing import Optional
 from tempfile import TemporaryFile
 from utils import Paginator
-from utils.pembed import Pembed
+from utils.parrot_embed import ParrotEmbed
 
 
 def get_speaker(name: str) -> Optional[dict]:
@@ -44,7 +44,7 @@ with open("data/speakers.json") as f:
     )
 
 
-class VocodesCommands(commands.Cog):
+class Vocodes(commands.Cog):
     """ Make pop culture icons say whatever you want! Powered by vo.codes. """
 
     def __init__(self, bot: commands.Bot) -> None:
@@ -59,7 +59,7 @@ class VocodesCommands(commands.Cog):
                 await voice_client.disconnect()
                 return
 
-        await ctx.send(embed=Pembed(
+        await ctx.send(embed=ParrotEmbed(
             title="Error",
             description="You must be in a voice channel with Parrot to use this command.",
             color_name="orange",
@@ -72,7 +72,7 @@ class VocodesCommands(commands.Cog):
 
         # Join the voice channel the context's author is in.
         if ctx.author.voice is None:
-            await ctx.send(embed=Pembed(
+            await ctx.send(embed=ParrotEmbed(
                 title="Error",
                 description="You must be in a voice channel to use this command.",
                 color_name="orange",
@@ -96,7 +96,7 @@ class VocodesCommands(commands.Cog):
         try:
             text = user_input[0].strip()
         except IndexError:
-            embed = Pembed(
+            embed = ParrotEmbed(
                 title="Syntax error",
                 description=f"You didn't do that correctly! Try this:\n`{self.bot.command_prefix}vocodes speaker name; your text`",
                 color_name="orange",
@@ -106,7 +106,7 @@ class VocodesCommands(commands.Cog):
 
         # Verify proper length. Must be at least 1 character and at most 1000.
         if not (1 <= len(text) <= 1000):
-            embed = Pembed(
+            embed = ParrotEmbed(
                 title="Text too long",
                 description="Text must be at least 1 character and at most 1000 characters long.",
                 color_name="orange",
@@ -117,7 +117,7 @@ class VocodesCommands(commands.Cog):
         speaker = get_speaker(speaker_name)
 
         if speaker is None:
-            embed = Pembed(title="Invalid speaker name", color_name="orange")
+            embed = ParrotEmbed(title="Invalid speaker name", color_name="orange")
             await ctx.send(embed=embed)
             return
 
@@ -131,7 +131,7 @@ class VocodesCommands(commands.Cog):
         else:
             avatar_url = f"https://vo.codes/avatars/{speaker['avatarUrl']}"
 
-        loading_embed = Pembed(
+        loading_embed = ParrotEmbed(
             title="Generating sentence...",
             description=f"_{speaker['description']}_",
         )
@@ -187,7 +187,7 @@ class VocodesCommands(commands.Cog):
                     await loading_message.edit(embed=loading_embed)
 
                     # Post a new embed explaining the error.
-                    embed = Pembed(
+                    embed = ParrotEmbed(
                         title="🤷‍♂️ Error",
                         description=f"Something went wrong while generating the speech:\n{response.status} {response.reason}",
                         color_name="red",
@@ -204,7 +204,7 @@ class VocodesCommands(commands.Cog):
         page_count = math.ceil(speaker_count / 24)
 
         for i in range(page_count):
-            embed = Pembed(
+            embed = ParrotEmbed(
                 title=f"Speakers (Page {i + 1}/{page_count})", author=ctx.author
             )
             embed.set_footer(text="Powered by vo.codes: https://vo.codes/")
@@ -223,5 +223,5 @@ class VocodesCommands(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(VocodesCommands(bot))
+    bot.add_cog(Vocodes(bot))
 
