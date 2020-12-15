@@ -3,8 +3,6 @@ from discord import AllowedMentions
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
-import requests
-
 
 class Imitate(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
@@ -29,10 +27,9 @@ class Imitate(commands.Cog):
             #   Parrot has the right permissions.
             # TODO: Move this logic to WebhookManager
             if commands.bot_has_permissions(manage_webhooks=True):
-                avatar_bytes = requests.get(self.bot.user.avatar_url).content
                 webhook = await ctx.channel.create_webhook(
                     name=f"Parrot in #{ctx.channel.name}",
-                    avatar=avatar_bytes,
+                    avatar=(await self.bot.user.avatar_url.read()),
                 )
                 self.bot.webhooks[ctx.channel.id] = webhook
             # Otherwise, just use an embed.
