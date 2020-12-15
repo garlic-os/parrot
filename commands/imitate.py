@@ -1,11 +1,12 @@
 from discord import AllowedMentions
+
 from discord.ext import commands
-from utils.pembed import Pembed
+from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 import requests
 
 
-class ImitateCommand(commands.Cog):
+class Imitate(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
@@ -36,7 +37,7 @@ class ImitateCommand(commands.Cog):
                 self.bot.webhooks[ctx.channel.id] = webhook
             # Otherwise, just use an embed.
             else:
-                embed = Pembed(
+                embed = ParrotEmbed(
                     author=user,
                     description=sentence,
                 )
@@ -54,4 +55,4 @@ class ImitateCommand(commands.Cog):
 
 
 def setup(bot: commands.Bot) -> None:
-    bot.add_cog(ImitateCommand(bot))
+    bot.add_cog(Imitate(bot))
