@@ -3,7 +3,7 @@ from discord.ext import commands
 from utils.checks import is_admin
 
 
-class ChannelCommands(commands.Cog):
+class ChannelPermissions(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
@@ -105,4 +105,4 @@ class ChannelCommands(commands.Cog):
 
 
 def setup(bot: commands.Bot) -> None:
-    bot.add_cog(ChannelCommands(bot))
+    bot.add_cog(ChannelPermissions(bot))
