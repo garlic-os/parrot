@@ -11,7 +11,7 @@ from utils.parrot_markov import ParrotMarkov
 class ChainManager(Dict[User, ParrotMarkov]):
     def __init__(self, bot: commands.Bot, cache_size: int) -> None:
         self.bot = bot
-        self.cache = SizeCappedDict(cache_size)
+        self._cache = SizeCappedDict(cache_size)
 
     def __getitem__(self, user: User) -> ParrotMarkov:
         """
@@ -19,24 +19,26 @@ class ChainManager(Dict[User, ParrotMarkov]):
           corpus if it's not.
         """
         # Retrieve from cache if possible.
-        chain = self.cache.get(user.id, None)
+        chain = self._cache.get(user.id, None)
         if chain:
             return chain
 
         # Otherwise, fetch their corpus and create a new Markov chain.
-        try:
-            corpus = self.bot.corpora[user]
-        except KeyError:
-            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}")
-            
+        corpus = self.bot.corpora[user]
         chain = ParrotMarkov(corpus)
 
         # Cache this Markov chain for next time.
-        self.cache[user.id] = chain
+        self._cache[user.id] = chain
         return chain
 
+
+    def __delitem__(self, user: User) -> None:
+        # Redirect delete calls to the inner cache
+        del self._cache[user.id]
+    
+
     def has_key(self, user: User) -> bool:
-        return user.id in self.cache or user in self.bot.corpora
+        return user.id in self._cache or user in self.bot.corpora
 
 
 class ChainManagerCog(commands.Cog):
