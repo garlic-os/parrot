@@ -46,11 +46,8 @@ with open("data/speakers.json") as f:
 
 class Vocodes(commands.Cog):
     """ Make pop culture icons say whatever you want! Powered by vo.codes. """
-
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-
     @commands.command()
+    @commands.cooldown(2, 4, commands.BucketType.user)
     async def leave(self, ctx: commands.Context) -> None:
         """ Make Parrot leave the voice channel that you are in. """
         if ctx.author.voice is not None:
@@ -67,6 +64,7 @@ class Vocodes(commands.Cog):
 
 
     @commands.command(aliases=["ditto"], usage=f"speaker name; message to speak")
+    @commands.cooldown(2, 4, commands.BucketType.user)
     async def vocodes(self, ctx: commands.Context, *, args: str) -> None:
         """ Make pop culture icons say whatever you want! """
 
@@ -98,7 +96,7 @@ class Vocodes(commands.Cog):
         except IndexError:
             embed = ParrotEmbed(
                 title="Syntax error",
-                description=f"You didn't do that correctly! Try this:\n`{self.bot.command_prefix}vocodes speaker name; your text`",
+                description=f"You didn't do that correctly! Try this:\n`{ctx.bot.command_prefix}vocodes speaker name; your text`",
                 color_name="orange",
             )
             await ctx.send(embed=embed)
@@ -197,6 +195,7 @@ class Vocodes(commands.Cog):
 
 
     @commands.command(aliases=["speakers"])
+    @commands.cooldown(2, 4, commands.BucketType.user)
     async def voices(self, ctx: commands.Context) -> None:
         """ List the speakers that Parrot can imitate through vo.codes. """
         speaker_count = len(speaker_names)
@@ -223,5 +222,5 @@ class Vocodes(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Vocodes(bot))
+    bot.add_cog(Vocodes())
 
