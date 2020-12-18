@@ -8,7 +8,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 
 
 print("Initializing bot...")
