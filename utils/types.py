@@ -1,5 +1,5 @@
-from typing import Dict, NamedTuple
-from discord import User
+from typing import Dict, NamedTuple, Union
+from discord import DMChannel, GroupChannel, TextChannel, User, Webhook
 
 
 class CorpusMessage(NamedTuple):
@@ -22,3 +22,6 @@ class ConfirmationBody(NamedTuple):
 
 # Key: Message ID of a forget command
 PendingConfirmations = Dict[int, ConfirmationBody]
+
+# Any kind of channel
+Channel = Union[DMChannel, GroupChannel, TextChannel]
