@@ -1,5 +1,5 @@
 from typing import Union, List, cast
-from discord import Message, ChannelType
+from discord import ChannelType, Message
 
 import re
 import os
@@ -22,6 +22,7 @@ class LearningCog(commands.Cog):
         bot.learn_from = self.learn_from
         bot.learning_channels = DiskSet(learning_path)
         bot.speaking_channels = DiskSet(speaking_path)
+
 
     def validate_message(self, message: Message) -> bool:
         """
@@ -84,12 +85,11 @@ class LearningCog(commands.Cog):
         # Only keep messages that pass all of validate_message()'s checks.
         messages = list(filter(self.validate_message, messages))
 
-        # Add these messages to this user's corpus.
+        # Add these messages to this user's corpus and return the number of
+        #   messages that were added.
         if len(messages) > 0:
-            self.bot.corpora.add(user, messages)
-
-        # Return the number of messages that were added.
-        return len(messages)
+            return self.bot.corpora.add(user, messages)
+        return 0
 
 
 def setup(bot: commands.Bot) -> None:
