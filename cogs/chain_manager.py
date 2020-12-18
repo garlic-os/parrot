@@ -1,44 +1,38 @@
-from typing import Dict
-from discord import User
-
 import os
 from discord.ext import commands
 from utils.exceptions import NoDataError
-from utils.size_capped_dict import SizeCappedDict
+from utils.lru_cache import LRUCache
 from utils.parrot_markov import ParrotMarkov
 
 
-class ChainManager(Dict[User, ParrotMarkov]):
+class ChainManager(LRUCache[int, ParrotMarkov]):
     def __init__(self, bot: commands.Bot, cache_size: int) -> None:
+        super().__init__(cache_size)
         self.bot = bot
-        self._cache = SizeCappedDict(cache_size)
 
-    def __getitem__(self, user: User) -> ParrotMarkov:
+    def __getitem__(self, user_id: int) -> ParrotMarkov:
         """
         Get a Markov Chain by user ID, from cache if it's cached or from their
           corpus if it's not.
         """
         # Retrieve from cache if possible.
-        chain = self._cache.get(user.id, None)
-        if chain:
-            return chain
+        try:
+            return super().__getitem__(user_id)
+        except KeyError:
+            pass
 
         # Otherwise, fetch their corpus and create a new Markov chain.
-        corpus = self.bot.corpora[user]
+        corpus = self.bot.corpora[user_id]
         chain = ParrotMarkov(corpus)
 
         # Cache this Markov chain for next time.
-        self._cache[user.id] = chain
+        super().__setitem__(user_id, chain)
         return chain
 
-
-    def __delitem__(self, user: User) -> None:
-        # Redirect delete calls to the inner cache
-        del self._cache[user.id]
-    
-
-    def has_key(self, user: User) -> bool:
-        return user.id in self._cache or user in self.bot.corpora
+    def __contains__(self, element: object) -> bool:
+        if type(element) is int:
+            return super().__contains__(element) or element in self.bot.corpora
+        return False
 
 
 class ChainManagerCog(commands.Cog):
