@@ -109,7 +109,7 @@ class CorpusManager(Dict[User, Corpus]):
 
 class CorpusManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
-        corpus_dir = os.environ.get("DB_CORPUS_DIR", "data/corpora/")
+        corpus_dir = os.environ.get("CORPUS_DIR", "data/corpora/")
         bot.corpora = CorpusManager(bot, corpus_dir)
 
 
