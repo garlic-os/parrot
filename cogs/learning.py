@@ -2,7 +2,6 @@ from typing import Union, List, cast
 from discord import ChannelType, Message
 
 import re
-import os
 from discord.ext import commands
 from utils.disk_set import DiskSet
 from utils import regex
@@ -11,17 +10,10 @@ from utils import regex
 class LearningCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        learning_path = os.environ.get(
-            "DB_LEARNING_CHANNELS_PATH", "data/learning-channels.json"
-        )
-        speaking_path = os.environ.get(
-            "DB_SPEAKING_CHANNELS_PATH", "data/speaking-channels.json"
-        )
-
         bot.validate_message = self.validate_message
         bot.learn_from = self.learn_from
-        bot.learning_channels = DiskSet(learning_path)
-        bot.speaking_channels = DiskSet(speaking_path)
+        bot.learning_channels = DiskSet("data/learning-channels.json")
+        bot.speaking_channels = DiskSet("data/speaking-channels.json")
 
 
     def validate_message(self, message: Message) -> bool:
