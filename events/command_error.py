@@ -8,7 +8,7 @@ from discord.ext.commands.errors import (
 )
 
 
-with open("data/failure-phrases.txt", "r") as f:
+with open("failure-phrases.txt", "r") as f:
     failure_phrases = list(f.readlines())
 
 
