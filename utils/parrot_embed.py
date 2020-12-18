@@ -39,10 +39,10 @@ class ParrotEmbed(Embed):
         self.color = ParrotEmbed.colors[color_name]
 
     def set_author_by_user(self) -> None:
-        """ Set the embed's author by a DiscordUser. """
+        """ Set the embed's author to a user. """
         author = self.ParrotEmbed_args.get("author", None)
 
-        if author:
+        if author is not None:
             name = author.display_name
             icon_url = author.avatar_url_as(size=32)
             self.set_author(name=name, icon_url=icon_url)
