@@ -1,4 +1,3 @@
-import os
 from discord import User
 from discord.ext import commands
 from utils.disk_set import DiskSet
@@ -20,10 +19,7 @@ class RegistrationManager(DiskSet[int]):
 
 class RegistrationManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
-        registration_path = os.environ.get(
-            "DB_REGISTRATION_PATH", "data/registration.json"
-        )
-        bot.registration = RegistrationManager(registration_path)
+        bot.registration = RegistrationManager("data/registration.json")
 
 
 def setup(bot: commands.Bot) -> None:
