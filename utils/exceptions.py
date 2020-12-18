@@ -25,6 +25,14 @@ class UserNotFoundError(FriendlyError):
 class UserPermissionError(FriendlyError):
     """
     A user tried to commit an action with Parrot that they don't have the right
-      permissions to do.
+    permissions to do.
+    """
+    pass
+
+
+class AlreadyScanning(FriendlyError):
+    """
+    A user tried to run Quickstart in a channel that Quickstart is already
+    scanning for them.
     """
     pass
