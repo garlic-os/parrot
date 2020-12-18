@@ -15,11 +15,7 @@ class RegistrationManager(DiskSet[int]):
           not registered.
         """
         if not super().__contains__(user.id) and not user.bot:
-            msg = (
-                f"User {user.name}#{user.discriminator} (ID: {user.id}) is "
-                "not registered"
-            )
-            raise NotRegisteredError(msg)
+            raise NotRegisteredError(f"User {user.name}#{user.discriminator} is not registered")
 
 
 class RegistrationManagerCog(commands.Cog):
