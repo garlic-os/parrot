@@ -210,7 +210,7 @@ class FromList(CustomEmbedPaginator):
     def __init__(self, ctx: commands.Context, entries: List[Union[str, Tuple[str, str]]], template_embed: Embed=None, **kwargs) -> None:
         """ Create a paginated embed from a list. """
         super().__init__(ctx, **kwargs)
-        self.embeds = []
+        self.fromlist_embeds = []
         page_count = math.ceil(len(entries) / 24)
 
         if template_embed is None:
@@ -233,7 +233,7 @@ class FromList(CustomEmbedPaginator):
                     value=value
                 )
 
-            self.embeds.append(embed)
+            self.fromlist_embeds.append(embed)
         
         self.add_reaction("⏪", "back")
         self.add_reaction("⏹", "delete")
@@ -241,4 +241,4 @@ class FromList(CustomEmbedPaginator):
 
 
     async def run(self, *args) -> None:
-        await super().run(self.embeds, *args)
+        await super().run(self.fromlist_embeds, *args)

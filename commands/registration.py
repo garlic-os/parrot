@@ -34,7 +34,7 @@ class Registration(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(brief="Register with Parrot.")
+    @commands.command(aliases=["agree"], brief="Register with Parrot.")
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def register(self, ctx: commands.Context) -> None:
         """
@@ -55,7 +55,7 @@ class Registration(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(brief="Unregister with Parrot.")
+    @commands.command(aliases=["disagree"], brief="Unregister with Parrot.")
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def unregister(self, ctx: commands.Context) -> None:
         """
