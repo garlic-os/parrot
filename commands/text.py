@@ -1,17 +1,47 @@
-from discord import AllowedMentions
+from discord import AllowedMentions, User
 
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils.gibberish import gibberish
+from utils import regex
+import re
 
 
 class Text(commands.Cog):
-    @commands.command(brief="Imitate someone.")
-    @commands.cooldown(2, 2, commands.BucketType.user)
-    async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
-        """ Imitate a registered user. """
+    def discord_caps(self, text: str) -> str:
+        """
+        Capitalize a string in a way that remains friendly to URLs, emojis, and
+        mentions.
+        Made by Kaylynn: https://github.com/kaylynn234. Thank you, Kaylynn!
+        """
+        words = text.replace(r"*", "").split(" ")
+        for i, word in enumerate(words):
+            if re.match(regex.do_not_capitalize, word) is None:
+                words[i] = word.upper()
+        return " ".join(words)
+
+    def disable_pings(self, ctx: commands.Context, text: str) -> str:
+        """
+        NEED PING??? Didn't think so, turns out most people don't.
+        Parse mention strings into fake versions that don't ping you.
+        """
+        words = text.split(" ")
+        for i, word in enumerate(words):
+            if re.match(regex.user_or_role_mention, word):
+                mention_id = re.sub("[^0-9]","", word)
+                user = ctx.bot.get_user(mention_id)
+                if user is not None:
+                    words[i] = f"@{user.name}#{user.discriminator}"
+                    continue
+                role = ctx.bot.get_role(mention_id)
+                if role is not None:
+                    words[i] = f"@{role.name}"
+        return " ".join(words)
+
+
+    async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
         # Parrot can't imitate itself!
         if user == ctx.bot.user:
             embed = ParrotEmbed(
@@ -29,6 +59,13 @@ class Text(commands.Cog):
         #   error handler deal with.
         chain = ctx.bot.chains[user]
         sentence = chain.make_short_sentence(500) or "Error"
+        sentence = self.disable_pings(ctx, sentence)
+        name = f"Not {user.display_name}"
+
+        if intimidate:
+            sentence = "**" + self.discord_caps(sentence) + "**"
+            name = name.upper()
+            
 
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook account much
@@ -46,10 +83,22 @@ class Text(commands.Cog):
             # Send the sentence through the webhook.
             await webhook.send(
                 content=sentence,
-                username=f"Not {user.display_name}",
+                username=name,
                 avatar_url=user.avatar_url,
                 allowed_mentions=AllowedMentions.none(),
             )
+
+    @commands.command(brief="Imitate someone.")
+    @commands.cooldown(2, 2, commands.BucketType.user)
+    async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
+        """ Imitate a registered user. """
+        await self.really_imitate(ctx, user, intimidate=False)
+
+    @commands.command(brief="IMITATE SOMEONE.", hidden=True)
+    @commands.cooldown(2, 2, commands.BucketType.user)
+    async def intimidate(self, ctx: commands.Context, user: Userlike) -> None:
+        """ IMITATE A REGISTERED USER. """
+        await self.really_imitate(ctx, user, intimidate=True)
 
 
     @commands.command(
