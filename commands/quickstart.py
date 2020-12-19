@@ -57,13 +57,17 @@ class Quickstart(commands.Cog):
                 title="Quickstart Channels",
                 description=f"Quickstart is available in channels where Parrot can learn from your messages. Try running \`{ctx.bot.command_prefix}quickstart\` again in one of these channels:",
             )
-            for channel in ctx.guild:
+            channel_mentions = []
+            for channel in ctx.guild.channels:
                 if channel.id in ctx.bot.learning_channels:
-                    embed.add_field(
-                        name="​",
-                        value=channel.mention,
-                    )
-            await ctx.send(embed=embed)
+                    channel_mentions.append(channel.mention)
+            
+            paginator = Paginator.FromList(
+                ctx,
+                entries=channel_mentions,
+                template_embed=embed,
+            )
+            await paginator.run()
             return
 
         corpus = ctx.bot.corpora.get(ctx.author, {})

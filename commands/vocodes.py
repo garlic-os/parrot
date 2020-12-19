@@ -3,7 +3,6 @@ from discord import ClientException
 import discord
 from discord.ext import commands
 import aiohttp
-import math
 import ujson as json  # ujson is faster
 from typing import Optional
 from tempfile import TemporaryFile
@@ -198,27 +197,21 @@ class Vocodes(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def voices(self, ctx: commands.Context) -> None:
         """ List the speakers that Parrot can imitate through vo.codes. """
-        speaker_count = len(speaker_names)
-        embeds = []
-        page_count = math.ceil(speaker_count / 24)
+        embed = ParrotEmbed(
+            title="Speakers",
+            author=ctx.author,
+        )
+        embed.set_footer(text="Powered by vo.codes: https://vo.codes/")
 
-        for i in range(page_count):
-            embed = ParrotEmbed(
-                title=f"Speakers (Page {i + 1}/{page_count})", author=ctx.author
-            )
-            embed.set_footer(text="Powered by vo.codes: https://vo.codes/")
-
-            next_endpoint = min(speaker_count, (i + 1) * 24)
-            for name in speaker_names[i * 24 : next_endpoint]:
-                embed.add_field(name="​", value=name)
-
-            embeds.append(embed)
-
-        paginator = Paginator.CustomEmbedPaginator(ctx)
+        paginator = Paginator.FromList(
+            ctx,
+            entries=speaker_names,
+            template_embed=embed,
+        )
         paginator.add_reaction("⏪", "back")
         paginator.add_reaction("⏹", "delete")
         paginator.add_reaction("⏩", "next")
-        await paginator.run(embeds)
+        await paginator.run()
 
 
 def setup(bot):
