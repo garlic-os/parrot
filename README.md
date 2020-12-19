@@ -11,18 +11,34 @@ Parrot has to collect users' messages to work, so to ensure that no one's messag
 For now, if you want Parrot on your server, you'll have to run it yourself.
 
 
-1. [Create a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html) in the [Discord Developer Portal](https://discord.com/developers/applications). Have its token onhand.
+1. [Create a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html) in the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Create an invite link with [these permissions](#permissions) and invite the bot to your server.
 2. [Clone this repo.](https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/cloning-a-repository-from-github-to-github-desktop)
 3. Run [`poetry install`](https://python-poetry.org/docs/) in the project's directory.
 4. Create a `.env` file in the project's directory and follow the [config documentation](#configuration) to configure Parrot.
-5. Change the user ID in `"privacy-policy.txt"` with yours, or that of whoever is going to host the bot.
+5. Change the user ID in `"assets/privacy-policy.txt"` with yours, or that of whoever is going to host the bot.
 6. `poetry run python main.py`
+
+
+## Permissions
+Parrot needs the following Bot Permissions:
+
+**Required**
+- Send Messages
+- Read Message History (required for Quickstart)
+- Change Nickname
+- Connect
+- Speak (Connect and Speak required for [vo.codes](https://vo.codes/) streaming)
+
+**Optional**
+- Manage Webhooks - This permission lets Parrot use webhooks to mimick users' name and avatar. If not granted, Parrot will use a less-pretty embed instead.
+
 
 ## Configuration
 Parrot needs a little information from you for it to start working.
 
 **Required**
-- `DISCORD_BOT_TOKEN` - The Bot Token generated for your copy of Parrot on the Discord Developer Portal.
+- `DISCORD_BOT_TOKEN` - The bot token generated for your copy of Parrot on the Discord Developer Portal.
 - `OWNERS` - An array of the user IDs of the people you want to give Owner priveleges to. Owners get access to commands for managing Parrot. For example, `[54757394934834985, 23947297429259834, 29797299597494445]`.
 
 **Optional**
