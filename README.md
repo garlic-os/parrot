@@ -3,34 +3,46 @@ _Imitate everyone individually._
 
 Parrot is a a Markov-chain-based Discord bot that keeps a separate dataset for each user. With a single bot, you can imitate a theoretically unlimited number of users. Once a user is registered, Parrot automatically learns how to speak like them through the messages they send. You can have Parrot imitate any registered user with the `|imitate` command.
 
-Parrot uses Webhooks to take on the name and avatar of the person it's currently imitating. If you'd rather Parrot speak in a given channel without a Webhook, just don't supply Webhook information for that channel and Parrot's `|imitate` output will be through embeds instead of a Webhook.
+Parrot uses Webhooks to take on the name and avatar of the person it's currently imitating. If you'd rather Parrot speak in a given channel without a Webhook, just take away its `manage_webhooks` permission there, and it will talk through an embed instead of a Webhook.
 
-Parrot has to collect users' messages to work, so to ensure that no one's messages are collected without their consent, each user who wants Parrot to be able to imitate them must first register with Parrot through the `|register` command. After that though, you're on your way!
+Parrot has to collect users' messages to work, so to ensure that no one's messages are collected without their consent, each user who wants Parrot to be able to imitate them must first register with Parrot through the `|register` command. After that though, it's simple to get started.
 
 ## Setup
-For now, if you want Parrot on your server, you have to run it yourself.  
+For now, if you want Parrot on your server, you'll have to run it yourself.
 
 
-1. Create a Discord bot in the Discord Developer Portal and you have its Token onhand.
-2. Enable Developer Mode in Discord's settings so you can get user and channel IDs.
-3. If you don't have it already, install node.js.
-4. Download the repo and extract the project somewhere.
-5. `npm install`.
-6. Create a copy of `"src/config.template.ts"` called `"src/config.ts"`, then follow the [config documentation](#configuration) to configure Parrot.
-7. Change the user ID in `"privacy-policy.txt"` with yours, or whomever will host the bot.
-8. `npm start`.
+1. [Create a Discord bot](https://discordpy.readthedocs.io/en/latest/discord.html) in the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Create an invite link with [these permissions](#permissions) and invite the bot to your server.
+2. [Clone this repo.](https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/cloning-a-repository-from-github-to-github-desktop)
+3. Run [`poetry install`](https://python-poetry.org/docs/) in the project's directory.
+4. Create a `.env` file in the project's directory and follow the [config documentation](#configuration) to configure Parrot.
+5. Change the user ID in `"assets/privacy-policy.txt"` with yours, or that of whoever is going to host the bot.
+6. `poetry run python main.py`
 
-## Configuration
-Configure Parrot through `"src/config.ts"`. If it doesn't exist, create it by copying the contents of `"src/config.template.ts"` into a new file.
+
+## Permissions
+Parrot needs the following Bot Permissions:
 
 **Required**
-- `discordBotToken` - The Bot Token generated for your copy of Parrot on the Discord Developer Portal.
-- `learningChannels` - A dictionary of key-value pairs for channels Parrot can learn in, keys being the channel IDs and the values being human-readable comments/names for those channels.
-- `speakingChannels` - A dictionary of key-value pairs for channels Parrot can speak in, keys being the channel IDs and the values being data for Parrot to speak through a Webhook in that channel.
-- `owners` - An array of the user IDs of the people you want to give Owner priveleges to. Owners get access to commands for managing Parrot.
+- Send Messages
+- Read Message History (required for Quickstart)
+- Change Nickname
+- Connect
+- Speak (Connect and Speak required for [vo.codes](https://vo.codes/) streaming)
 
 **Optional**
-- `cacheSize` - How many Markov Chains to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it might make Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
-- `commandPrefix` - The character(s) that go before a Parrot command. Default is `"|"`.
-- `corpusDir` - A custom directory to store users' collected messages for Markov training data. Default is `"corpora/"` inside the project root.
-- `ayyLmao` - (((extremely important feature))) Set to `true` to make Parrot say "lmao" every time someone else says "ayy". Default is `false`.
+- Manage Webhooks - This permission lets Parrot use webhooks to mimick users' name and avatar. If not granted, Parrot will use a less-pretty embed instead.
+
+
+## Configuration
+Parrot needs a little information from you for it to start working.
+
+**Required**
+- `DISCORD_BOT_TOKEN` - The bot token generated for your copy of Parrot on the Discord Developer Portal.
+- `OWNERS` - An array of the user IDs of the people you want to give Owner priveleges to. Owners get access to commands for managing Parrot. For example, `[54757394934834985, 23947297429259834, 29797299597494445]`.
+
+**Optional**
+- `CHAIN_CACHE_SIZE` - How many Markov Chains to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
+- `COMMAND_PREFIX` - The character(s) that go before a Parrot command. Default is `"|"`.
+- `CORPUS_DIR` - A custom directory to store users' collected messages for Markov training data. Default is `"data/corpora/"`.
+- `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
