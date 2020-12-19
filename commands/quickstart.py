@@ -117,7 +117,7 @@ class Quickstart(commands.Cog):
         def message_filter(message: Message) -> bool:
             return message.author == user
         history = ctx.channel.history(
-            limit=10_000,
+            limit=100_000,
             after=user.joined_at,
         ).filter(message_filter)
 
@@ -156,6 +156,10 @@ class Quickstart(commands.Cog):
             description=f"**Scan in {ctx.channel.mention} complete.**\nCollected {crawler.num_collected} new messages.",
         )
         embed.set_author(name="✅ Quickstart")
+        embed.set_footer(
+            text=f"Scanning for {user.name}#{user.discriminator}",
+            icon_url=user.avatar_url,
+        )
         if crawler.num_collected == 0:
             embed.description += f"\n😕 Couldn't find any messages from {name} in this channel."
             embed.color = ParrotEmbed.colors["red"]
