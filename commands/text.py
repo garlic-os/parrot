@@ -12,6 +12,18 @@ class Text(commands.Cog):
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
         """ Imitate a registered user. """
+        # Parrot can't imitate itself!
+        if user == ctx.bot.user:
+            embed = ParrotEmbed(
+                title="Error",
+                color_name="red",
+            )
+            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")
+            embed.set_image(url="https://i.imgur.com/JAQ7pjz.png")  # Xok
+            sent_message = await ctx.send(embed=embed)
+            await sent_message.add_reaction("🆗")
+            return
+
         # Fetch this user's chain.
         # May throw a NotRegistered or NoData error, which we'll just let the
         #   error handler deal with.
