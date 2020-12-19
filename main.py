@@ -3,13 +3,14 @@ from typing import List
 import os
 import ujson as json  # ujson is faster
 import logging
-from discord import AllowedMentions
+from discord import Activity, ActivityType, AllowedMentions
 from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
+prefix = os.environ.get("COMMAND_PREFIX", "|")
 
 print("Initializing bot...")
 bot = commands.AutoShardedBot(
@@ -17,6 +18,10 @@ bot = commands.AutoShardedBot(
     owner_ids=json.loads(os.environ["OWNERS"]),
     case_insensitive=True,
     allowed_mentions=AllowedMentions.none(),
+    activity=Activity(
+        name=f"everyone ({prefix}help)",
+        type=ActivityType.listening,
+    )
 )
 
 
