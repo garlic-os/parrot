@@ -20,8 +20,8 @@ class Miscellaneous(commands.Cog):
 
         bio = "Parrot can imitate everyone. Do `"\
              f"{ctx.bot.command_prefix}imitate me` to have Parrot imitate you,"\
-             f" or do {ctx.bot.command_prefix}help to see what else Parrot can"\
-              "do."
+             f" or do `{ctx.bot.command_prefix}help` to see what else Parrot "\
+              "can do."
 
         embed = ParrotEmbed(
             title="🦜 Parrot",
