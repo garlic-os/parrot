@@ -34,7 +34,7 @@ def in_voice_channel(ctx: commands.Context) -> bool:
 
 
 # Load the speakers database and an array of their names.
-with open("speakers.json") as f:
+with open("assets/speakers.json") as f:
     speakers = json.load(f)
     speaker_names = []
     for speaker in speakers:
