@@ -3,7 +3,7 @@ from discord import ClientException
 import discord
 from discord.ext import commands
 import aiohttp
-import json
+import ujson as json  # ujson is faster
 from typing import Optional
 from tempfile import TemporaryFile
 from utils import Paginator

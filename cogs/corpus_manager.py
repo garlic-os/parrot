@@ -3,7 +3,7 @@ from typing import Any, cast, Dict, List, Iterator, Optional, Union
 from utils.types import Corpus
 
 import os
-import json
+import ujson as json  # ujson is faster
 from discord.ext import commands
 from utils.exceptions import NoDataError
 

@@ -11,6 +11,7 @@ python = "^3.7"
 python-dotenv = "^0.15.0"
 jishaku = "^1.19.2"
 markovify = "^0.8.3"
+ujson = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

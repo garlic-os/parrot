@@ -1,6 +1,5 @@
 from typing import Iterable, Iterator, Set, TypeVar
-import json
-#import ujson as json  # ujson is faster
+import ujson as json  # ujson is faster
 import os
 
 T = TypeVar("T")
@@ -39,6 +38,10 @@ class DiskSet(Set[T]):
         except FileNotFoundError:
             print(f"File {self.path} not found. A new file will be created in its place.")
             self.save()
+        except ValueError:
+            print(f"File {self.path} is not valid JSON. It will be overwritten.")
+            self.save()
+
 
     def save(self) -> None:
         with open(self.path, "w") as f:
