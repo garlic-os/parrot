@@ -35,7 +35,7 @@ class Text(commands.Cog):
                 if user is not None:
                     words[i] = f"@{user.name}#{user.discriminator}"
                     continue
-                role = ctx.bot.get_role(mention_id)
+                role = ctx.guild.get_role(mention_id)
                 if role is not None:
                     words[i] = f"@{role.name}"
         return " ".join(words)
