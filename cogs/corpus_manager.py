@@ -43,8 +43,20 @@ class CorpusManager(Dict[User, Corpus]):
 
         # messages is definitely iterable
         for message in messages:  # type: ignore
+            """
+            Thank you to Litleck for the idea to include attachment urls.
+            """
+            content = message.content
+            for embed in message.embeds:
+                desc = embed.description
+                if type(desc) is str:
+                    desc = cast(str, desc)
+                    content += " " + desc
+            for attachment in message.attachments:
+                content += " " + attachment.url
+
             corpus[str(message.id)] = {
-                "content": message.content,
+                "content": content,
                 "timestamp": str(message.created_at),
             }
             # if chain:
