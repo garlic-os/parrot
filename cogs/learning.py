@@ -12,8 +12,8 @@ class LearningCog(commands.Cog):
         self.bot = bot
         bot.validate_message = self.validate_message
         bot.learn_from = self.learn_from
-        bot.learning_channels = DiskSet("data/learning-channels.json")
-        bot.speaking_channels = DiskSet("data/speaking-channels.json")
+        bot.learning_channels = DiskSet("./data/learning-channels.json")
+        bot.speaking_channels = DiskSet("./data/speaking-channels.json")
 
 
     def validate_message(self, message: Message) -> bool:

@@ -19,7 +19,7 @@ class RegistrationManager(DiskSet[int]):
 
 class RegistrationManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
-        bot.registration = RegistrationManager("data/registration.json")
+        bot.registration = RegistrationManager("./data/registration.json")
 
 
 def setup(bot: commands.Bot) -> None:

@@ -3,7 +3,7 @@ from typing import Any, cast, Dict, List, Iterator, Optional, Union
 from utils.types import Corpus
 
 import os
-import ujson as json  # ujson is faster
+import json
 from discord.ext import commands
 from utils.exceptions import NoDataError
 
@@ -12,6 +12,7 @@ class CorpusManager(Dict[User, Corpus]):
     def __init__(self, bot: commands.Bot, corpora_dir: str) -> None:
         self.bot = bot
         self.corpora_dir = corpora_dir
+        os.makedirs(self.corpora_dir, exist_ok=True)
 
     def _file_path_no_check(self, user: User) -> str:
         return os.path.join(self.corpora_dir, str(user.id) + ".json")
@@ -121,7 +122,7 @@ class CorpusManager(Dict[User, Corpus]):
 
 class CorpusManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
-        corpus_dir = os.environ.get("CORPUS_DIR", "data/corpora/")
+        corpus_dir = os.environ.get("CORPUS_DIR", "./data/corpora/")
         bot.corpora = CorpusManager(bot, corpus_dir)
 
 

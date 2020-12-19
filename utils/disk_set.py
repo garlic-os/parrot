@@ -1,5 +1,6 @@
 from typing import Iterable, Iterator, Set, TypeVar
-import ujson as json  # ujson is faster
+import json
+#import ujson as json  # ujson is faster
 import os
 
 T = TypeVar("T")
@@ -11,7 +12,10 @@ class DiskSet(Set[T]):
     def __init__(self, path: str, iterable: Iterable[T]=()) -> None:
         self.data = set(iterable)
         self.path = path
-        os.makedirs(self.path, exist_ok=True)
+
+        directories = os.path.split(self.path)[0]
+        os.makedirs(directories, exist_ok=True)
+
         self.load()
         self.reload = self.load
 
