@@ -116,9 +116,15 @@ class Text(commands.Cog):
         # If no sentence is provided, use the most recent message instead.
         if sentence is None:
             async for message in ctx.channel.history():
-                if len(message.content) > 0:
-                    sentence = message.content
+                content = message.content
+                if len(content) > 0 and not content.startswith(ctx.bot.command_prefix):
+                    sentence = content
                     break
+                for embed in message.embeds:
+                    desc = embed.description
+                    if type(desc) is str and len(desc) > 0:
+                        sentence = desc
+
             if sentence is None:
                 await ctx.send("😕 Couldn't find message to gibberize")
                 return
