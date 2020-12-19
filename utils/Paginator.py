@@ -1,39 +1,47 @@
 """
-DiscordUtils.Paginator.CustomEmbedPaginator
+A fork of DiscordUtils.Paginator.CustomEmbedPaginator
 Copyright (c) 2018 toxicrecker, MIT License
 https://github.com/toxicrecker/DiscordUtils/blob/master/DiscordUtils/Pagination.py
 """
 
+from typing import Dict, List, Tuple, Union
+from discord import Embed, Emoji, PartialEmoji, Reaction, User, Member
+from discord.abc import Messageable
+from discord.ext import commands
+
 import asyncio
+import math
+
+Emojilike = Union[Emoji, Reaction, PartialEmoji, str]
 
 
-class CustomEmbedPaginator(object):
-    def __init__(self, ctx, **kwargs):
+class CustomEmbedPaginator:
+    def __init__(self, ctx: commands.Context, **kwargs) -> None:
         self.embeds = None
         self.ctx = ctx
         self.bot = ctx.bot
         self.timeout = int(kwargs.get("timeout", 60))
         self.current_page = 0
-        self.control_emojis = []
-        self.control_commands = []
+        self.control_emojis: List[Emojilike] = []
+        self.control_commands: List[str] = []
         self.auto_footer = kwargs.get("auto_footer", False)
         self.remove_reactions = kwargs.get("remove_reactions", False)
 
-    def add_reaction(self, emoji, command):
+    def add_reaction(self, emoji: Emojilike, command: str) -> None:
         self.control_emojis.append(emoji)
         self.control_commands.append(command)
 
-    def insert_reaction(self, index, emoji, command):
+    def insert_reaction(self, index: int, emoji: Emojilike, command: str) -> None:
         self.control_emojis.insert(index, emoji)
         self.control_commands.insert(index, command)
 
-    def remove_reaction(self, emoji):
+    def remove_reaction(self, emoji: Emojilike) -> None:
         if emoji in self.control_emojis:
             index = self.control_emojis.index(emoji)
             self.control_emojis.remove(emoji)
             self.control_commands.pop(index)
 
-    def remove_reaction_at(self, index):
+    def remove_reaction_at(self, index: int) -> None:
         if index > len(self.control_emojis) - 1:
             index = len(self.control_emojis) - 1
         elif index < 0:
@@ -44,11 +52,11 @@ class CustomEmbedPaginator(object):
         except:
             pass
 
-    def clear_reactions(self):
+    def clear_reactions(self) -> None:
         self.control_emojis = []
         self.control_commands = []
 
-    async def run(self, embeds, send_to=None):
+    async def run(self, embeds: List[Embed], send_to: Messageable=None) -> None:
         self.embeds = embeds
         if not send_to:
             send_to = self.ctx
@@ -62,7 +70,7 @@ class CustomEmbedPaginator(object):
             await msg.add_reaction(emoji)
         msg = await msg.channel.fetch_message(msg.id)
 
-        def check(reaction, user):
+        def check(reaction: Reaction, user: Union[User, Member]) -> bool:
             return (
                 user == wait_for
                 and reaction.message.id == msg.id
@@ -72,6 +80,7 @@ class CustomEmbedPaginator(object):
         while True:
             if self.timeout > 0:
                 try:
+                    # Wait for the target user to add a reaction.
                     reaction, user = await self.bot.wait_for(
                         "reaction_add", check=check, timeout=self.timeout
                     )
@@ -88,7 +97,9 @@ class CustomEmbedPaginator(object):
                     return msg
                     break
             else:
-                reaction, user = await self.bot.wait_for("reaction_add", check=check)
+                reaction, user = await self.bot.wait_for(
+                    "reaction_add", check=check
+                )
             for emoji in self.control_emojis:
                 if emoji == str(reaction.emoji):
                     index = self.control_emojis.index(emoji)
@@ -193,3 +204,41 @@ class CustomEmbedPaginator(object):
                                 index = self.control_emojis.index(emoji)
                                 self.control_emojis.remove(emoji)
                                 self.control_commands.pop(index)
+
+
+class FromList(CustomEmbedPaginator):
+    def __init__(self, ctx: commands.Context, entries: List[Union[str, Tuple[str, str]]], template_embed: Embed=None, **kwargs) -> None:
+        """ Create a paginated embed from a list. """
+        super().__init__(ctx, **kwargs)
+        self.embeds = []
+        page_count = math.ceil(len(entries) / 24)
+
+        if template_embed is None:
+            template_embed = Embed()
+        if template_embed.title == "":
+            template_embed.title = "Entries"
+
+        for i in range(page_count):
+            embed = template_embed.copy()
+            embed.title += f" (Page {i + 1}/{page_count})"
+
+            next_endpoint = min(len(entries), (i + 1) * 24)
+            for entry in entries[i * 24 : next_endpoint]:
+                if type(entry) is Tuple:
+                    name, value = entry
+                else:
+                    name, value = "​", entry  # Cheeky zero width space
+                embed.add_field(
+                    name=name,
+                    value=value
+                )
+
+            self.embeds.append(embed)
+        
+        self.add_reaction("⏪", "back")
+        self.add_reaction("⏹", "delete")
+        self.add_reaction("⏩", "next")
+
+
+    async def run(self, *args) -> None:
+        await super().run(self.embeds, *args)
