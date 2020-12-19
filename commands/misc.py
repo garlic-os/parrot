@@ -10,7 +10,7 @@ class Miscellaneous(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def ping(self, ctx: commands.Context) -> None:
         """ Get the bot's reponse time. """
-        await ctx.send(f"Ping! Took **{round(ctx.bot.latency * 1000, 2)}** ms")
+        await ctx.send(f"NEED PING??? Took **{round(ctx.bot.latency * 1000, 2)}** ms")
 
     @commands.command(aliases=["about", "bio"])
     @commands.cooldown(2, 4, commands.BucketType.user)
