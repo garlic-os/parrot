@@ -16,6 +16,7 @@ class Userlike(commands.Converter):
     """
 
     async def convert(self, ctx: commands.Context, text: str) -> User:
+        text = text.lower()
         if text in ("me", "myself"):
             return ctx.author
 
