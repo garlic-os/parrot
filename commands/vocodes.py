@@ -21,7 +21,7 @@ def get_speaker(name: str) -> Optional[dict]:
         aliases = speaker.get("aliases", [])
         for i, alias in enumerate(aliases):
             aliases[i] = alias.lower()
-        names = [speaker["name"].lower(), speaker["slug"]] + aliases
+        names = [speaker["name"].lower(), speaker["slug"].lower()] + aliases
         if name in names:
             return speaker
     return None
@@ -66,21 +66,6 @@ class Vocodes(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def vocodes(self, ctx: commands.Context, *, args: str) -> None:
         """ Make pop culture icons say whatever you want! """
-
-        # Join the voice channel the context's author is in.
-        if ctx.author.voice is None:
-            await ctx.send(embed=ParrotEmbed(
-                title="Error",
-                description="You must be in a voice channel to use this command.",
-                color_name="orange",
-            ))
-            return
-        else:
-            try:
-                voice_client = await ctx.author.voice.channel.connect()
-            except ClientException:
-                pass
-
         """
         Command parsing code copied from crimsoBOT.
         Copyright (c) 2019 crimso, williammck; MIT License.
@@ -118,9 +103,24 @@ class Vocodes(commands.Cog):
             await ctx.send(embed=embed)
             return
 
+        # Join the voice channel the context's author is in.
+        if ctx.author.voice is None:
+            await ctx.send(embed=ParrotEmbed(
+                title="Error",
+                description="You must be in a voice channel to use this command.",
+                color_name="orange",
+            ))
+            return
+        else:
+            voice_client = ctx.author.voice.channel.voice_states.get(ctx.bot.user.id, None)
+            if voice_client is None:
+                voice_client = await ctx.author.voice.channel.connect()
+
         payload = {
             "speaker": speaker["slug"],
             "text": text,
+            "use_diagonal": True,
+            "emotion": "Contextual"
         }
 
         if speaker['avatarUrl'].startswith("https"):
