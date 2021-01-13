@@ -112,7 +112,7 @@ class Vocodes(commands.Cog):
             ))
             return
         else:
-            voice_client = ctx.author.voice.channel.voice_states.get(ctx.bot.user.id, None)
+            voice_client = ctx.voice_client
             if voice_client is None:
                 voice_client = await ctx.author.voice.channel.connect()
 
