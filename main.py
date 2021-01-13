@@ -24,6 +24,8 @@ bot = commands.AutoShardedBot(
     )
 )
 
+bot.admin_role_ids = json.loads(os.environ.get("ADMIN_ROLE_IDS", "[]"))
+
 
 def load_folder(folder_name: str) -> None:
     def list_filenames(dir: str) -> List[str]:

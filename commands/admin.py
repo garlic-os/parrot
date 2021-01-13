@@ -6,6 +6,15 @@ from utils import Paginator
 
 
 class Admin(commands.Cog):
+    @commands.command(aliases=["amiadmin", "iamadmin", "i_am_admin"])
+    @commands.cooldown(2, 4, commands.BucketType.user)
+    async def am_i_admin(self, ctx: commands.Context) -> None:
+        if is_admin(ctx):
+            await ctx.send("✅ You are a Parrot admin in this server.")
+        else:
+            await ctx.send("❌ You are not a Parrot admin in this server.")
+
+
     @commands.command()
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)

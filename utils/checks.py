@@ -8,6 +8,9 @@ def is_owner(ctx: commands.Context) -> bool:
 
 def is_admin(ctx: commands.Context) -> bool:
     """ Check if the context's author is a Parrot administrator. """
-    # TODO: Add support for Parrot admin server roles
-    # Is an owner of Parrot or the context's server
-    return is_owner(ctx) or ctx.author.id == ctx.guild.owner_id
+    if is_owner(ctx):
+        return True
+    for role_id in map((lambda role: role.id), ctx.author.roles):
+        if role_id in ctx.bot.admin_role_ids:
+            return True
+    return False
