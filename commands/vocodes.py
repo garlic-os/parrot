@@ -49,11 +49,9 @@ class Vocodes(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def leave(self, ctx: commands.Context) -> None:
         """ Make Parrot leave the voice channel that you are in. """
-        if ctx.author.voice is not None:
-            voice_client = ctx.author.voice.channel.voice_states.get(ctx.bot.user.id, None)
-            if voice_client is not None:
-                await voice_client.disconnect()
-                return
+        if ctx.author.voice is not None and ctx.voice_client is not None:
+            await ctx.voice_client.disconnect()
+            return
 
         await ctx.send(embed=ParrotEmbed(
             title="Error",
@@ -62,7 +60,7 @@ class Vocodes(commands.Cog):
         ))
 
 
-    @commands.command(aliases=["ditto"], usage=f"speaker name; message to speak")
+    @commands.command(aliases=["vocoder"], usage=f"speaker name; message to speak")
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def vocodes(self, ctx: commands.Context, *, args: str) -> None:
         """ Make pop culture icons say whatever you want! """
@@ -120,7 +118,7 @@ class Vocodes(commands.Cog):
             "speaker": speaker["slug"],
             "text": text,
             "use_diagonal": True,
-            "emotion": "Contextual"
+            "emotion": "Contextual",
         }
 
         if speaker['avatarUrl'].startswith("https"):
@@ -177,6 +175,21 @@ class Vocodes(commands.Cog):
                                 options=["-ar 48000", "-ac 1"]
                             )
                         )
+
+                elif str(response.status)[0] == "5":
+                    # Edit the loading embed to show there was an error.
+                    loading_embed.title = "oh no"
+                    loading_embed.set_author(name="❌ " + speaker["name"])
+                    await loading_message.edit(embed=loading_embed)
+
+                    # Post a new embed explaining the error.
+                    embed = ParrotEmbed(
+                        title="🤷‍♂️ Error",
+                        description=f"vo.codes is having problems on their end. They could just be under a lot of load right now, so try again in a moment. Each runs on a different machine, so other voices may not be having this problem.\n_Error {response.status}: {response.reason}_",
+                        color_name="red",
+                    )
+                    await ctx.send(embed=embed)
+
                 else:
                     # Edit the loading embed to show there was an error.
                     loading_embed.title = "oh no"
@@ -186,9 +199,8 @@ class Vocodes(commands.Cog):
                     # Post a new embed explaining the error.
                     embed = ParrotEmbed(
                         title="🤷‍♂️ Error",
-                        description=f"Something went wrong while generating the speech:\n{response.status} {response.reason}",
+                        description=f"Something went wrong while generating the speech:\n_Error {response.status}: {response.reason}_",
                         color_name="red",
-                        footer="Give it a moment and try again.",
                     )
                     await ctx.send(embed=embed)
 
