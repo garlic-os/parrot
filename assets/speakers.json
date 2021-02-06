@@ -406,7 +406,7 @@
     },
     {
         "name": "MoistCr1TiKaL",
-        "aliases": ["cr1tikal", "moistcrit1kal", "crit1kal", "critical", "moistcritical"],
+        "aliases": ["cr1tikal", "moistcrit1kal", "crit1kal", "critical", "moistcritical", "moistcritikal"],
         "slug": "moistcr1tikal",
         "description": "YouTuber.",
         "avatarUrl": "moist.jpg",
@@ -627,9 +627,9 @@
         ]
     },
     {
-        "name": "Scout",
+        "name": "Scout (TF2)",
         "slug": "scout",
-        "description": "TF2",
+        "description": "Originally voiced by Nathan Vetterlein",
         "avatarUrl": "scout.jpg",
         "fullUrl": "scout-full.png",
         "voiceQuality": 4.5,
@@ -818,6 +818,18 @@
         "voiceQuality": 7.2,
         "categories": [
             "cartoons"
+        ]
+    },
+    {
+        "name": "Soldier (TF2)",
+        "slug": "Soldier",
+        "aliases": ["Rick May", "solder"],
+        "description": "Originally voiced by Rick May",
+        "avatarUrl": "https://15.ai/img/soldier.png",
+        "fullUrl": "https://15.ai/img/soldier.png",
+        "voiceQuality": 7.887,
+        "categories": [
+            "games"
         ]
     }
 ]
