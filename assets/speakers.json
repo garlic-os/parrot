@@ -2,6 +2,7 @@
     {
         "name": "Alan Rickman",
         "slug": "alan-rickman",
+        "aliases": ["rickman"],
         "description": "Actor",
         "avatarUrl": "alan-rickman.jpg",
         "fullUrl": "alan-rickman-full.png",
@@ -13,6 +14,7 @@
     {
         "name": "Anderson Cooper",
         "slug": "anderson-cooper",
+        "aliases": ["cooper"],
         "description": "Reporter",
         "avatarUrl": "anderson-cooper.jpg",
         "fullUrl": "anderson-cooper-full.png",
@@ -38,6 +40,7 @@
     {
         "name": "Bart Simpson",
         "slug": "bart-simpson",
+        "aliases": ["bart"],
         "description": "The Simpsons",
         "avatarUrl": "bart-simpson.jpg",
         "fullUrl": "bart-simpson-full.png",
@@ -49,6 +52,7 @@
     {
         "name": "Ben Shapiro",
         "slug": "ben-shapiro",
+        "aliases": ["shapiro", "ben shaprio"],
         "description": "Commentator",
         "avatarUrl": "ben-shapiro.jpg",
         "fullUrl": "ben-shapiro-full.png",
@@ -84,6 +88,7 @@
     {
         "name": "Bill Gates",
         "slug": "bill-gates",
+        "aliases": ["gates"],
         "description": "Microsoft.",
         "avatarUrl": "bill-gates.jpg",
         "fullUrl": "bill-gates-full.png",
@@ -95,6 +100,7 @@
     {
         "name": "Bill Nye",
         "slug": "bill-nye",
+        "aliases": ["nye"],
         "description": "The Science Guy.",
         "avatarUrl": "bill-nye.jpg",
         "fullUrl": "bill-nye-full.png",
@@ -130,6 +136,7 @@
     {
         "name": "The Boss",
         "slug": "the-boss",
+        "aliases": ["boss"],
         "description": "Metal Gear",
         "avatarUrl": "the-boss-virgil.jpg",
         "fullUrl": "the-boss-full.png",
@@ -141,6 +148,7 @@
     {
         "name": "Bryan Cranston",
         "slug": "bryan-cranston",
+        "aliases": ["cranston"],
         "description": "Actor.",
         "avatarUrl": "bryan-cranston.jpg",
         "fullUrl": "bryan-cranston-full.png",
@@ -152,6 +160,7 @@
     {
         "name": "Christopher Lee",
         "slug": "christopher-lee",
+        "aliases": ["lee"],
         "description": "An actor well known for playing Count Dooku and Saruman.",
         "avatarUrl": "christopher-lee.jpg",
         "fullUrl": "christopher-lee-full.png",
@@ -163,6 +172,7 @@
     {
         "name": "Craig Ferguson",
         "slug": "craig-ferguson",
+        "aliases": ["ferguson"],
         "description": "Night show host.",
         "avatarUrl": "craig-ferguson.jpg",
         "fullUrl": "craig-ferguson-full.png",
@@ -186,6 +196,7 @@
     {
         "name": "Danny Devito",
         "slug": "danny-devito",
+        "aliases": ["devito"],
         "description": "Always delightful.",
         "avatarUrl": "danny-devito.jpg",
         "fullUrl": "danny-devito-full.png",
@@ -194,6 +205,7 @@
     {
         "name": "Darth Vader",
         "slug": "darth-vader",
+        "aliases": ["vader", "darth vador", "vador"],
         "apislugOverride": "james-earl-jones",
         "description": "Star Wars",
         "avatarUrl": "darth-vader.jpg",
@@ -206,6 +218,7 @@
     {
         "name": "David Cross",
         "slug": "david-cross",
+        "aliases": ["cross"],
         "description": "Actor.",
         "avatarUrl": "david-cross.jpg",
         "fullUrl": "david-cross-full.png",
@@ -230,6 +243,7 @@
     {
         "name": "George Takei",
         "slug": "george-takei",
+        "aliases": ["takei"],
         "description": "Actor.",
         "avatarUrl": "george-takei.jpg",
         "fullUrl": "george-takei-full.png",
@@ -241,6 +255,7 @@
     {
         "name": "Gilbert Gottfried",
         "slug": "gilbert-gottfried",
+        "aliases": ["gottfried"],
         "description": "Voice actor and comedian.",
         "avatarUrl": "gilbert-gottfried.jpg",
         "fullUrl": "gilbert-gottfried-full.png",
@@ -290,6 +305,7 @@
     {
         "name": "James Earl Jones",
         "slug": "james-earl-jones",
+        "aliases": ["james jones"],
         "description": "Actor and voice actor.",
         "avatarUrl": "james-earl-jones.jpg",
         "fullUrl": "james-earl-jones-full.png",
@@ -301,6 +317,7 @@
     {
         "name": "Jim Cramer",
         "slug": "jim-cramer",
+        "aliases": ["cramer"],
         "description": "Stonks.",
         "avatarUrl": "jim-cramer.jpg",
         "fullUrl": "jim-cramer-full.png",
@@ -314,6 +331,7 @@
     {
         "name": "John Oliver",
         "slug": "john-oliver",
+        "aliases": ["oliver"],
         "description": "TV news.",
         "avatarUrl": "john-oliver.jpg",
         "fullUrl": "john-oliver-full.png",
@@ -326,6 +344,7 @@
     {
         "name": "Judi Dench",
         "slug": "judi-dench",
+        "aliases": ["dench"],
         "description": "Actress",
         "avatarUrl": "judi-dench.jpg",
         "fullUrl": "judi-dench-full.png",
@@ -337,6 +356,7 @@
     {
         "name": "Larry King",
         "slug": "larry-king",
+        "aliases": ["king"],
         "description": "Reporter",
         "avatarUrl": "larry-king.jpg",
         "fullUrl": "larry-king-full.png",
@@ -348,7 +368,7 @@
     {
         "name": "Leonard Nimoy",
         "slug": "leonard-nimoy",
-        "aliases": ["spock"],
+        "aliases": ["spock", "nimoy"],
         "description": "Actor",
         "avatarUrl": "spock.jpg",
         "fullUrl": "leonard-nimoy-full.png",
@@ -360,6 +380,7 @@
     {
         "name": "Lisa Simpson",
         "slug": "lisa-simpson",
+        "aliases": ["lisa"],
         "description": "The Simpsons",
         "avatarUrl": "lisa-simpson.jpg",
         "fullUrl": "lisa-simpson-full.png",
@@ -383,6 +404,7 @@
     {
         "name": "Michael Rosen",
         "slug": "michael-rosen",
+        "aliases": ["rosen"],
         "description": "Writer.",
         "avatarUrl": "michael-rosen.jpg",
         "fullUrl": "michael-rosen-full.png",
@@ -395,6 +417,7 @@
     {
         "name": "Mitch McConnell",
         "slug": "mitch-mcconnell",
+        "aliases": ["mcconnell"],
         "description": "Politician.",
         "avatarUrl": "mitch-mcconnell.jpg",
         "fullUrl": "mitch-mcconnel-full.png",
@@ -418,8 +441,8 @@
         ]
     },
     {
-        "name": "Mr. Fred Rogers",
-        "aliases": ["fred rogers"],
+        "name": "Mr. Rogers",
+        "aliases": ["fred rogers", "rogers", "mr rogers", "mr. rogers"],
         "slug": "fred-rogers",
         "description": "Educator and amazing human being.",
         "avatarUrl": "fred-rogers.jpg",
@@ -444,6 +467,7 @@
     {
         "name": "Neil deGrasse Tyson",
         "slug": "neil-degrasse-tyson",
+        "aliases": ["neil tyson", "tyson"],
         "description": "Total badass",
         "avatarUrl": "neil-degrasse-tyson.jpg",
         "fullUrl": "neil-degrasse-tyson-full.png",
@@ -455,6 +479,7 @@
     {
         "name": "Palmer Luckey",
         "slug": "palmer-luckey",
+        "aliases": ["luckey"],
         "description": "Inventor, Entrepreneur",
         "avatarUrl": "palmer-luckey.jpg",
         "fullUrl": "palmer-luckey-full.png",
@@ -466,6 +491,7 @@
     {
         "name": "Paul Graham",
         "slug": "paul-graham",
+        "aliases": ["graham"],
         "description": "Entrepreneur",
         "avatarUrl": "paul-graham.jpg",
         "fullUrl": "paul-graham-full.png",
@@ -477,6 +503,7 @@
     {
         "name": "Paula Deen",
         "slug": "paula-deen",
+        "aliases": ["deen"],
         "description": "Cook",
         "avatarUrl": "paula-deen.jpg",
         "fullUrl": "paula-deen-full.png",
@@ -489,6 +516,7 @@
     {
         "name": "Peter Thiel",
         "slug": "peter-thiel",
+        "aliases": ["thiel"],
         "description": "Entrepreneur",
         "avatarUrl": "peter-thiel.jpg",
         "fullUrl": "peter-thiel-full.png",
@@ -584,6 +612,7 @@
     {
         "name": "Richard Ayoade",
         "slug": "richard-ayoade",
+        "aliases": ["ayoade"],
         "description": "Actor and comedian",
         "avatarUrl": "moss-fire.webp",
         "fullUrl": "richard-ayoade-full.png",
@@ -595,6 +624,7 @@
     {
         "name": "Sam Altman",
         "slug": "sam-altman",
+        "aliases": ["altman"],
         "description": "Entrepreneur",
         "avatarUrl": "sam-altman.jpg",
         "fullUrl": "sam-altman-full.png",
@@ -606,6 +636,7 @@
     {
         "name": "Sarah Palin",
         "slug": "sarah-palin",
+        "aliases": ["palin"],
         "description": "Politician",
         "avatarUrl": "sarah-palin.jpg",
         "fullUrl": "sarah-palin-full.png",
@@ -629,6 +660,7 @@
     {
         "name": "Scout (TF2)",
         "slug": "scout",
+        "aliases": ["scout tf2", "tf2 scout"],
         "description": "Originally voiced by Nathan Vetterlein",
         "avatarUrl": "scout.jpg",
         "fullUrl": "scout-full.png",
@@ -652,7 +684,7 @@
     },
     {
         "name": "Shohreh Aghdashloo",
-        "aliases": ["Shohreh"],
+        "aliases": ["Shohreh", "Aghdashloo"],
         "slug": "shohreh-aghdashloo",
         "description": "Politician",
         "avatarUrl": "shohreh-aghdashloo.jpg",
@@ -664,7 +696,7 @@
     },
     {
         "name": "Sir David Attenborough",
-        "aliases": ["david attenborough"],
+        "aliases": ["david attenborough", "attenborough", "david a", "david a."],
         "slug": "david-attenborough",
         "description": "Naturalist.",
         "avatarUrl": "david-attenborough.jpg",
@@ -689,7 +721,7 @@
     },
     {
         "name": "Sonic",
-        "aliases": ["sonic the hedgehog"],
+        "aliases": ["sonic the hedgehog", "sonic hedgehog", "sanic", "sanic hegehog"],
         "slug": "sonic",
         "description": "Gotta go fast",
         "avatarUrl": "sonic.jpg",
@@ -728,6 +760,7 @@
     {
         "name": "Tommy Wiseau",
         "slug": "tommy-wiseau",
+        "aliases": ["wiseau"],
         "description": "The Room.",
         "avatarUrl": "https://i.imgur.com/aqgkOAM.gif",
         "fullUrl": "tommy-wiseau-full.png",
@@ -753,6 +786,7 @@
     {
         "name": "Tucker Carlson",
         "slug": "tucker-carlson",
+        "aliases": ["carlson"],
         "description": "TV news personality",
         "avatarUrl": "tucker-carlson.jpg",
         "fullUrl": "tucker-carlson-full.png",
@@ -788,7 +822,7 @@
     {
         "name": "Wilford Brimley",
         "slug": "wilford-brimley",
-        "aliases": ["diabeetus"],
+        "aliases": ["brimley", "diabeetus"],
         "description": "Actor",
         "avatarUrl": "wilford-brimley.jpg",
         "fullUrl": "wilford-brimley-full.png",
@@ -812,24 +846,13 @@
     {
         "name": "Yami Yugi",
         "slug": "yami-yugi",
+        "aliases": ["yugi"],
         "description": "You've activated my trap card.",
         "avatarUrl": "yami-yugi.jpg",
         "fullUrl": "yami-yugi-full.png",
         "voiceQuality": 7.2,
         "categories": [
             "cartoons"
-        ]
-    },
-    {
-        "name": "Soldier (TF2)",
-        "slug": "Soldier",
-        "aliases": ["Rick May", "solder"],
-        "description": "Originally voiced by Rick May",
-        "avatarUrl": "https://15.ai/img/soldier.png",
-        "fullUrl": "https://15.ai/img/soldier.png",
-        "voiceQuality": 7.887,
-        "categories": [
-            "games"
         ]
     }
 ]
