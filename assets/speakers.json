@@ -52,7 +52,7 @@
     {
         "name": "Ben Shapiro",
         "slug": "ben-shapiro",
-        "aliases": ["shapiro", "ben shaprio"],
+        "aliases": ["shapiro", "ben shaprio", "shaprio", "ben shaprio"],
         "description": "Commentator",
         "avatarUrl": "ben-shapiro.jpg",
         "fullUrl": "ben-shapiro-full.png",
