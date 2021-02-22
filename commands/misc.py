@@ -12,7 +12,7 @@ class Miscellaneous(commands.Cog):
         """ Get the bot's reponse time. """
         await ctx.send(f"NEED PING??? Took **{round(ctx.bot.latency * 1000, 2)}** ms")
 
-    @commands.command(aliases=["about", "bio"])
+    @commands.command(aliases=["about", "bio", "code", "github", "source", "sourcecode"])
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def info(self, ctx: commands.Context) -> None:
         """ Get info about Parrot. """
