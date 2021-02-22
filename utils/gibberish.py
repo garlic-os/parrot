@@ -37,54 +37,64 @@ def gibberish(text: str, state_size: int=None, length: int=None) -> str:
     if num_chars < state_size:
         raise ValueError(f"Input must be longer than {state_size} characters.")
 
-    # Pick a random starting character, preferably an uppercase letter.
-    for _ in range(1000):
-        char_index = random.randint(0, num_chars)
-        char = _char_at(text, char_index)
-        if char.isupper():
-            break
+    # # Pick a random starting character, preferably an uppercase letter.
+    # for _ in range(1000):
+    #     char_index = random.randint(0, num_chars)
+    #     char = _char_at(text, char_index)
+    #     if char.isupper():
+    #         break
 
-    # Write starting characters.
-    output = text[char_index:char_index + state_size]
+    # # Write starting characters.
+    # output = text[char_index:char_index + state_size]
 
-    # Set target string.
-    target = text[char_index + 1:char_index + state_size]
+    # # Set target string.
+    # target = text[char_index + 1:char_index + state_size]
 
-    # Generate characters.
-    for _ in range(length):
-        if state_size == 1:
-            # Pick a random character.
-            char = _char_at(text, random.randint(0, num_chars))
-        else:
-            # Find all sets of matching target characters.
-            num_matches = 0
-            i = -1
-            while True:
-                i = _index_of(text, target, i + 1)
-                if i < 0 or i >= num_chars:
-                    break
-                else:
-                    num_matches += 1
+    # # Generate characters.
+    # for _ in range(length):
+    #     if state_size == 1:
+    #         # Pick a random character.
+    #         char = _char_at(text, random.randint(0, num_chars))
+    #     else:
+    #         # Find all sets of matching target characters.
+    #         num_matches = 0
+    #         i = -1
+    #         while True:
+    #             i = _index_of(text, target, i + 1)
+    #             if i < 0 or i >= num_chars:
+    #                 break
+    #             else:
+    #                 num_matches += 1
 
-            # Pick a match at random.
-            match_index = random.randint(0, num_matches)
+    #         # Pick a match at random.
+    #         match_index = random.randint(0, num_matches)
 
-            num_matches = 0
-            i = -1
-            while True:
-                i = _index_of(text, target, i + 1)
-                if i < 0 or i >= num_chars:
-                    break
-                elif match_index == num_matches:
-                    char = _char_at(text, i + state_size - 1)
-                else:
-                    num_matches += 1
+    #         num_matches = 0
+    #         i = -1
+    #         while True:
+    #             i = _index_of(text, target, i + 1)
+    #             if i < 0 or i >= num_chars:
+    #                 break
+    #             elif match_index == num_matches:
+    #                 char = _char_at(text, i + state_size - 1)
+    #             else:
+    #                 num_matches += 1
 
-        # Output the character.
-        output += char
+    #     # Output the character.
+    #     output += char
 
-        # Update the target.
-        if state_size > 1:
-            target = target[1:state_size - 1] + char
+    #     # Update the target.
+    #     if state_size > 1:
+    #         target = target[1:state_size - 1] + char
 
-    return output
+    # return output
+
+def gibberish(text: str, state_size: int=None, length: int=None) -> str:
+    """
+    My port of Keith Enevoldsen's algorithm is broken! Shuffling the words gives
+    literally better results than the broken code I made, so I'm doing that
+    instead until I fix my port. Sorry, Keith Enevoldsen, you deserve better.
+    """
+    words = text.split(" ")
+    random.shuffle(words)
+    return " ".join(words)
