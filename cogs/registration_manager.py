@@ -5,7 +5,7 @@ from utils.exceptions import NotRegisteredError
 
 
 class RegistrationManager(DiskSet[int]):
-    def __init__(self, bot: commands.Bot, registration_path: str) -> None:
+    def __init__(self, bot: commands.Bot, registration_path: str):
         super().__init__(registration_path)
         self.bot = bot
 
@@ -19,7 +19,7 @@ class RegistrationManager(DiskSet[int]):
 
 
 class RegistrationManagerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot):
         bot.registration = RegistrationManager(bot, "./data/registration.json")
 
 

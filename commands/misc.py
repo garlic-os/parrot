@@ -3,7 +3,7 @@ from utils.parrot_embed import ParrotEmbed
 
 
 class Miscellaneous(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @commands.command()

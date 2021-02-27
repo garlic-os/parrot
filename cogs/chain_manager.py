@@ -6,7 +6,7 @@ from utils.parrot_markov import ParrotMarkov
 
 
 class ChainManager(LRUCache[int, ParrotMarkov]):
-    def __init__(self, bot: commands.Bot, cache_size: int) -> None:
+    def __init__(self, bot: commands.Bot, cache_size: int):
         super().__init__(cache_size)
         self.bot = bot
 
@@ -36,7 +36,7 @@ class ChainManager(LRUCache[int, ParrotMarkov]):
 
 
 class ChainManagerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot):
         cache_size = int(os.environ.get("CHAIN_CACHE_SIZE", 5))
         bot.chains = ChainManager(bot, cache_size)
 

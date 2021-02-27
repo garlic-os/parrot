@@ -8,7 +8,7 @@ T = TypeVar("T")
 class DiskSet(Set[T]):
     """ A Set that mirrors its state to a file. """
 
-    def __init__(self, path: str, iterable: Iterable[T]=()) -> None:
+    def __init__(self, path: str, iterable: Iterable[T]=()):
         self.data = set(iterable)
         self.path = path
 

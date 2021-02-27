@@ -11,7 +11,7 @@ class LRUCache(Generic[K, V], OrderedDict):
     https://docs.python.org/3/library/collections.html#collections.OrderedDict
     """
 
-    def __init__(self, max_size: int, *args, **kwargs) -> None:
+    def __init__(self, max_size: int, *args, **kwargs):
         assert max_size > 0, "Maximum dictionary size must be positive"
         super().__init__(*args, **kwargs)
         self.max_size = max_size

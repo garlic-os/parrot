@@ -16,7 +16,7 @@ Emojilike = Union[Emoji, Reaction, PartialEmoji, str]
 
 
 class CustomEmbedPaginator:
-    def __init__(self, ctx: commands.Context, **kwargs) -> None:
+    def __init__(self, ctx: commands.Context, **kwargs):
         self.embeds = None
         self.ctx = ctx
         self.bot = ctx.bot
@@ -207,7 +207,7 @@ class CustomEmbedPaginator:
 
 
 class FromList(CustomEmbedPaginator):
-    def __init__(self, ctx: commands.Context, entries: List[Union[str, Tuple[str, str]]], template_embed: Embed=None, **kwargs) -> None:
+    def __init__(self, ctx: commands.Context, entries: List[Union[str, Tuple[str, str]]], template_embed: Embed=None, **kwargs):
         """ Create a paginated embed from a list. """
         super().__init__(ctx, **kwargs)
         self.fromlist_embeds = []

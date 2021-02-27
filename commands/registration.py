@@ -3,7 +3,7 @@ from utils.parrot_embed import ParrotEmbed
 
 
 class Registration(commands.Cog):
-    def __init__(self) -> None:
+    def __init__(self):
         with open("assets/privacy-policy.txt", "r") as f:
             self.policy_text = f.read()
 

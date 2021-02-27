@@ -21,7 +21,7 @@ class ParrotMarkov(markovify.NewlineText):
     The state size of each instance is now a random choice between 2 and 3.
     """
 
-    def __init__(self, corpus: Corpus, state_size: int = 2) -> None:
+    def __init__(self, corpus: Corpus, state_size: int = 2):
         super().__init__(
             self.parse_corpus(corpus),
             state_size=random.randint(2, 3),

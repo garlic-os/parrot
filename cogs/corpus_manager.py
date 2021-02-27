@@ -9,7 +9,7 @@ from utils.exceptions import NoDataError
 
 
 class CorpusManager(Dict[User, Corpus]):
-    def __init__(self, bot: commands.Bot, corpora_dir: str) -> None:
+    def __init__(self, bot: commands.Bot, corpora_dir: str):
         self.bot = bot
         self.corpora_dir = corpora_dir
         os.makedirs(self.corpora_dir, exist_ok=True)
@@ -121,7 +121,7 @@ class CorpusManager(Dict[User, Corpus]):
 
 
 class CorpusManagerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot):
         corpus_dir = os.environ.get("CORPUS_DIR", "./data/corpora/")
         bot.corpora = CorpusManager(bot, corpus_dir)
 

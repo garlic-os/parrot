@@ -10,7 +10,7 @@ from utils.converters import Userlike
 
 
 class Data(commands.Cog):
-    def __init__(self) -> None:
+    def __init__(self):
         self.pending_confirmations: PendingConfirmations = {}
 
 

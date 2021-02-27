@@ -12,7 +12,7 @@ from utils import Paginator
 
 
 class Quickstart(commands.Cog):
-    def __init__(self) -> None:
+    def __init__(self):
         # Keep track of Quickstart scans that are currently happening.
         # Key: Channel ID
         # Value: List of User IDs, representing whom Quickstart is scanning for

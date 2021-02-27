@@ -5,7 +5,7 @@ from utils.types import Channel
 
 
 class ChannelCrawler:
-    def __init__(self, history: _FilteredAsyncIterator, action: Callable[[Message], bool]) -> None:
+    def __init__(self, history: _FilteredAsyncIterator, action: Callable[[Message], bool]):
         self.num_collected = 0
         self.running = True
         self._action = action

@@ -8,7 +8,7 @@ from utils import regex
 
 
 class LearningCog(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         bot.validate_message = self.validate_message
         bot.learn_from = self.learn_from

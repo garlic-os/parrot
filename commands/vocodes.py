@@ -60,7 +60,7 @@ class Vocodes(commands.Cog):
         ))
 
 
-    @commands.command(aliases=["vocoder"], usage=f"speaker name; message to speak")
+    @commands.command(aliases=["vocoder", "vocode"], usage="speaker name; message to speak")
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def vocodes(self, ctx: commands.Context, *, args: str) -> None:
         """ Make pop culture icons say whatever you want! """
@@ -116,9 +116,7 @@ class Vocodes(commands.Cog):
 
         payload = {
             "speaker": speaker["slug"],
-            "text": text,
-            "use_diagonal": True,
-            "emotion": "Contextual",
+            "text": text
         }
 
         if speaker['avatarUrl'].startswith("https"):
