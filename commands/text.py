@@ -22,24 +22,6 @@ class Text(commands.Cog):
                 words[i] = word.upper()
         return " ".join(words)
 
-    def disable_pings(self, ctx: commands.Context, text: str) -> str:
-        """
-        NEED PING??? Didn't think so, turns out most people don't.
-        Parse mention strings into fake versions that don't ping you.
-        """
-        words = text.split(" ")
-        for i, word in enumerate(words):
-            if re.match(regex.user_or_role_mention, word):
-                mention_id = re.sub("[^0-9]","", word)
-                user = ctx.bot.get_user(mention_id)
-                if user is not None:
-                    words[i] = f"@{user.name}#{user.discriminator}"
-                    continue
-                role = ctx.guild.get_role(mention_id)
-                if role is not None:
-                    words[i] = f"@{role.name}"
-        return " ".join(words)
-
 
     async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
         # Parrot can't imitate itself!
@@ -59,7 +41,6 @@ class Text(commands.Cog):
         #   error handler deal with.
         chain = ctx.bot.chains[user]
         sentence = chain.make_short_sentence(500) or "Error"
-        sentence = self.disable_pings(ctx, sentence)
         name = f"Not {user.display_name}"
 
         if intimidate:
