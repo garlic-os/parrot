@@ -1,4 +1,6 @@
-from discord import User
+from typing import Union
+
+from discord import User, Member
 from discord.ext import commands
 from utils.disk_set import DiskSet
 from utils.exceptions import NotRegisteredError
@@ -9,7 +11,7 @@ class RegistrationManager(DiskSet[int]):
         super().__init__(registration_path)
         self.bot = bot
 
-    def verify(self, user: User) -> None:
+    def verify(self, user: Union[User, Member]) -> None:
         """
         Raise a NotRegisteredError exception if the user is not a bot and is
           not registered.
