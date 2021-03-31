@@ -14,17 +14,17 @@ class CorpusManager(Dict[User, Corpus]):
         self.corpora_dir = corpora_dir
         os.makedirs(self.corpora_dir, exist_ok=True)
 
-    def _file_path_no_check(self, user: User) -> str:
+    def _file_path_no_check(self, user: Union[User, Member]) -> str:
         return os.path.join(self.corpora_dir, str(user.id) + ".json")
 
-    def file_path(self, user: User) -> str:
+    def file_path(self, user: Union[User, Member]) -> str:
         self.bot.registration.verify(user)
         corpus_path = self._file_path_no_check(user)
         if os.path.exists(corpus_path):
             return corpus_path
         raise FileNotFoundError(user.id)
 
-    def add(self, user: User, messages: Union[Message, List[Message]]) -> int:
+    def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
         """
         Record a message to a user's corpus.
         Also, if this user's Markov Chain is cached, update it with the new
@@ -67,7 +67,7 @@ class CorpusManager(Dict[User, Corpus]):
         num_messages_added = len(corpus) - before_length
         return num_messages_added
 
-    def __getitem__(self, user: User) -> Corpus:
+    def __getitem__(self, user: Union[User, Member]) -> Corpus:
         """ Get a corpus by user ID. """
         self.bot.registration.verify(user)
         corpus_path = self._file_path_no_check(user)
@@ -77,21 +77,21 @@ class CorpusManager(Dict[User, Corpus]):
         except FileNotFoundError:
             raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
 
-    def get(self, user: User, default: Optional[Corpus]=None) -> Any:
+    def get(self, user: Union[User, Member], default: Optional[Corpus]=None) -> Any:
         """ .get() wasn't working until I explicitly defined it ¯\_(ツ)_/¯ """
         try:
             return self[user]
         except NoDataError:
             return default
 
-    def __setitem__(self, user: User, corpus: Corpus) -> None:
+    def __setitem__(self, user: Union[User, Member], corpus: Corpus) -> None:
         """ Create or overwrite a corpus file. """
         self.bot.registration.verify(user)
         corpus_path = self._file_path_no_check(user)
         with open(corpus_path, "w") as f:
             json.dump(corpus, f)
 
-    def __delitem__(self, user: User) -> None:
+    def __delitem__(self, user: Union[User, Member]) -> None:
         """ Delete a corpus file. """
         corpus_path = self._file_path_no_check(user)
         try:
@@ -101,11 +101,13 @@ class CorpusManager(Dict[User, Corpus]):
 
     def __contains__(self, element: object) -> bool:
         """ Check if a user's corpus is present on disk. """
-        if type(element) is User or type(element) is Member:
+        if type(element) is User:
             element = cast(User, element)
-            corpus_path = self._file_path_no_check(element)
-            return os.path.exists(corpus_path)
-        return False
+        elif type(element) is Member:
+            element = cast(Member, element)
+        else:
+            return False
+        return os.path.exists(corpus_path)
 
     def __iter__(self) -> Iterator[User]:
         for filename in os.listdir(self.corpora_dir):

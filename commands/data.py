@@ -51,7 +51,7 @@ class Data(commands.Cog):
 
     @commands.group()
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def forget(self, ctx: commands.Context, maybe_user: str, *args) -> None:
+    async def forget(self, ctx: commands.Context, maybe_user: str=None, *args) -> None:
         """ Make Parrot delete all the data it has about you. """
         try:
             userlike = Userlike()
@@ -62,6 +62,9 @@ class Data(commands.Cog):
                     await command(ctx, *args)
                     return
             raise
+
+        if maybe_user is None:
+            user = ctx.author.user
 
         if user != ctx.author and ctx.author.id not in ctx.bot.owner_ids:
             raise UserPermissionError("You are not allowed to make Parrot forget other users.")
@@ -100,7 +103,7 @@ class Data(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def forget_confirm(self, ctx: commands.Context, confirm_code: int) -> None:
         # You'd think that since this argument is typed as an int, it would come
-        #   in as an int. But noooo, it's actually a string.
+        #   in as an int. But noooo, it actually comes in as a string.
         confirm_code = int(confirm_code)
         confirmation = self.pending_confirmations.get(confirm_code, None)
         
@@ -112,7 +115,7 @@ class Data(commands.Cog):
         if confirmation_is_valid:
             user = confirmation["corpus_owner"]
             del ctx.bot.corpora[user]
-            del ctx.bot.chains[user]
+            del ctx.bot.chains[user.id]
             del self.pending_confirmations[confirm_code]
 
             await ctx.send(embed=ParrotEmbed(
