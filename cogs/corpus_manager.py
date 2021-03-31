@@ -101,13 +101,12 @@ class CorpusManager(Dict[User, Corpus]):
 
     def __contains__(self, element: object) -> bool:
         """ Check if a user's corpus is present on disk. """
-        if type(element) is User:
+        if type(element) is User or type(element) is Member:
             element = cast(User, element)
-        elif type(element) is Member:
-            element = cast(Member, element)
-        else:
-            return False
-        return os.path.exists(corpus_path)
+            corpus_path = self._file_path_no_check(element)
+            return os.path.exists(corpus_path)
+        return False
+
 
     def __iter__(self) -> Iterator[User]:
         for filename in os.listdir(self.corpora_dir):
