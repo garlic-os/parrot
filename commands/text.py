@@ -103,7 +103,7 @@ class Text(commands.Cog):
                     break
                 for embed in message.embeds:
                     desc = embed.description
-                    if type(desc) is str and len(desc) > 0:
+                    if isinstance(desc, str) and len(desc) > 0:
                         sentence = desc
 
             if sentence is None:

@@ -16,7 +16,7 @@ class CommandErrorEventHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: CommandError) -> None:
         # Ignore Command Not Found errors
-        if type(error) is CommandNotFound:
+        if isinstance(error, CommandNotFound):
             return
 
         # Display the text of Friendly Errors directly

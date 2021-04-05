@@ -1,7 +1,6 @@
 from typing import Callable
 from discord import Message
 from discord.iterators import _FilteredAsyncIterator
-from utils.types import Channel
 
 
 class ChannelCrawler:

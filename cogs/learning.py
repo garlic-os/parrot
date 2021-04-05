@@ -62,7 +62,7 @@ class LearningCog(commands.Cog):
         """
         # Ensure that messages is a list.
         # If it's not, make it a list with one value.
-        if type(messages) is not list:
+        if not isinstance(messages, list):
             messages = [cast(Message, messages)]
         messages = cast(List[Message], messages)
 

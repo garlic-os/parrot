@@ -30,7 +30,7 @@ class ChainManager(LRUCache[int, ParrotMarkov]):
         return chain
 
     def __contains__(self, element: object) -> bool:
-        if type(element) is int:
+        if isinstance(element, int):
             return super().__contains__(element) or element in self.bot.corpora
         return False
 
