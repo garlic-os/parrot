@@ -228,7 +228,7 @@ voice = ["PyNaCl (>=1.3.0)", "youtube-dl"]
 [[package]]
 name = "markovify"
 version = "0.8.3"
-description = "A simple, extensible Markov chain generator. Uses include generating random semi-plausible sentences based on an existing text."
+description = "A simple, extensible Markov Chain generator. Uses include generating random semi-plausible sentences based on an existing text."
 category = "main"
 optional = false
 python-versions = "*"

@@ -1,5 +1,5 @@
 from typing import Dict, NamedTuple, Union
-from discord import DMChannel, GroupChannel, TextChannel, User, Webhook
+from discord import DMChannel, GroupChannel, TextChannel, User
 
 
 class CorpusMessage(NamedTuple):

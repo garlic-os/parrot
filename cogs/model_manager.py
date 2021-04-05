@@ -5,7 +5,7 @@ from utils.lru_cache import LRUCache
 from utils.parrot_markov import ParrotMarkov
 
 
-class ChainManager(LRUCache[int, ParrotMarkov]):
+class ModelManager(LRUCache[int, ParrotMarkov]):
     def __init__(self, bot: commands.Bot, cache_size: int):
         super().__init__(cache_size)
         self.bot = bot
@@ -21,13 +21,13 @@ class ChainManager(LRUCache[int, ParrotMarkov]):
         except KeyError:
             pass
 
-        # Otherwise, fetch their corpus and create a new Markov chain.
+        # Otherwise, fetch their corpus and create a new Markov Chain.
         corpus = self.bot.corpora[user_id]
-        chain = ParrotMarkov(corpus)
+        model = ParrotMarkov(corpus)
 
-        # Cache this Markov chain for next time.
-        super().__setitem__(user_id, chain)
-        return chain
+        # Cache this Markov Chain for next time.
+        super().__setitem__(user_id, model)
+        return model
 
     def __contains__(self, element: object) -> bool:
         if isinstance(element, int):
@@ -35,11 +35,11 @@ class ChainManager(LRUCache[int, ParrotMarkov]):
         return False
 
 
-class ChainManagerCog(commands.Cog):
+class ModelManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         cache_size = int(os.environ.get("CHAIN_CACHE_SIZE", 5))
-        bot.chains = ChainManager(bot, cache_size)
+        bot.models = ModelManager(bot, cache_size)
 
 
 def setup(bot: commands.Bot) -> None:
-    bot.add_cog(ChainManagerCog(bot))
+    bot.add_cog(ModelManagerCog(bot))

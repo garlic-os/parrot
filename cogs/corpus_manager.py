@@ -36,8 +36,8 @@ class CorpusManager(Dict[User, Corpus]):
             # No, mypy, it's definitely a List[Message] now
             messages = [messages]  # type: ignore
 
-        # TODO: Uncomment when chain.update() implemented
-        # chain = self.bot.chains.cache.get(user.id, None)
+        # TODO: Uncomment when model.update() implemented
+        # model = self.bot.models.cache.get(user.id, None)
         corpus: Corpus = self.get(user, {})
 
         before_length = len(corpus)
@@ -60,8 +60,8 @@ class CorpusManager(Dict[User, Corpus]):
                 "content": content,
                 "timestamp": str(message.created_at),
             }
-            # if chain:
-            #     chain.update(message.content)
+            # if model:
+            #     model.update(message.content)
 
         self[user] = corpus
         num_messages_added = len(corpus) - before_length
