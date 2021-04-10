@@ -1,8 +1,8 @@
 from typing import List
 
 import os
-import ujson as json  # ujson is faster
 import logging
+import ujson as json  # ujson is faster
 from discord import Activity, ActivityType, AllowedMentions
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -28,10 +28,10 @@ bot.admin_role_ids = json.loads(os.environ.get("ADMIN_ROLE_IDS", "[]"))
 
 
 def load_folder(folder_name: str) -> None:
-    def list_filenames(dir: str) -> List[str]:
+    def list_filenames(directory: str) -> List[str]:
         files = []
-        for filename in os.listdir(dir):
-            abs_path = os.path.join(dir, filename)
+        for filename in os.listdir(directory):
+            abs_path = os.path.join(directory, filename)
             if os.path.isfile(abs_path):
                 filename = os.path.splitext(filename)[0]
                 files.append(filename)

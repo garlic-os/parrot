@@ -32,12 +32,12 @@ class CorpusManager(Dict[User, Corpus]):
         """
         self.bot.registration.verify(user)
 
-        if type(messages) is not list:
+        if not isinstance(messages, list):
             # No, mypy, it's definitely a List[Message] now
             messages = [messages]  # type: ignore
 
-        # TODO: Uncomment when chain.update() implemented
-        # chain = self.bot.chains.cache.get(user.id, None)
+        # TODO: Uncomment when model.update() implemented
+        # model = self.bot.models.cache.get(user.id, None)
         corpus: Corpus = self.get(user, {})
 
         before_length = len(corpus)
@@ -50,7 +50,7 @@ class CorpusManager(Dict[User, Corpus]):
             content = message.content
             for embed in message.embeds:
                 desc = embed.description
-                if type(desc) is str:
+                if isinstance(desc, str):
                     desc = cast(str, desc)
                     content += " " + desc
             for attachment in message.attachments:
@@ -60,8 +60,8 @@ class CorpusManager(Dict[User, Corpus]):
                 "content": content,
                 "timestamp": str(message.created_at),
             }
-            # if chain:
-            #     chain.update(message.content)
+            # if model:
+            #     model.update(message.content)
 
         self[user] = corpus
         num_messages_added = len(corpus) - before_length
@@ -101,7 +101,7 @@ class CorpusManager(Dict[User, Corpus]):
 
     def __contains__(self, element: object) -> bool:
         """ Check if a user's corpus is present on disk. """
-        if type(element) is User or type(element) is Member:
+        if isinstance(element, User) or isinstance(element, Member):
             element = cast(User, element)
             corpus_path = self._file_path_no_check(element)
             return os.path.exists(corpus_path)

@@ -9,8 +9,8 @@ class ParrotMarkov(markovify.NewlineText):
     """
     A subclass of markovify.Text customized for use with Parrot.
     This class takes in a Parrot Corpus instead of a string and sends the
-    sentences within the Corpus straight to the Markov chain's parsed_sentences
-    parameter. This also disables the chain's need for its input to be
+    sentences within the Corpus straight to the Markov Chain's parsed_sentences
+    parameter. This also disables the model's need for its input to be
     well-punctuated for parsing. Because Heaven knows you're not going to get
     that when the dataset is coming from Discord.
 
@@ -21,7 +21,7 @@ class ParrotMarkov(markovify.NewlineText):
     The state size of each instance is now a random choice between 2 and 3.
     """
 
-    def __init__(self, corpus: Corpus, state_size: int = 2):
+    def __init__(self, corpus: Corpus):
         super().__init__(
             self.parse_corpus(corpus),
             state_size=random.randint(2, 3),

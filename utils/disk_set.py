@@ -1,6 +1,6 @@
 from typing import Iterable, Iterator, Set, TypeVar
-import ujson as json  # ujson is faster
 import os
+import ujson as json  # ujson is faster
 
 T = TypeVar("T")
 
@@ -31,7 +31,7 @@ class DiskSet(Set[T]):
         try:
             with open(self.path, "r") as f:
                 data = json.load(f)
-            if type(data) is list:
+            if isinstance(data, list):
                 self.data.update(data)
             else:
                 raise TypeError(f'Provided file "{self.path}" is valid JSON, but is not the right type. The data must resolve to a list.')

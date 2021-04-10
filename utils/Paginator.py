@@ -95,11 +95,12 @@ class CustomEmbedPaginator:
                             )
                     self.current_page = 0
                     return msg
-                    break
+
             else:
                 reaction, user = await self.bot.wait_for(
                     "reaction_add", check=check
                 )
+
             for emoji in self.control_emojis:
                 if emoji == str(reaction.emoji):
                     index = self.control_emojis.index(emoji)
@@ -113,6 +114,7 @@ class CustomEmbedPaginator:
                                 text=f"({self.current_page+1}/{len(self.embeds)})"
                             )
                         await msg.edit(embed=self.embeds[0])
+
                     elif cmd.lower() == "last":
                         self.current_page = len(self.embeds) - 1
                         if self.remove_reactions:
@@ -122,6 +124,7 @@ class CustomEmbedPaginator:
                                 text=f"({self.current_page+1}/{len(self.embeds)})"
                             )
                         await msg.edit(embed=self.embeds[len(self.embeds) - 1])
+
                     elif cmd.lower() == "next":
                         self.current_page += 1
                         self.current_page = (
@@ -136,6 +139,7 @@ class CustomEmbedPaginator:
                                 text=f"({self.current_page+1}/{len(self.embeds)})"
                             )
                         await msg.edit(embed=self.embeds[self.current_page])
+
                     elif cmd.lower() == "back":
                         self.current_page = self.current_page - 1
                         self.current_page = (
@@ -148,11 +152,12 @@ class CustomEmbedPaginator:
                                 text=f"({self.current_page+1}/{len(self.embeds)})"
                             )
                         await msg.edit(embed=self.embeds[self.current_page])
+
                     elif cmd.lower() == "delete":
                         self.current_page = 0
                         await msg.delete()
                         return msg
-                        break
+
                     elif cmd.lower() == "clear" or cmd.lower() == "lock":
                         self.current_page = 0
                         for reaction in msg.reactions:
@@ -161,7 +166,7 @@ class CustomEmbedPaginator:
                                     str(reaction.emoji), reaction.message.author
                                 )
                         return msg
-                        break
+
                     elif cmd.startswith("page"):
                         shit = cmd.split()
                         pg = int(shit[1])
@@ -177,6 +182,7 @@ class CustomEmbedPaginator:
                                 text=f"({pg+1}/{len(self.embeds)})"
                             )
                         await msg.edit(embed=self.embeds[pg])
+
                     elif cmd.startswith("remove"):
                         things = cmd.split()
                         things.pop(0)
@@ -195,6 +201,7 @@ class CustomEmbedPaginator:
                             await msg.remove_reaction(emoji, self.bot.user)
                             self.control_emojis.pop(index)
                             self.control_commands.pop(index)
+
                         else:
                             emoji = something
                             if emoji in self.control_emojis:
@@ -224,7 +231,7 @@ class FromList(CustomEmbedPaginator):
 
             next_endpoint = min(len(entries), (i + 1) * 24)
             for entry in entries[i * 24 : next_endpoint]:
-                if type(entry) is Tuple:
+                if isinstance(entry, tuple):
                     name, value = entry
                 else:
                     name, value = "​", entry  # Cheeky zero width space

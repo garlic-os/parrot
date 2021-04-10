@@ -36,11 +36,11 @@ class Text(commands.Cog):
             await sent_message.add_reaction("🆗")
             return
 
-        # Fetch this user's chain.
+        # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         #   error handler deal with.
-        chain = ctx.bot.chains[user]
-        sentence = chain.make_short_sentence(500) or "Error"
+        model = ctx.bot.models[user]
+        sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 
         if intimidate:
@@ -103,7 +103,7 @@ class Text(commands.Cog):
                     break
                 for embed in message.embeds:
                     desc = embed.description
-                    if type(desc) is str and len(desc) > 0:
+                    if isinstance(desc, str) and len(desc) > 0:
                         sentence = desc
 
             if sentence is None:
