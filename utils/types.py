@@ -25,3 +25,9 @@ PendingConfirmations = Dict[int, ConfirmationBody]
 
 # Any kind of channel
 Channel = Union[DMChannel, GroupChannel, TextChannel]
+
+
+class ModifiedAvatar(NamedTuple):
+    original_avatar_url: str
+    modified_avatar_url: str
+    source_message_id: int

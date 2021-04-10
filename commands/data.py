@@ -23,7 +23,7 @@ class Data(commands.Cog):
         try:
             corpus_file_path = ctx.bot.corpora.file_path(user)
         except FileNotFoundError:
-            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
+            raise NoDataError(f"No data available for user {user}.")
 
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
@@ -70,7 +70,7 @@ class Data(commands.Cog):
             raise UserPermissionError("You are not allowed to make Parrot forget other users.")
 
         if user not in ctx.bot.corpora:
-            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
+            raise NoDataError(f"No data available for user {user}.")
 
         confirm_code = ctx.message.id
 
@@ -84,7 +84,7 @@ class Data(commands.Cog):
         embed = ParrotEmbed(
             author=user,
             title="Are you sure?",
-            description=f"This will permantently delete the data of {user.name}#{user.discriminator}.\nTo confirm, paste the following command:\n`{ctx.bot.command_prefix}forget confirm {confirm_code}`",
+            description=f"This will permantently delete the data of {user}.\nTo confirm, paste the following command:\n`{ctx.bot.command_prefix}forget confirm {confirm_code}`",
             color_name="orange",
         )
         embed.set_footer(text="Action will be automatically canceled in 1 minute.")
@@ -120,7 +120,7 @@ class Data(commands.Cog):
 
             await ctx.send(embed=ParrotEmbed(
                 author=user,
-                title=f"Parrot has forgotten {user.name}#{user.discriminator}.",
+                title=f"Parrot has forgotten {user}.",
                 description="All of the data that Parrot has collected from this user has been deleted.",
                 color_name="gray",
             ))

@@ -30,7 +30,7 @@ class Quickstart(commands.Cog):
                 icon_url="https://i.gifer.com/ZZ5H.gif",  # Loading spinner
             )
             embed.set_footer(
-                text=f"Scanning for {user.name}#{user.discriminator}",
+                text=f"Scanning for {user}",
                 icon_url=user.avatar_url,
             )
             await status_message.edit(embed=embed)
@@ -57,7 +57,7 @@ class Quickstart(commands.Cog):
         if user.id in self.ongoing_scans[ctx.channel.id]:
             if ctx.author == user:
                 raise AlreadyScanning("❌ You are already currently running Quickstart in this channel!")
-            raise AlreadyScanning(f"❌ Quickstart is already running for {user.name}#{user.discriminator} in this channel!")
+            raise AlreadyScanning(f"❌ Quickstart is already running for {user} in this channel!")
 
         # Record that Quickstart is scanning this channel for this user.
         self.ongoing_scans[ctx.channel.id].append(user.id)
@@ -151,13 +151,13 @@ class Quickstart(commands.Cog):
         if ctx.author == user:
             name = "you"
         else:
-            name = f"{user.name}#{user.discriminator}"
+            name = f"{user}"
         embed = ParrotEmbed(
             description=f"**Scan in {ctx.channel.mention} complete.**\nCollected {crawler.num_collected} new messages.",
         )
         embed.set_author(name="✅ Quickstart")
         embed.set_footer(
-            text=f"Scanning for {user.name}#{user.discriminator}",
+            text=f"Scanning for {user}",
             icon_url=user.avatar_url,
         )
         if crawler.num_collected == 0:

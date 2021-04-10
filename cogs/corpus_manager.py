@@ -75,7 +75,7 @@ class CorpusManager(Dict[User, Corpus]):
             with open(corpus_path, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
+            raise NoDataError(f"No data available for user {user}.")
 
     def get(self, user: Union[User, Member], default: Optional[Corpus]=None) -> Any:
         """ .get() wasn't working until I explicitly defined it ¯\_(ツ)_/¯ """
@@ -97,7 +97,7 @@ class CorpusManager(Dict[User, Corpus]):
         try:
             os.remove(corpus_path)
         except FileNotFoundError:
-            raise NoDataError(f"No data available for user {user.name}#{user.discriminator}.")
+            raise NoDataError(f"No data available for user {user}.")
 
     def __contains__(self, element: object) -> bool:
         """ Check if a user's corpus is present on disk. """
