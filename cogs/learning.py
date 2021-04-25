@@ -51,7 +51,11 @@ class LearningCog(commands.Cog):
             not message.webhook_id and
 
             # Parrot must be allowed to learn in this channel.
-            message.channel.id in self.bot.learning_channels
+            message.channel.id in self.bot.learning_channels and
+
+            # People will often say "v" or "z" on accident while spamming;
+            #   they don't like when Parrot learns from those mistakes.
+            content not in ("v", "z")
         )
 
 
