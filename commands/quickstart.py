@@ -109,9 +109,8 @@ class Quickstart(commands.Cog):
         status_message = await ctx.author.send(embed=embed)
         await ctx.send(embed=ParrotEmbed(
             title="Quickstart is scanning",
-            author=user,
             description=f"Parrot is now scanning this channel and learning from {name} past messages.\nThis could take a few minutes.\nCheck your DMs to see its progress."
-        ))
+        ), reference=ctx.message)
 
         # Create an iterator representing this channel's past messages.
         def message_filter(message: Message) -> bool:

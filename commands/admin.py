@@ -220,7 +220,7 @@ class Admin(commands.Cog):
             nick=None,
             reason=f"Requested by {ctx.author.name}#{ctx.author.discriminator}",
         )
-        await ctx.send(f"✅ Parrot's nickname has been removed.")
+        await ctx.send("✅ Parrot's nickname has been removed.")
 
 
 
