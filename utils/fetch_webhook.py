@@ -26,7 +26,7 @@ async def fetch_webhook(ctx: commands.Context, channel: TextChannel=None) -> Opt
     for webhook in (await ctx.channel.webhooks()):
         if webhook.user == ctx.bot.user:
             return webhook
-            
+
     # Otherwise, create a new one.
     return await ctx.channel.create_webhook(
         name=f"Parrot in #{ctx.channel.name}",
