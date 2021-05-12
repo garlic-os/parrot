@@ -143,7 +143,7 @@ class Quickstart(commands.Cog):
                 user=user,
                 crawler=crawler,
             ),
-            loop=ctx.bot.loop,    
+            loop=ctx.bot.loop,
         )
 
         # Update the status embed one last time, but DELETE it this time and
