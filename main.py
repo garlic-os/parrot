@@ -14,7 +14,7 @@ prefix = os.environ.get("COMMAND_PREFIX", "|")
 
 print("Initializing bot...")
 bot = commands.AutoShardedBot(
-    command_prefix=os.environ.get("COMMAND_PREFIX", "|"),
+    command_prefix=prefix,
     owner_ids=json.loads(os.environ["OWNERS"]),
     case_insensitive=True,
     allowed_mentions=AllowedMentions.none(),
