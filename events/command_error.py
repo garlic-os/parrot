@@ -30,9 +30,8 @@ class CommandErrorEventHandler(commands.Cog):
             title=random.choice(failure_phrases),
             description=error_text,
             color_name="red",
-            author=ctx.author,
         )
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, reference=ctx.message)
 
 
 def setup(bot: commands.Bot) -> None:

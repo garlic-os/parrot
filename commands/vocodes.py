@@ -209,7 +209,6 @@ class Vocodes(commands.Cog):
         """ List the speakers that Parrot can imitate through vo.codes. """
         embed = ParrotEmbed(
             title="Speakers",
-            author=ctx.author,
         )
         embed.set_footer(text="Powered by vo.codes: https://vo.codes/")
 

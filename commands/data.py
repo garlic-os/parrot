@@ -82,14 +82,13 @@ class Data(commands.Cog):
         }
 
         embed = ParrotEmbed(
-            author=user,
             title="Are you sure?",
             description=f"This will permantently delete the data of {user}.\nTo confirm, paste the following command:\n`{ctx.bot.command_prefix}forget confirm {confirm_code}`",
             color_name="orange",
         )
         embed.set_footer(text="Action will be automatically canceled in 1 minute.")
 
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, reference=ctx.message)
 
         # Delete the confirmation after 1 minute.
         await asyncio.sleep(60)
@@ -119,11 +118,10 @@ class Data(commands.Cog):
             del self.pending_confirmations[confirm_code]
 
             await ctx.send(embed=ParrotEmbed(
-                author=user,
                 title=f"Parrot has forgotten {user}.",
                 description="All of the data that Parrot has collected from this user has been deleted.",
                 color_name="gray",
-            ))
+            ), reference=ctx.message)
         else:
             await ctx.send(f"Confirmation code `{confirm_code}` is invalid.")
 
