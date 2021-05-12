@@ -21,8 +21,10 @@ class Admin(commands.Cog):
             author = webhook.user
         if author == me:
             await message.delete()
+            await ctx.message.add_reaction("✅")
         else:
             await ctx.send("❌ Parrot can only delete its own messages.")
+            await ctx.message.add_reaction("❌")
 
 
     async def send_help(self, ctx: commands.Context) -> None:
