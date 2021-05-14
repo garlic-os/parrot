@@ -15,7 +15,7 @@ class Userlike(commands.Converter):
         - The string "me" or "myself", which resolves to the context's author
     """
 
-    async def convert(self, ctx: commands.Context, text: str) -> User:
+    async def convert(self, ctx: commands.Context, text: str="") -> User:
         text = text.lower()
         if text in ("me", "myself"):
             return ctx.author
