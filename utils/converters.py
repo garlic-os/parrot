@@ -15,13 +15,15 @@ class Userlike(commands.Converter):
         - The string "me" or "myself", which resolves to the context's author
     """
 
-    async def convert(self, ctx: commands.Context, text: str="") -> User:
-        text = text.lower()
-        if text in ("me", "myself"):
-            return ctx.author
-
+    async def convert(self, ctx: commands.Context, text: str=None) -> User:
         # Use this error if anything goes wrong.
-        user_not_found = UserNotFoundError(f"User \"{text}\" does not exist.")
+        user_not_found = UserNotFoundError(f'User "{text}" does not exist.')
+
+        if text is None:
+            raise user_not_found
+
+        if text.lower() in ("me", "myself"):
+            return ctx.author
 
         # If this is not a guild, it must be a DM channel, and therefore the
         #   only person you can imitate is yourself.
