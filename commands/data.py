@@ -53,18 +53,18 @@ class Data(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def forget(self, ctx: commands.Context, maybe_user: str=None, *args) -> None:
         """ Make Parrot delete all the data it has about you. """
-        try:
-            userlike = Userlike()
-            user = await userlike.convert(ctx, maybe_user)
-        except UserNotFoundError:
-            for command in self.forget.commands:
-                if command.name == maybe_user:
-                    await command(ctx, *args)
-                    return
-            raise
-
-        if maybe_user is None:
-            user = ctx.author.user
+        if maybe_user is not None:
+            try:
+                userlike = Userlike()
+                user = await userlike.convert(ctx, maybe_user)
+            except UserNotFoundError:
+                for command in self.forget.commands:
+                    if command.name == maybe_user:
+                        await command(ctx, *args)
+                        return
+                raise
+        else:
+            user = ctx.author
 
         if user != ctx.author and ctx.author.id not in ctx.bot.owner_ids:
             raise UserPermissionError("You are not allowed to make Parrot forget other users.")
