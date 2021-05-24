@@ -13,6 +13,8 @@ class Userlike(commands.Converter):
         - Mentions, like <@394750023975409309> and <@!394750023975409309>
         - User IDs, like 394750023975409309
         - The string "me" or "myself", which resolves to the context's author
+        - The string "you", "yourself", or "previous" which resolves to the last
+              person to speak in the channel
     """
 
     async def convert(self, ctx: commands.Context, text: str=None) -> User:
@@ -22,8 +24,17 @@ class Userlike(commands.Converter):
         if text is None:
             raise user_not_found
 
-        if text.lower() in ("me", "myself"):
+        text = text.lower()
+
+        if text in ("me", "myself"):
             return ctx.author
+
+        # Get the author of the last message send in the channel who isn't
+        # Parrot or the person who sent this command.
+        if text in ("you", "yourself", "previous"):
+            async for message in ctx.channel.history(before=ctx.message):
+                if message.author not in (ctx.bot.user, ctx.author) and message.webhook_id is None:
+                    return message.author
 
         # If this is not a guild, it must be a DM channel, and therefore the
         #   only person you can imitate is yourself.
