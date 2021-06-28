@@ -87,8 +87,6 @@ class Quickstart(commands.Cog):
             await paginator.run()
             return
 
-        corpus = ctx.bot.corpora.get(user, {})
-    
         # Create and embed that will show the status of the Quickstart
         #   operation and DM it to the user who invoked the command.
         if ctx.author == user:
