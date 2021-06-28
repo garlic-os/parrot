@@ -36,7 +36,7 @@ class Registration(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(aliases=["agree", "accept", "initate"], brief="Register with Parrot.")
+    @commands.command(aliases=["agree", "accept", "initiate"], brief="Register with Parrot.")
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def register(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
