@@ -1,5 +1,7 @@
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
+from utils.converters import Userlike
+from utils.exceptions import FriendlyError
 
 
 class Registration(commands.Cog):
@@ -34,13 +36,16 @@ class Registration(commands.Cog):
         await ctx.send(embed=embed)
 
 
-    @commands.command(aliases=["agree"], brief="Register with Parrot.")
+    @commands.command(aliases=["agree", "accept", "initate"], brief="Register with Parrot.")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def register(self, ctx: commands.Context) -> None:
+    async def register(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
         Register to let Parrot imitate you.
         By registering you agree to Parrot's privacy policy.
         """
+        if who is not None and who.id != ctx.author.id:
+            raise FriendlyError("You can only register yourself.")
+
         ctx.bot.registration.add(ctx.author.id)
 
         embed = ParrotEmbed(
@@ -55,13 +60,16 @@ class Registration(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["disagree"], brief="Unregister with Parrot.")
+    @commands.command(aliases=["disagree", "unaccept", "uninitiate"], brief="Unregister with Parrot.")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def unregister(self, ctx: commands.Context) -> None:
+    async def unregister(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
         Remove your registration from Parrot.
         Parrot will stop collecting your messages and will not be able to imitate you until you register again.
         """
+        if who is not None and who.id != ctx.author.id:
+            raise FriendlyError("You can only unregister yourself.")
+
         ctx.bot.registration.remove(ctx.author.id)
         try:
             del ctx.bot.models[ctx.author]
