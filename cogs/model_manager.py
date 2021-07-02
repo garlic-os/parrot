@@ -1,6 +1,5 @@
 import os
 from discord.ext import commands
-from utils.exceptions import NoDataError
 from utils.lru_cache import LRUCache
 from utils.parrot_markov import ParrotMarkov
 
@@ -38,7 +37,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
 class ModelManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         cache_size = int(os.environ.get("CHAIN_CACHE_SIZE", 5))
-        bot.models = ModelManager(bot, cache_size)
+        bot.model_cache = ModelManager(bot, cache_size)
 
 
 def setup(bot: commands.Bot) -> None:

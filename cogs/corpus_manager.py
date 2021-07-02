@@ -37,7 +37,7 @@ class CorpusManager(Dict[User, Corpus]):
             messages = [messages]  # type: ignore
 
         # TODO: Uncomment when model.update() implemented
-        # model = self.bot.models.cache.get(user.id, None)
+        # model = self.bot.model_cache.cache.get(user.id, None)
         corpus: Corpus = self.get(user, {})
 
         before_length = len(corpus)

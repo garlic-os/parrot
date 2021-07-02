@@ -114,7 +114,7 @@ class Data(commands.Cog):
         if confirmation_is_valid:
             user = confirmation["corpus_owner"]
             del ctx.bot.corpora[user]
-            del ctx.bot.models[user.id]
+            del ctx.bot.model_cache[user.id]
             del self.pending_confirmations[confirm_code]
 
             await ctx.send(embed=ParrotEmbed(
