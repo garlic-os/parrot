@@ -1,4 +1,4 @@
-from typing import Union, List, cast
+from typing import Union, List
 from discord import ChannelType, Message
 
 import re
@@ -67,8 +67,7 @@ class LearningCog(commands.Cog):
         # Ensure that messages is a list.
         # If it's not, make it a list with one value.
         if not isinstance(messages, list):
-            messages = [cast(Message, messages)]
-        messages = cast(List[Message], messages)
+            messages = [messages]
 
         user = messages[0].author
 
