@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import User
 
 from discord.errors import NotFound
-from utils.exceptions import UserNotFoundError
+from exceptions import UserNotFoundError
 
 
 class Userlike(commands.Converter):
