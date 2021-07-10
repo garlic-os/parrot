@@ -72,7 +72,7 @@ class Registration(commands.Cog):
 
         ctx.bot.registration.remove(ctx.author.id)
         try:
-            del ctx.bot.model_cache[ctx.author]
+            del ctx.bot.models[ctx.author]
         except KeyError:
             pass
 

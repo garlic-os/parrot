@@ -37,7 +37,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
 class ModelManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         cache_size = int(os.environ.get("CHAIN_CACHE_SIZE", 5))
-        bot.model_cache = ModelManager(bot, cache_size)
+        bot.models = ModelManager(bot, cache_size)
 
 
 def setup(bot: commands.Bot) -> None:
