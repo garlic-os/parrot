@@ -3,6 +3,7 @@ from discord.ext.commands import CommandError
 from utils.exceptions import NotRegisteredError
 
 import os
+import logging
 from discord.ext import commands
 
 
@@ -32,9 +33,9 @@ class MessageEventHandler(commands.Cog):
 
             # Log results.
             if learned_count == 1:
-                print(f"Collected a message from {tag}")
+                logging.info(f"Collected a message (ID: {message.id}) from user {tag} (ID: {message.author.id})")
             elif learned_count != 0:
-                print(f"Collected {learned_count} messages from {tag}")
+                logging.info(f"Collected {learned_count} messages from {tag} (ID: {message.author.id})")
         except NotRegisteredError:
             pass
 

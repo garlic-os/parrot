@@ -1,4 +1,6 @@
 from typing import Iterable, Iterator, Set, TypeVar
+
+import logging
 import os
 import ujson as json  # ujson is faster
 
@@ -36,10 +38,10 @@ class DiskSet(Set[T]):
             else:
                 raise TypeError(f'Provided file "{self.path}" is valid JSON, but is not the right type. The data must resolve to a list.')
         except FileNotFoundError:
-            print(f"File {self.path} not found. A new file will be created in its place.")
+            logging.warn(f"File {self.path} not found. A new file will be created in its place.")
             self.save()
         except ValueError:
-            print(f"File {self.path} is not valid JSON. It will be overwritten.")
+            logging.warn(f"File {self.path} is not valid JSON. It will be overwritten.")
             self.save()
 
 

@@ -1,3 +1,4 @@
+import logging
 from discord.ext import commands
 
 
@@ -8,7 +9,7 @@ class ReadyEventHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         user = self.bot.user
-        print(f"Logged in as {user}")
+        logging.info(f"Logged in as {user}")
 
 
 def setup(bot: commands.Bot) -> None:

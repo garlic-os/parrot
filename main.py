@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import ujson as json  # ujson is faster
 from redis import Redis
@@ -6,8 +7,15 @@ from dotenv import load_dotenv
 from bot import Parrot
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-4s %(message)s",
+    datefmt="[%Y-%m-%d %H:%M:%S]",
+    handlers=[
+        logging.FileHandler("parrot.log", "a", "utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 
 
