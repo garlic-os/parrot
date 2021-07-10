@@ -24,7 +24,7 @@ class Data(commands.Cog):
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
         with TemporaryFile() as f:
-            f.write(ctx.bot.corpora.get(user))
+            f.writelines(ctx.bot.corpora.get(user))
             f.seek(0)
             async with aiohttp.ClientSession() as session:
                 async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
