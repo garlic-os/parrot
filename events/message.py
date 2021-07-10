@@ -16,6 +16,9 @@ class MessageEventHandler(commands.Cog):
         Handle receiving messages.
         Monitors messages of registered users.
         """
+        if message.author.id == self.bot.user.id:
+            return
+
         # I am a mature person making a competent Discord bot.
         if (
             message.content == "ayy"
