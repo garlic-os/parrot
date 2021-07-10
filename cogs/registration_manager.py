@@ -3,7 +3,7 @@ from typing import Union
 from discord import User, Member
 from discord.ext import commands
 from utils.disk_set import DiskSet
-from utils.exceptions import NotRegisteredError
+from exceptions import NotRegisteredError
 
 
 class RegistrationManager(DiskSet[int]):

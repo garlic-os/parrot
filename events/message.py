@@ -1,6 +1,5 @@
 from discord import Message
-from discord.ext.commands import CommandError
-from utils.exceptions import NotRegisteredError
+from exceptions import NotRegisteredError
 
 import os
 import logging
