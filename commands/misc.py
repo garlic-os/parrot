@@ -1,9 +1,10 @@
+from discord import Embed
 from discord.ext import commands
-from utils.parrot_embed import ParrotEmbed
+from bot import Parrot
 
 
 class Miscellaneous(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Parrot):
         self.bot = bot
 
     @commands.command()
@@ -23,7 +24,7 @@ class Miscellaneous(commands.Cog):
              f" or do `{ctx.bot.command_prefix}help` to see what else Parrot "\
               "can do."
 
-        embed = ParrotEmbed(
+        embed = Embed(
             title="🦜 Parrot",
             description=bio,
         )
@@ -40,5 +41,5 @@ class Miscellaneous(commands.Cog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Miscellaneous(bot))

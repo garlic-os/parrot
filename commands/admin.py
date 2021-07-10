@@ -1,5 +1,6 @@
 from discord import TextChannel
 from discord.ext import commands
+from bot import Parrot
 from utils.checks import is_admin
 from utils.parrot_embed import ParrotEmbed
 from utils import Paginator
@@ -226,5 +227,5 @@ class Admin(commands.Cog):
 
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Admin())

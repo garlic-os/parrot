@@ -1,9 +1,11 @@
+from bot import Parrot
+
 import logging
 from discord.ext import commands
 
 
 class ReadyEventHandler(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Parrot):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -12,5 +14,5 @@ class ReadyEventHandler(commands.Cog):
         logging.info(f"Logged in as {user}")
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(ReadyEventHandler(bot))

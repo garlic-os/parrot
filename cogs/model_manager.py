@@ -1,11 +1,13 @@
-import os
-from discord.ext import commands
+from discord.ext.commands import Cog
+from bot import Parrot
 from utils.lru_cache import LRUCache
 from utils.parrot_markov import ParrotMarkov
 
+import os
+
 
 class ModelManager(LRUCache[int, ParrotMarkov]):
-    def __init__(self, bot: commands.Bot, cache_size: int):
+    def __init__(self, bot: Parrot, cache_size: int):
         super().__init__(cache_size)
         self.bot = bot
 
@@ -24,7 +26,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
         corpus = self.bot.corpora.get(user_id)
         model = ParrotMarkov(corpus)
 
-        # Cache this Markov Chain for next time.
+        # Cache this Markov model for next time.
         super().__setitem__(user_id, model)
         return model
 
@@ -34,11 +36,11 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
         return False
 
 
-class ModelManagerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+class ModelManagerCog(Cog):
+    def __init__(self, bot: Parrot):
         cache_size = int(os.environ.get("CHAIN_CACHE_SIZE", 5))
         bot.models = ModelManager(bot, cache_size)
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(ModelManagerCog(bot))

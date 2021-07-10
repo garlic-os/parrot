@@ -1,3 +1,5 @@
+from bot import Parrot
+
 import random
 import logging
 from discord.ext import commands
@@ -34,5 +36,5 @@ class CommandErrorEventHandler(commands.Cog):
         await ctx.send(embed=embed, reference=ctx.message)
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(CommandErrorEventHandler(bot))

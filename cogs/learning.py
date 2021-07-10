@@ -1,14 +1,16 @@
 from typing import Union, List
 from discord import ChannelType, Message
+from discord.ext.commands import Cog
+from bot import Parrot
 
 import re
-from discord.ext import commands
+
 from utils.disk_set import DiskSet
 from utils import regex
 
 
-class LearningCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+class LearningCog(Cog):
+    def __init__(self, bot: Parrot):
         self.bot = bot
         bot.validate_message = self.validate_message
         bot.learn_from = self.learn_from
@@ -87,5 +89,5 @@ class LearningCog(commands.Cog):
         return 0
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(LearningCog(bot))

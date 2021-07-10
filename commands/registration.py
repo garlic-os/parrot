@@ -1,4 +1,5 @@
 from discord.ext import commands
+from bot import Parrot
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from exceptions import FriendlyError
@@ -106,5 +107,5 @@ class Registration(commands.Cog):
             await ctx.send("❌ You are not currently registered with Parrot.")
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Registration())

@@ -1,13 +1,13 @@
 from typing import Union
-
 from discord import User, Member
-from discord.ext import commands
+from discord.ext.commands import Cog
+from bot import Parrot
 from utils.disk_set import DiskSet
 from exceptions import NotRegisteredError
 
 
 class RegistrationManager(DiskSet[int]):
-    def __init__(self, bot: commands.Bot, registration_path: str):
+    def __init__(self, bot: Parrot, registration_path: str):
         super().__init__(registration_path)
         self.bot = bot
 
@@ -20,10 +20,10 @@ class RegistrationManager(DiskSet[int]):
             raise NotRegisteredError(f"User {user} is not registered. To register, read the privacy policy with `{self.bot.command_prefix}policy`, then register with `{self.bot.command_prefix}register`.")
 
 
-class RegistrationManagerCog(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+class RegistrationManagerCog(Cog):
+    def __init__(self, bot: Parrot):
         bot.registration = RegistrationManager(bot, "./data/registration.json")
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(RegistrationManagerCog(bot))

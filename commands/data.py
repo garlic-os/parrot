@@ -1,4 +1,5 @@
 from utils.types import PendingConfirmations
+from bot import Parrot
 
 import asyncio
 import aiohttp
@@ -132,5 +133,5 @@ class Data(commands.Cog):
             await ctx.send(f"Confirmation code `{confirm_code}` is invalid.")
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Data())

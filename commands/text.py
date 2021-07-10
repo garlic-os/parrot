@@ -1,4 +1,5 @@
 from discord import AllowedMentions, User
+from bot import Parrot
 
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
@@ -113,5 +114,5 @@ class Text(commands.Cog):
         await ctx.send(gibberish(sentence))
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Text())

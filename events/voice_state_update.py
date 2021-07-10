@@ -1,3 +1,4 @@
+from bot import Parrot
 from typing import cast
 
 from discord import Member, VoiceState, VoiceChannel
@@ -5,7 +6,7 @@ from discord.ext import commands
 
 
 class VoiceStateUpdateHandler(commands.Cog):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Parrot):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -19,5 +20,5 @@ class VoiceStateUpdateHandler(commands.Cog):
             await guild.voice_client.disconnect()  # type: ignore
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(VoiceStateUpdateHandler(bot))

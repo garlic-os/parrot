@@ -1,5 +1,6 @@
-from typing import Dict, Callable, List
-from discord import ChannelType, Embed, Message, TextChannel, User
+from typing import Dict, List
+from discord import ChannelType, Message, TextChannel, User
+from bot import Parrot
 
 import asyncio
 from discord.ext import commands
@@ -170,5 +171,5 @@ class Quickstart(commands.Cog):
             del self.ongoing_scans[ctx.channel.id]
 
 
-def setup(bot: commands.Bot) -> None:
+def setup(bot: Parrot) -> None:
     bot.add_cog(Quickstart())
