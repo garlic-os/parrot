@@ -2,6 +2,7 @@ from typing import List, Optional
 
 import os
 import logging
+import time
 from redis import Redis
 from discord import Activity, ActivityType, AllowedMentions
 from discord.ext.commands import AutoShardedBot
@@ -51,3 +52,12 @@ class Parrot(AutoShardedBot):
             except Exception as error:
                 logging.info("❌")
                 logging.error(f"{error}\n")
+
+    def run(self, token: str, *, bot: bool, reconnect: bool) -> None:
+        redis_is_ready = self.redis.ping()
+        if not redis_is_ready:
+            logging.warn("Waiting for the database to finish loading...")
+        while not redis_is_ready:
+            time.sleep(1/10)
+            redis_is_ready = self.redis.ping()
+        return super().run(token, bot=bot, reconnect=reconnect)
