@@ -40,9 +40,9 @@ Parrot needs a little information from you for it to start working.
 **Required**
 - `DISCORD_BOT_TOKEN` - The bot token generated for your copy of Parrot on the Discord Developer Portal.
 - `OWNERS` - An array of the user IDs of the people you want to give Owner priveleges to. Owners get access to commands for managing Parrot. For example, `[54757394934834985, 23947297429259834, 29797299597494445]`.
+- `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` - Credentials for a RedisJSON database to keep the corpora.
 
 **Optional**
 - `CHAIN_CACHE_SIZE` - How many Markov Chains to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
 - `COMMAND_PREFIX` - The character(s) that go before a Parrot command. Default is `"|"`.
-- `CORPUS_DIR` - A custom directory to store users' collected messages for Markov training data. Default is `"data/corpora/"`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.

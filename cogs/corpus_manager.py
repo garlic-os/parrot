@@ -1,28 +1,21 @@
+# Types
 from discord import User, Member, Message
-from typing import Any, cast, Dict, List, Iterator, Optional, Union
+from typing import List, Iterator, Union
 from utils.types import Corpus
 
-import os
-import ujson as json  # ujson is faster
+# Errors
+from redis.exceptions import ResponseError
+from exceptions import NoDataError
+
 from discord.ext import commands
-from utils.exceptions import NoDataError
+import ujson as json  # ujson is faster
 
 
-class CorpusManager(Dict[User, Corpus]):
-    def __init__(self, bot: commands.Bot, corpora_dir: str):
+
+class CorpusManager():
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.corpora_dir = corpora_dir
-        os.makedirs(self.corpora_dir, exist_ok=True)
-
-    def _file_path_no_check(self, user: Union[User, Member]) -> str:
-        return os.path.join(self.corpora_dir, str(user.id) + ".json")
-
-    def file_path(self, user: Union[User, Member]) -> str:
-        self.bot.registration.verify(user)
-        corpus_path = self._file_path_no_check(user)
-        if os.path.exists(corpus_path):
-            return corpus_path
-        raise FileNotFoundError(user.id)
+        self.r = bot.redis
 
     def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
         """
@@ -33,98 +26,84 @@ class CorpusManager(Dict[User, Corpus]):
         self.bot.registration.verify(user)
 
         if not isinstance(messages, list):
-            # No, mypy, it's definitely a List[Message] now
-            messages = [messages]  # type: ignore
+            messages = [messages]
 
-        # TODO: Uncomment when model.update() implemented
-        # model = self.bot.model_cache.cache.get(user.id, None)
-        corpus: Corpus = self.get(user, {})
+        # TODO: Uncomment when model.update() is implemented
+        # model = self.bot.models.get(user.id, None)
 
-        before_length = len(corpus)
+        before_length = self.r.execute_command("JSON.OBJLEN", str(user.id))
 
-        # messages is definitely iterable
-        for message in messages:  # type: ignore
-            """
-            Thank you to Litleck for the idea to include attachment urls.
-            """
+        for message in messages:
+            # Thank you to Litleck for the idea to include attachment URLs.
             content = message.content
             for embed in message.embeds:
                 desc = embed.description
                 if isinstance(desc, str):
-                    desc = cast(str, desc)
                     content += " " + desc
             for attachment in message.attachments:
                 content += " " + attachment.url
 
-            corpus[str(message.id)] = {
-                "content": content,
-                "timestamp": str(message.created_at),
-            }
+            self.r.execute_command(
+                "JSON.SET",
+                "corpora",
+                '["' + str(user.id) + '"]',
+                '["' + str(message.id) + '"]',
+                json.dumps({
+                    "content": content,
+                    "timestamp": message.created_at.timestamp(),
+                })
+            )
             # if model:
             #     model.update(message.content)
 
-        self[user] = corpus
-        num_messages_added = len(corpus) - before_length
-        return num_messages_added
+        # Number of messages added
+        return self.r.execute_command("JSON.OBJLEN", str(user.id)) - before_length
 
-    def __getitem__(self, user: Union[User, Member]) -> Corpus:
-        """ Get a corpus by user ID. """
+    def get(self, user: Union[User, Member]) -> Corpus:
+        """ Get a corpus from the source of truth by user ID. """
         self.bot.registration.verify(user)
-        corpus_path = self._file_path_no_check(user)
         try:
-            with open(corpus_path, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
+            response = self.r.execute_command(
+                "JSON.GET",
+                "corpora",
+                '["' + str(user.id) + '"]',
+            )
+            return json.loads(response)
+        except ResponseError:
             raise NoDataError(f"No data available for user {user}.")
 
-    def get(self, user: Union[User, Member], default: Optional[Corpus]=None) -> Any:
-        """ .get() wasn't working until I explicitly defined it ¯\_(ツ)_/¯ """
-        try:
-            return self[user]
-        except NoDataError:
-            return default
-
-    def __setitem__(self, user: Union[User, Member], corpus: Corpus) -> None:
-        """ Create or overwrite a corpus file. """
-        self.bot.registration.verify(user)
-        corpus_path = self._file_path_no_check(user)
-        with open(corpus_path, "w") as f:
-            json.dump(corpus, f)
-
-    def __delitem__(self, user: Union[User, Member]) -> None:
-        """ Delete a corpus file. """
-        corpus_path = self._file_path_no_check(user)
-        try:
-            os.remove(corpus_path)
-        except FileNotFoundError:
+    def remove(self, user: Union[User, Member]) -> None:
+        """ Delete a corpus from the source of truth. """
+        num_deleted = self.r.execute_command(
+            "JSON.FORGET",
+            "corpora",
+            '["' + str(user.id) + '"]',
+        )
+        if num_deleted == 0:
             raise NoDataError(f"No data available for user {user}.")
 
-    def __contains__(self, element: object) -> bool:
-        """ Check if a user's corpus is present on disk. """
-        if isinstance(element, User) or isinstance(element, Member):
-            element = cast(User, element)
-            corpus_path = self._file_path_no_check(element)
-            return os.path.exists(corpus_path)
-        return False
+    def has(self, user: object) -> bool:
+        """ Check if a user's corpus is present on the source of truth. """
+        return (
+            (isinstance(user, User) or isinstance(user, Member)) and
+            self.r.execute_command(
+                "JSON.TYPE",
+                "corpora",
+                '["' + str(user.id) + '"]',
+            ) is not None
+        )
 
+    def keys(self, *args) -> Iterator[int]:
+        for user_id in self.r.execute_command("JSON.OBJKEYS", "corpora", *args):
+            yield user_id.decode()
 
-    def __iter__(self) -> Iterator[User]:
-        for filename in os.listdir(self.corpora_dir):
-            user_id, ext = os.path.splitext(filename)
-            if ext == ".json":
-                yield self.bot.get_user(user_id)
-
-    def _is_json(self, filename: str) -> bool:
-        return filename.endswith(".json")
-
-    def __len__(self) -> int:
-        return len(list(filter(self._is_json, os.listdir(self.corpora_dir))))
+    def size(self, *args) -> int:
+        return self.r.execute_command("JSON.OBJLEN", "corpora", *args)
 
 
 class CorpusManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
-        corpus_dir = os.environ.get("CORPUS_DIR", "./data/corpora/")
-        bot.corpora = CorpusManager(bot, corpus_dir)
+        bot.corpora = CorpusManager(bot)
 
 
 def setup(bot: commands.Bot) -> None:

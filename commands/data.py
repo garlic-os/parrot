@@ -20,14 +20,11 @@ class Data(commands.Cog):
         """ Download a copy of your data. """
         user = ctx.author
 
-        try:
-            corpus_file_path = ctx.bot.corpora.file_path(user)
-        except FileNotFoundError:
-            raise NoDataError(f"No data available for user {user}.")
-
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
-        with open(corpus_file_path, "rb") as f:
+        with TemporaryFile() as f:
+            f.write(ctx.bot.corpora.get(user))
+            f.seek(0)
             async with aiohttp.ClientSession() as session:
                 async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
                     download_url = (await response.json())["link"]
@@ -69,7 +66,7 @@ class Data(commands.Cog):
         if user != ctx.author and ctx.author.id not in ctx.bot.owner_ids:
             raise UserPermissionError("You are not allowed to make Parrot forget other users.")
 
-        if user not in ctx.bot.corpora:
+        if not ctx.bot.corpora.has(user):
             raise NoDataError(f"No data available for user {user}.")
 
         confirm_code = ctx.message.id
@@ -113,8 +110,17 @@ class Data(commands.Cog):
 
         if confirmation_is_valid:
             user = confirmation["corpus_owner"]
-            del ctx.bot.corpora[user]
-            del ctx.bot.model_cache[user.id]
+
+            # MOST IMPORTANT STEP: Delete the user's corpus.
+            ctx.bot.corpora.remove(user)
+
+            # Delete any cached model of this user, if it exists.
+            try:
+                del ctx.bot.models[user.id]
+            except KeyError:
+                pass
+
+            # Invalidate this confirmation code
             del self.pending_confirmations[confirm_code]
 
             await ctx.send(embed=ParrotEmbed(

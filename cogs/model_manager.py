@@ -21,7 +21,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
             pass
 
         # Otherwise, fetch their corpus and create a new Markov Chain.
-        corpus = self.bot.corpora[user_id]
+        corpus = self.bot.corpora.get(user_id)
         model = ParrotMarkov(corpus)
 
         # Cache this Markov Chain for next time.
@@ -30,7 +30,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
 
     def __contains__(self, element: object) -> bool:
         if isinstance(element, int):
-            return super().__contains__(element) or element in self.bot.corpora
+            return super().__contains__(element) or self.bot.corpora.has(element)
         return False
 
 
