@@ -1,13 +1,5 @@
-from typing import Dict, NamedTuple, Union
-from discord import DMChannel, GroupChannel, TextChannel, User
-
-
-class CorpusMessage(NamedTuple):
-    content: str  # Discord.Message.content
-    timestamp: float  # Discord.Message.created_at.timestamp()
-
-# Key: Discord.Message.id
-Corpus = Dict[int, CorpusMessage]
+from typing import Dict, NamedTuple
+from discord import User
 
 
 class ConfirmationBody(NamedTuple):
@@ -17,11 +9,7 @@ class ConfirmationBody(NamedTuple):
 # Key: Message ID of a forget command
 PendingConfirmations = Dict[int, ConfirmationBody]
 
-# Any kind of channel
-Channel = Union[DMChannel, GroupChannel, TextChannel]
-
-
-class ModifiedAvatar(NamedTuple):
-    original_avatar_url: str
-    modified_avatar_url: str
-    source_message_id: int
+# class ModifiedAvatar(NamedTuple):
+#     original_avatar_url: str
+#     modified_avatar_url: str
+#     source_message_id: int
