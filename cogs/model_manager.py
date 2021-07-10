@@ -13,7 +13,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
 
     def __getitem__(self, user_id: int) -> ParrotMarkov:
         """
-        Get a Markov Chain by user ID, from cache if it's cached or from their
+        Get a Markov model by user ID, from cache if it's cached or from their
           corpus if it's not.
         """
         # Retrieve from cache if possible.
@@ -22,7 +22,7 @@ class ModelManager(LRUCache[int, ParrotMarkov]):
         except KeyError:
             pass
 
-        # Otherwise, fetch their corpus and create a new Markov Chain.
+        # Otherwise, fetch their corpus and create a new Markov model.
         corpus = self.bot.corpora.get(user_id)
         model = ParrotMarkov(corpus)
 

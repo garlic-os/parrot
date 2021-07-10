@@ -43,6 +43,6 @@ Parrot needs a little information from you for it to start working.
 - `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` - Credentials for a RedisJSON database to keep the corpora.
 
 **Optional**
-- `CHAIN_CACHE_SIZE` - How many Markov Chains to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
+- `CHAIN_CACHE_SIZE` - How many Markov models to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
 - `COMMAND_PREFIX` - The character(s) that go before a Parrot command. Default is `"|"`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
