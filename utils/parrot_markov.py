@@ -19,7 +19,7 @@ class GibberishMarkov(markovify.Text):
     Feed the corpus to the Markov model character-by-character instead of
     word-by-word for extra craziness!
     """
-    def __init__(text: str):
+    def __init__(self, text: str):
         super().__init__(
             None,
             parsed_sentences=[list(text)],
