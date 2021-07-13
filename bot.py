@@ -3,6 +3,7 @@ from typing import List, Optional
 import os
 import time
 import logging
+import time
 from redis import Redis
 from discord import Activity, ActivityType, AllowedMentions
 from discord.ext.commands import AutoShardedBot
