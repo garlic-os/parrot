@@ -28,7 +28,7 @@ class GibberishMarkov(markovify.Text):
             well_formed=False,
         )
 
-    def make_sentence(self, init_state, **kwargs):
+    def make_sentence(self, init_state=None, **kwargs):
         # The generator puts spaces between each character now because it thinks
         # they're words. To band-aid this, we can just remove every other
         # character to take out the extra spaces.
