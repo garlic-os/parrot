@@ -91,15 +91,13 @@ class Text(commands.Cog):
         brief="Gibberize a sentence.",
     )
     @commands.cooldown(2, 2, commands.BucketType.user)
-    async def gibberish(self, ctx: commands.Context, *, sentence: str=None) -> None:
+    async def gibberish(self, ctx: commands.Context, *, text: str=None) -> None:
         """
-        Enter a sentence and turn it into gibberish. If you don't enter a
-        sentence, Parrot will gibberize the last message instead.
-        Powered by Thinkzone's Gibberish Generator:
-        https://thinkzone.wlonk.com/Gibber/GibGen.htm
+        Enter some text and turn it into gibberish. If you don't enter any text,
+        Parrot will gibberize the last message send in this channel instead.
         """
-        # If no sentence is provided, use the most recent message instead.
-        if sentence is None:
+        # If no text is provided, use the most recent message instead.
+        if text is None:
             async for message in ctx.channel.history():
                 content = message.content
                 if len(content) > 0 and not content.startswith(self.bot.command_prefix):
@@ -108,13 +106,14 @@ class Text(commands.Cog):
                 for embed in message.embeds:
                     desc = embed.description
                     if isinstance(desc, str) and len(desc) > 0:
-                        sentence = desc
+                        text = desc
 
-            if sentence is None:
+            if text is None:
                 await ctx.send("😕 Couldn't find message to gibberize")
                 return
 
-        await ctx.send(gibberish(sentence))
+        model = GibberishMarkov(text)
+        await ctx.send(model.make_sentence())
 
 
 def setup(bot: Parrot) -> None:
