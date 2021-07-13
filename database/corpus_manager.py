@@ -38,7 +38,7 @@ class CorpusManager:
             # model.update(message.content)
 
         return self.redis.hset(  # type: ignore
-            name=str(user.id),
+            name=f"corpus:{user.id}",
             mapping=subcorpus,    # type: ignore
         )
         # mypy thinks `key` and `value` arguments are required, but that's not
@@ -47,20 +47,20 @@ class CorpusManager:
     def get(self, user: Union[User, Member]) -> List[str]:
         """ Get a corpus from the source of truth by user ID. """
         self.assert_registered(user)
-        corpus = cast(List[str], self.redis.hvals(str(user.id)))
+        corpus = cast(List[str], self.redis.hvals(f"corpus:{user.id}"))
         if len(corpus) == 0:
             raise NoDataError(f"No data available for user {user}.")
         return corpus
 
     def delete(self, user: Union[User, Member]) -> None:
         """ Delete a corpus from the source of truth. """
-        num_deleted = self.redis.delete(str(user.id))
+        num_deleted = self.redis.delete(f"corpus:{user.id}")
         if num_deleted == 0:
             raise NoDataError(f"No data available for user {user}.")
 
     def delete_message(self, user: Union[User, Member], message_id: int) -> None:
         """ Delete a message (or list of messages) from a corpus. """
-        num_deleted = self.redis.hdel(str(user.id), str(message_id))
+        num_deleted = self.redis.hdel(f"corpus:{user.id}", str(message_id))
         if num_deleted == 0:
             raise NoDataError(f"No data available for user {user}.")
 
@@ -68,7 +68,7 @@ class CorpusManager:
         """ Check if a user's corpus is present on the source of truth. """
         return (
             (isinstance(user, User) or isinstance(user, Member)) and
-            bool(self.redis.exists(str(user.id)))
+            bool(self.redis.exists(f"corpus:{user.id}"))
         )
 
     def assert_registered(self, user: Union[User, Member]) -> None:
