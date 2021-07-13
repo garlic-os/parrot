@@ -1,10 +1,10 @@
-from discord import ClientException
+from typing import Optional
+from bot import Parrot
 
 import discord
 from discord.ext import commands
 import aiohttp
 import ujson as json  # ujson is faster
-from typing import Optional
 from tempfile import TemporaryFile
 from utils import Paginator
 from utils.parrot_embed import ParrotEmbed
@@ -27,11 +27,6 @@ def get_speaker(name: str) -> Optional[dict]:
     return None
 
 
-def in_voice_channel(ctx: commands.Context) -> bool:
-    """ Check if the bot is in the context's voice channel.  """
-    return ctx.bot.user.id in ctx.author.voice.channel.voice_states
-
-
 # Load the speakers database and an array of their names.
 with open("assets/speakers.json") as f:
     speakers = json.load(f)
@@ -44,6 +39,10 @@ with open("assets/speakers.json") as f:
 
 
 class Vocodes(commands.Cog):
+    def __init__(self, bot: Parrot):
+        self.bot = bot
+
+
     """ Make pop culture icons say whatever you want! Powered by vo.codes. """
     @commands.command()
     @commands.cooldown(2, 4, commands.BucketType.user)
@@ -78,7 +77,7 @@ class Vocodes(commands.Cog):
         except IndexError:
             embed = ParrotEmbed(
                 title="Syntax error",
-                description=f"You didn't do that correctly! Try this:\n`{ctx.bot.command_prefix}vocodes speaker name; your text`",
+                description=f"You didn't do that correctly! Try this:\n`{self.bot.command_prefix}vocodes speaker name; your text`",
                 color_name="orange",
             )
             await ctx.send(embed=embed)
@@ -223,6 +222,6 @@ class Vocodes(commands.Cog):
         await paginator.run()
 
 
-def setup(bot):
-    bot.add_cog(Vocodes())
+def setup(bot: Parrot) -> None:
+    bot.add_cog(Vocodes(bot))
 

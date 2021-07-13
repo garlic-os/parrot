@@ -7,6 +7,10 @@ from utils import Paginator
 
 
 class Admin(commands.Cog):
+    def __init__(self, bot: Parrot):
+        self.bot = bot
+
+
     @commands.command()
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)
@@ -14,11 +18,11 @@ class Admin(commands.Cog):
         """ Delete a message Parrot has said. """
         message = await ctx.fetch_message(message_id)
         guild = ctx.guild
-        me = guild.me if guild is not None else ctx.bot.user
+        me = guild.me if guild is not None else self.bot.user
         if message.webhook_id is None:
             author = message.author
         else:
-            webhook = await ctx.bot.fetch_webhook(message.webhook_id)
+            webhook = await self.bot.fetch_webhook(message.webhook_id)
             author = webhook.user
         if author == me:
             await message.delete()
@@ -29,7 +33,7 @@ class Admin(commands.Cog):
 
 
     async def send_help(self, ctx: commands.Context) -> None:
-        await ctx.bot.get_command("help").callback(
+        await self.bot.get_command("help").callback(
             ctx,
             command=ctx.command.qualified_name,
         )
@@ -68,10 +72,10 @@ class Admin(commands.Cog):
         Give Parrot permission to learn in a new channel.
         Parrot will start to collect messages from registered users in this channel.
         """
-        if channel.id in ctx.bot.learning_channels:
+        if channel.id in self.bot.learning_channels:
             await ctx.send(f"⚠ Already learning in {channel.mention}!")
         else:
-            ctx.bot.learning_channels.add(channel.id)
+            self.bot.learning_channels.add(channel.id)
             await ctx.send(f"✅ Now learning in {channel.mention}.")
 
 
@@ -85,10 +89,10 @@ class Admin(commands.Cog):
         Give Parrot permission to speak in a new channel.
         Parrot will be able to imitate people in this channel.
         """
-        if channel.id in ctx.bot.speaking_channels:
+        if channel.id in self.bot.speaking_channels:
             await ctx.send(f"⚠ Already able to speak in {channel.mention}!")
         else:
-            ctx.bot.speaking_channels.add(channel.id)
+            self.bot.speaking_channels.add(channel.id)
             await ctx.send(f"✅ Now able to speak in {channel.mention}.")
 
 
@@ -115,8 +119,8 @@ class Admin(commands.Cog):
         Remove Parrot's permission to learn in a channel.
         Parrot will stop collecting messages in this channel.
         """
-        if channel.id in ctx.bot.learning_channels:
-            ctx.bot.learning_channels.remove(channel.id)
+        if channel.id in self.bot.learning_channels:
+            self.bot.learning_channels.remove(channel.id)
             await ctx.send(f"❌ No longer learning in {channel.mention}.")
         else:
             await ctx.send(f"⚠ Already not learning in {channel.mention}!")
@@ -132,8 +136,8 @@ class Admin(commands.Cog):
         Remove Parrot's permission to speak in a channel.
         Parrot will no longer be able to imitate people in this channel.
         """
-        if channel.id in ctx.bot.speaking_channels:
-            ctx.bot.speaking_channels.remove(channel.id)
+        if channel.id in self.bot.speaking_channels:
+            self.bot.speaking_channels.remove(channel.id)
             await ctx.send(f"❌ No longer able to speak in {channel.mention}.")
         else:
             await ctx.send(f"⚠ Already not able to speak in {channel.mention}!")
@@ -154,7 +158,7 @@ class Admin(commands.Cog):
         embed = ParrotEmbed(title="Parrot is learning from these channels:")
         channel_mentions = []
         for channel in ctx.guild.channels:
-            if channel.id in ctx.bot.learning_channels:
+            if channel.id in self.bot.learning_channels:
                 channel_mentions.append(channel.mention)
         
         paginator = Paginator.FromList(
@@ -172,7 +176,7 @@ class Admin(commands.Cog):
         embed = ParrotEmbed(title="Parrot is learning from these channels:")
         channel_mentions = []
         for channel in ctx.guild.channels:
-            if channel.id in ctx.bot.speaking_channels:
+            if channel.id in self.bot.speaking_channels:
                 channel_mentions.append(channel.mention)
         
         paginator = Paginator.FromList(
@@ -228,4 +232,4 @@ class Admin(commands.Cog):
 
 
 def setup(bot: Parrot) -> None:
-    bot.add_cog(Admin())
+    bot.add_cog(Admin(bot))

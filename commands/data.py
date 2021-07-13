@@ -11,8 +11,9 @@ from utils.converters import Userlike
 
 
 class Data(commands.Cog):
-    def __init__(self):
+    def __init__(self, bot: Parrot):
         self.pending_confirmations: PendingConfirmations = {}
+        self.bot = bot
 
 
     @commands.command(aliases=["checkout"])
@@ -24,7 +25,7 @@ class Data(commands.Cog):
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
         with TemporaryFile() as f:
-            f.writelines(ctx.bot.corpora.get(user))
+            f.writelines(self.bot.corpora.get(user))
             f.seek(0)
             async with aiohttp.ClientSession() as session:
                 async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
@@ -64,10 +65,10 @@ class Data(commands.Cog):
         else:
             user = ctx.author
 
-        if user != ctx.author and ctx.author.id not in ctx.bot.owner_ids:
+        if user != ctx.author and ctx.author.id not in self.bot.owner_ids:
             raise UserPermissionError("You are not allowed to make Parrot forget other users.")
 
-        if not ctx.bot.corpora.has(user):
+        if not self.bot.corpora.has(user):
             raise NoDataError(f"No data available for user {user}.")
 
         confirm_code = ctx.message.id
@@ -81,7 +82,7 @@ class Data(commands.Cog):
 
         embed = ParrotEmbed(
             title="Are you sure?",
-            description=f"This will permantently delete the data of {user}.\nTo confirm, paste the following command:\n`{ctx.bot.command_prefix}forget confirm {confirm_code}`",
+            description=f"This will permantently delete the data of {user}.\nTo confirm, paste the following command:\n`{self.bot.command_prefix}forget confirm {confirm_code}`",
             color_name="orange",
         )
         embed.set_footer(text="Action will be automatically canceled in 1 minute.")
@@ -120,6 +121,8 @@ class Data(commands.Cog):
                 del ctx.bot.models[user.id]
             except KeyError:
                 pass
+            # Delete the user's corpus.
+            self.bot.corpora.remove(user)
 
             # Invalidate this confirmation code
             del self.pending_confirmations[confirm_code]
@@ -134,4 +137,4 @@ class Data(commands.Cog):
 
 
 def setup(bot: Parrot) -> None:
-    bot.add_cog(Data())
+    bot.add_cog(Data(bot))

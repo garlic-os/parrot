@@ -7,10 +7,13 @@ from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils.gibberish import gibberish
 from utils import regex
-import re
 
 
 class Text(commands.Cog):
+    def __init__(self, bot: Parrot):
+        self.bot = bot
+
+
     def discord_caps(self, text: str) -> str:
         """
         Capitalize a string in a way that remains friendly to URLs, emojis, and
@@ -26,7 +29,7 @@ class Text(commands.Cog):
 
     async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
         # Parrot can't imitate itself!
-        if user == ctx.bot.user:
+        if user == self.bot.user:
             embed = ParrotEmbed(
                 title="Error",
                 color_name="red",
@@ -40,7 +43,7 @@ class Text(commands.Cog):
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         #   error handler deal with.
-        model = ctx.bot.models[user]
+        model = self.bot.get_model(user)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 
@@ -99,8 +102,8 @@ class Text(commands.Cog):
         if sentence is None:
             async for message in ctx.channel.history():
                 content = message.content
-                if len(content) > 0 and not content.startswith(ctx.bot.command_prefix):
-                    sentence = content
+                if len(content) > 0 and not content.startswith(self.bot.command_prefix):
+                    text = content
                     break
                 for embed in message.embeds:
                     desc = embed.description
@@ -115,4 +118,4 @@ class Text(commands.Cog):
 
 
 def setup(bot: Parrot) -> None:
-    bot.add_cog(Text())
+    bot.add_cog(Text(bot))

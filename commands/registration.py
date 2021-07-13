@@ -6,7 +6,8 @@ from exceptions import FriendlyError
 
 
 class Registration(commands.Cog):
-    def __init__(self):
+    def __init__(self, bot: Parrot):
+        self.bot = bot
         with open("assets/privacy-policy.txt", "r") as f:
             self.policy_text = f.read()
 
@@ -32,7 +33,7 @@ class Registration(commands.Cog):
         """
         embed = ParrotEmbed(title="Privacy Policy", description=self.policy_text)
         embed.set_footer(
-            text=f"{ctx.bot.command_prefix}register • {ctx.bot.command_prefix}unregister"
+            text=f"{self.bot.command_prefix}register • {self.bot.command_prefix}unregister"
         )
         await ctx.send(embed=embed)
 
@@ -47,7 +48,7 @@ class Registration(commands.Cog):
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only register yourself.")
 
-        ctx.bot.registration.add(ctx.author.id)
+        self.bot.registered_users.add(ctx.author.id)
 
         embed = ParrotEmbed(
             title="✅ Registered!",
@@ -56,7 +57,7 @@ class Registration(commands.Cog):
         )
         embed.add_field(
             name="Tip:",
-            value=f"If this is your first time registering (or if you deleted your data recently), you might want to consider running the `{ctx.bot.command_prefix}quickstart` command to immediately give Parrot a dataset to imitate you from. This will scan your past messages to create a model of how you speak, so you can start using Parrot right away.",
+            value=f"If this is your first time registering (or if you deleted your data recently), you might want to consider running the `{self.bot.command_prefix}quickstart` command to immediately give Parrot a dataset to imitate you from. This will scan your past messages to create a model of how you speak, so you can start using Parrot right away.",
         )
 
         await ctx.send(embed=embed)
@@ -71,16 +72,12 @@ class Registration(commands.Cog):
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only unregister yourself.")
 
-        ctx.bot.registration.remove(ctx.author.id)
-        try:
-            del ctx.bot.models[ctx.author]
-        except KeyError:
-            pass
+        self.bot.registered_users.remove(ctx.author.id)
 
         embed = ParrotEmbed(
             title="Unregistered!",
             color_name="gray",
-            description=f"Parrot will no longer be able to imitate you, and it has stopped collecting your messages.\n\n_If you're done with Parrot and don't want it to have your messages anymore, or if you just want a fresh start, you can do `{ctx.bot.command_prefix}forget me` and your existing data will be permanently deleted from Parrot._",
+            description=f"Parrot will no longer be able to imitate you, and it has stopped collecting your messages.\n\n_If you're done with Parrot and don't want it to have your messages anymore, or if you just want a fresh start, you can do `{self.bot.command_prefix}forget me` and your existing data will be permanently deleted from Parrot._",
         )
 
         await ctx.send(embed=embed)
@@ -101,11 +98,11 @@ class Registration(commands.Cog):
         Check if you're registered with Parrot.
         You need to be registered for Parrot to be able to analyze your messages and imitate you.
         """
-        if ctx.author.id in ctx.bot.registration:
+        if ctx.author.id in self.bot.registered_users:
             await ctx.send("✅ You are currently registered with Parrot.")
         else:
             await ctx.send("❌ You are not currently registered with Parrot.")
 
 
 def setup(bot: Parrot) -> None:
-    bot.add_cog(Registration())
+    bot.add_cog(Registration(bot))

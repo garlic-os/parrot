@@ -70,14 +70,14 @@ class Quickstart(commands.Cog):
 
         # Show the user where they can use Quickstart within this server if they
         #   use the command in a channel where Parrot can't learn.
-        if ctx.channel.id not in ctx.bot.learning_channels:
+        if ctx.channel.id not in self.bot.learning_channels:
             embed = ParrotEmbed(
                 title="Quickstart Channels",
                 description="Quickstart is available in channels where Parrot can learn from your messages. Try running Quickstart again in one of these channels:",
             )
             channel_mentions = []
             for channel in ctx.guild.channels:
-                if channel.id in ctx.bot.learning_channels:
+                if channel.id in self.bot.learning_channels:
                     channel_mentions.append(channel.mention)
             
             paginator = Paginator.FromList(
@@ -123,7 +123,7 @@ class Quickstart(commands.Cog):
         #   and learn from the messages this user has posted.
         crawler = ChannelCrawler(
             history=history,
-            action=ctx.bot.learn_from,
+            action=self.bot.learn_from,
         )
 
         # Start the crawler and periodically update the status_message with its
@@ -141,7 +141,7 @@ class Quickstart(commands.Cog):
                 user=user,
                 crawler=crawler,
             ),
-            loop=ctx.bot.loop,
+            loop=self.bot.loop,
         )
 
         # Update the status embed one last time, but DELETE it this time and
