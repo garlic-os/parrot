@@ -80,7 +80,7 @@ class Parrot(AutoShardedBot):
         return super().run(token, bot=bot, reconnect=reconnect)
 
 
-    @lru_cache(max_size=int(os.environ.get("CHAIN_CACHE_SIZE", 5)))
+    @lru_cache(maxsize=int(os.environ.get("CHAIN_CACHE_SIZE", 5)))
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         return ParrotMarkov(self.corpora.get(user_id))
