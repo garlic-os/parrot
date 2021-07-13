@@ -4,7 +4,7 @@ Copyright (c) 2018 toxicrecker, MIT License
 https://github.com/toxicrecker/DiscordUtils/blob/master/DiscordUtils/Pagination.py
 """
 
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 from discord import Embed, Emoji, PartialEmoji, Reaction, User, Member
 from discord.abc import Messageable
 from discord.ext import commands
