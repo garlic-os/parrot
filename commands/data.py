@@ -113,14 +113,6 @@ class Data(commands.Cog):
         if confirmation_is_valid:
             user = confirmation["corpus_owner"]
 
-            # MOST IMPORTANT STEP: Delete the user's corpus.
-            ctx.bot.corpora.remove(user)
-
-            # Delete any cached model of this user, if it exists.
-            try:
-                del ctx.bot.models[user.id]
-            except KeyError:
-                pass
             # Delete the user's corpus.
             self.bot.corpora.remove(user)
 
