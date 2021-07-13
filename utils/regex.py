@@ -1,4 +1,5 @@
-markdown = r"[*_`~]"
-discord_string_start = r"[<@:]"
-user_or_role_mention = r"<@.+"
-do_not_capitalize = r"(^<.*>$)|(^.+:\/\/.+$)"
+import re
+
+markdown = re.compile(r"[*_`~]")
+discord_string_start = re.compile(r"[<@:]")
+do_not_capitalize = re.compile(r"(^<.*>$)|(^.+:\/\/.+$)")

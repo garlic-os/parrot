@@ -1,3 +1,4 @@
+from utils.parrot_markov import GibberishMarkov
 from discord import AllowedMentions, User
 from bot import Parrot
 
@@ -5,7 +6,6 @@ from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
-from utils.gibberish import gibberish
 from utils import regex
 
 
@@ -22,7 +22,7 @@ class Text(commands.Cog):
         """
         words = text.replace(r"*", "").split(" ")
         for i, word in enumerate(words):
-            if re.match(regex.do_not_capitalize, word) is None:
+            if regex.do_not_capitalize.match(word) is None:
                 words[i] = word.upper()
         return " ".join(words)
 
