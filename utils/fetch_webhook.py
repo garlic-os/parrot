@@ -1,10 +1,10 @@
 from typing import Dict, Optional
 from discord import TextChannel, Webhook
 
-from discord.ext import commands
+from discord.ext.commands import Context
 
 
-def bot_has_permissions(ctx: commands.Context, **perms: Dict[str, bool]) -> bool:
+def bot_has_permissions(ctx: Context, **perms: Dict[str, bool]) -> bool:
     guild = ctx.guild
     me = guild.me if guild is not None else ctx.bot.user
     permissions = ctx.channel.permissions_for(me)
@@ -15,7 +15,7 @@ def bot_has_permissions(ctx: commands.Context, **perms: Dict[str, bool]) -> bool
     return True
 
 
-async def fetch_webhook(ctx: commands.Context, channel: TextChannel=None) -> Optional[Webhook]:
+async def fetch_webhook(ctx: Context, channel: TextChannel=None) -> Optional[Webhook]:
     if channel is None:
         channel = ctx.channel
 
