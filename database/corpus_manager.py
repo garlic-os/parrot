@@ -1,14 +1,15 @@
 from typing import List, Union, cast
 from discord import User, Member, Message
-from discord.ext.commands import Cog
-from bot import Parrot
-from exceptions import NoDataError
+from redis import Redis
+from database.redis_set import RedisSet
+from exceptions import NoDataError, NotRegisteredError
 
 
-class CorpusManager():
-    def __init__(self, bot: Parrot):
-        self.bot = bot
-        self.r = bot.redis
+class CorpusManager:
+    def __init__(self, redis: Redis, registered_users: RedisSet, command_prefix: str):
+        self.redis = redis
+        self.registered_users = registered_users
+        self.command_prefix = command_prefix
 
     def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
         """
@@ -16,7 +17,7 @@ class CorpusManager():
         Also, if this user's Markov Chain is cached, update it with the new
             information, too.
         """
-        self.bot.assert_registered(user)
+        self.assert_registered(user)
 
         if not isinstance(messages, list):
             messages = [messages]
@@ -36,7 +37,7 @@ class CorpusManager():
             subcorpus[str(message.id)] = message.content
             # model.update(message.content)
 
-        return self.r.hset(  # type: ignore
+        return self.redis.hset(  # type: ignore
             name=str(user.id),
             mapping=subcorpus,    # type: ignore
         )
@@ -45,21 +46,21 @@ class CorpusManager():
 
     def get(self, user: Union[User, Member]) -> List[str]:
         """ Get a corpus from the source of truth by user ID. """
-        self.bot.assert_registered(user)
-        corpus = cast(List[str], self.r.hvals(str(user.id)))
+        self.assert_registered(user)
+        corpus = cast(List[str], self.redis.hvals(str(user.id)))
         if len(corpus) == 0:
             raise NoDataError(f"No data available for user {user}.")
         return corpus
 
     def delete(self, user: Union[User, Member]) -> None:
         """ Delete a corpus from the source of truth. """
-        num_deleted = self.r.delete(str(user.id))
+        num_deleted = self.redis.delete(str(user.id))
         if num_deleted == 0:
             raise NoDataError(f"No data available for user {user}.")
 
     def delete_message(self, user: Union[User, Member], message_id: int) -> None:
         """ Delete a message (or list of messages) from a corpus. """
-        num_deleted = self.r.hdel(str(user.id), str(message_id))
+        num_deleted = self.redis.hdel(str(user.id), str(message_id))
         if num_deleted == 0:
             raise NoDataError(f"No data available for user {user}.")
 
@@ -67,14 +68,9 @@ class CorpusManager():
         """ Check if a user's corpus is present on the source of truth. """
         return (
             (isinstance(user, User) or isinstance(user, Member)) and
-            bool(self.r.exists(str(user.id)))
+            bool(self.redis.exists(str(user.id)))
         )
 
-
-class CorpusManagerCog(Cog):
-    def __init__(self, bot: Parrot):
-        bot.corpora = CorpusManager(bot)
-
-
-def setup(bot: Parrot) -> None:
-    bot.add_cog(CorpusManagerCog(bot))
+    def assert_registered(self, user: Union[User, Member]) -> None:
+        if not user.bot and user.id not in self.registered_users:
+            raise NotRegisteredError(f"User {user} is not registered. To register, read the privacy policy with `{self.command_prefix}policy`, then register with `{self.command_prefix}register`.")

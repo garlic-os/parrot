@@ -38,10 +38,14 @@ class Parrot(AutoShardedBot):
         self.admin_role_ids = admin_role_ids or []
         self.redis = redis
 
-        self.corpora = CorpusManager(self)
         self.registered_users = RedisSet(redis, "registered_users")
         self.learning_channels = RedisSet(redis, "learning_channels")
         self.speaking_channels = RedisSet(redis, "speaking_channels")
+        self.corpora = CorpusManager(
+            redis=redis,
+            registered_users=self.registered_users,
+            command_prefix=self.command_prefix,
+        )
 
         self.load_extension("jishaku")
         self.load_folder("events")
