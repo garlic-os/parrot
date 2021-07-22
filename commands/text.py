@@ -58,19 +58,19 @@ class Text(commands.Cog):
         #   faster than those of a bot/user account, which is crucial for
         #   imitating lots of users quickly.
         webhook = await fetch_webhook(ctx)
+        avatar_url = await self.bot.avatars.fetch(user)
         if webhook is None:
             # Fall back to using an embed if Parrot doesn't have manage_webhooks
             #   permission in this channel.
             await ctx.send(embed=ParrotEmbed(
-                author=user,
                 description=sentence,
-            ))
+            ).set_author(name=name, icon_url=avatar_url))
         else:
             # Send the sentence through the webhook.
             await webhook.send(
                 content=sentence,
                 username=name,
-                avatar_url=user.avatar_url,
+                avatar_url=avatar_url,
                 allowed_mentions=AllowedMentions.none(),
             )
 

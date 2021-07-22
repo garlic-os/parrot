@@ -1,5 +1,6 @@
 
-from typing import List, Optional, Union
+from database.avatar_manager import AvatarManager
+from typing import List, Optional
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from discord.ext.commands import AutoShardedBot
 
@@ -38,13 +39,21 @@ class Parrot(AutoShardedBot):
         self.redis = redis
         self.http_session = ClientSession()
 
-        self.registered_users = RedisSet(redis, "registered_users")
-        self.learning_channels = RedisSet(redis, "learning_channels")
-        self.speaking_channels = RedisSet(redis, "speaking_channels")
+        self.registered_users = RedisSet(self.redis, "registered_users")
+        self.learning_channels = RedisSet(self.redis, "learning_channels")
+        self.speaking_channels = RedisSet(self.redis, "speaking_channels")
+
         self.corpora = CorpusManager(
-            redis=redis,
+            redis=self.redis,
             registered_users=self.registered_users,
             command_prefix=self.command_prefix,
+        )
+
+        self.avatars = AvatarManager(
+            redis=self.redis,
+            loop=self.loop,
+            http_session=self.http_session,
+            fetch_channel=self.fetch_channel,
         )
 
         self.load_extension("jishaku")
