@@ -7,6 +7,7 @@ from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils import regex
+import logging
 
 
 class Text(commands.Cog):
@@ -60,7 +61,8 @@ class Text(commands.Cog):
         webhook = await fetch_webhook(ctx)
         try:
             avatar_url = await self.bot.avatars.fetch(user)
-        except:
+        except Exception as error:
+            logging.error(f"\n{error}\n{error.__traceback__}\n")
             avatar_url = user.avatar_url
         if webhook is None:
             # Fall back to using an embed if Parrot doesn't have manage_webhooks
