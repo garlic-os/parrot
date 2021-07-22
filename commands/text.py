@@ -29,12 +29,13 @@ class Text(commands.Cog):
 
     async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
         # Parrot can't imitate itself!
+        # Send the funny XOK message instead, that'll show 'em.
         if user == self.bot.user:
             embed = ParrotEmbed(
                 title="Error",
                 color_name="red",
             )
-            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")
+            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")  # Windows 7 close button
             embed.set_image(url="https://i.imgur.com/JAQ7pjz.png")  # Xok
             sent_message = await ctx.send(embed=embed)
             await sent_message.add_reaction("🆗")

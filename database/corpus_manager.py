@@ -6,7 +6,11 @@ from exceptions import NoDataError, NotRegisteredError
 
 
 class CorpusManager:
-    def __init__(self, redis: Redis, registered_users: RedisSet, command_prefix: str):
+    def __init__(self, *,
+        redis: Redis,
+        registered_users: RedisSet,
+        command_prefix: str
+    ):
         self.redis = redis
         self.registered_users = registered_users
         self.command_prefix = command_prefix
