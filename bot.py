@@ -7,6 +7,7 @@ import os
 import time
 import logging
 import time
+from aiohttp import ClientSession
 from redis import Redis
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
@@ -35,6 +36,7 @@ class Parrot(AutoShardedBot):
         )
         self.admin_role_ids = admin_role_ids or []
         self.redis = redis
+        self.http_session = ClientSession()
 
         self.registered_users = RedisSet(redis, "registered_users")
         self.learning_channels = RedisSet(redis, "learning_channels")
@@ -48,6 +50,10 @@ class Parrot(AutoShardedBot):
         self.load_extension("jishaku")
         self.load_folder("events")
         self.load_folder("commands")
+
+
+    def __del__(self) -> None:
+        self.http_session.close()
 
 
     def _list_filenames(self, directory: str) -> List[str]:

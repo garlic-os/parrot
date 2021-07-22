@@ -3,7 +3,6 @@ from bot import Parrot
 
 import discord
 from discord.ext import commands
-import aiohttp
 import ujson as json  # ujson is faster
 from tempfile import TemporaryFile
 from utils import Paginator
@@ -113,11 +112,6 @@ class Vocodes(commands.Cog):
             if voice_client is None:
                 voice_client = await ctx.author.voice.channel.connect()
 
-        payload = {
-            "speaker": speaker["slug"],
-            "text": text
-        }
-
         if speaker['avatarUrl'].startswith("https"):
             avatar_url = speaker['avatarUrl']
         else:
@@ -142,64 +136,69 @@ class Vocodes(commands.Cog):
         # Send a request to vo.codes for a clip of the given character saying
         #   the given text. The server will respond back with a .wav file.
         #   (mumble.stream is vo.codes's backend server)
-        async with aiohttp.ClientSession() as session:
-            async with session.post("https://mumble.stream/speak", json=payload) as response:
-                if response.status == 200:
-                    # Once complete, edit the message to say "success" instead of "loading"
-                    loading_embed.title = "Generated a sentence!"
-                    loading_embed.set_author(name="✅ " + speaker["name"])
-                    await loading_message.edit(embed=loading_embed)
+        async with self.bot.http_session.post(
+            "https://mumble.stream/speak",
+            json={
+                "speaker": speaker["slug"],
+                "text": text,
+            }
+        ) as response:
+            if response.status == 200:
+                # Once complete, edit the message to say "success" instead of "loading"
+                loading_embed.title = "Generated a sentence!"
+                loading_embed.set_author(name="✅ " + speaker["name"])
+                await loading_message.edit(embed=loading_embed)
 
-                    # Transform the data into a file stream.
-                    # Unfortunately, a BytesIO won't cut it here, because FFmpeg
-                    #   requires that the stream implements the fileno() method,
-                    #   and BytesIO does (can) not.
-                    # So we have to be hacky and put it into a temporary file instead.
-                    with TemporaryFile() as f:
-                        # Write the audio data to a temporary file.
-                        f.write(await response.content.read())
+                # Transform the data into a file stream.
+                # Unfortunately, a BytesIO won't cut it here, because FFmpeg
+                #   requires that the stream implements the fileno() method,
+                #   and BytesIO does (can) not.
+                # So we have to be hacky and put it into a temporary file instead.
+                with TemporaryFile() as f:
+                    # Write the audio data to a temporary file.
+                    f.write(await response.content.read())
 
-                        # Seek to the beginning to read it again.
-                        f.seek(0)
+                    # Seek to the beginning to read it again.
+                    f.seek(0)
 
-                        # Stream the audio over voice chat.
-                        voice_client.play(
-                            # mypy is complaining about overloads here even
-                            #   though this one definitely exists.
-                            discord.FFmpegPCMAudio(  # type: ignore
-                                f,
-                                pipe=True,
-                                options=["-ar 48000", "-ac 1"]
-                            )
+                    # Stream the audio over voice chat.
+                    voice_client.play(
+                        # mypy is complaining about overloads here even
+                        #   though this one definitely exists.
+                        discord.FFmpegPCMAudio(
+                            source=f,
+                            pipe=True,
+                            options=["-ar 48000", "-ac 1"]
                         )
-
-                elif str(response.status)[0] == "5":
-                    # Edit the loading embed to show there was an error.
-                    loading_embed.title = "oh no"
-                    loading_embed.set_author(name="❌ " + speaker["name"])
-                    await loading_message.edit(embed=loading_embed)
-
-                    # Post a new embed explaining the error.
-                    embed = ParrotEmbed(
-                        title="🤷‍♂️ Error",
-                        description=f"vo.codes is having problems on their end. They could just be under a lot of load right now, so try again in a moment. Each runs on a different machine, so other voices may not be having this problem.\n_Error {response.status}: {response.reason}_",
-                        color_name="red",
                     )
-                    await ctx.send(embed=embed)
 
-                else:
-                    # Edit the loading embed to show there was an error.
-                    loading_embed.title = "oh no"
-                    loading_embed.set_author(name="❌ " + speaker["name"])
-                    await loading_message.edit(embed=loading_embed)
+            elif str(response.status)[0] == "5":
+                # Edit the loading embed to show there was an error.
+                loading_embed.title = "oh no"
+                loading_embed.set_author(name="❌ " + speaker["name"])
+                await loading_message.edit(embed=loading_embed)
 
-                    # Post a new embed explaining the error.
-                    embed = ParrotEmbed(
-                        title="🤷‍♂️ Error",
-                        description=f"Something went wrong while generating the speech:\n_Error {response.status}: {response.reason}_",
-                        color_name="red",
-                    )
-                    await ctx.send(embed=embed)
+                # Post a new embed explaining the error.
+                embed = ParrotEmbed(
+                    title="🤷‍♂️ Error",
+                    description=f"vo.codes is having problems on their end. They could just be under a lot of load right now, so try again in a moment. Each runs on a different machine, so other voices may not be having this problem.\n_Error {response.status}: {response.reason}_",
+                    color_name="red",
+                )
+                await ctx.send(embed=embed)
+
+            else:
+                # Edit the loading embed to show there was an error.
+                loading_embed.title = "oh no"
+                loading_embed.set_author(name="❌ " + speaker["name"])
+                await loading_message.edit(embed=loading_embed)
+
+                # Post a new embed explaining the error.
+                embed = ParrotEmbed(
+                    title="🤷‍♂️ Error",
+                    description=f"Something went wrong while generating the speech:\n_Error {response.status}: {response.reason}_",
+                    color_name="red",
+                )
+                await ctx.send(embed=embed)
 
 
     @commands.command(aliases=["speakers"])
