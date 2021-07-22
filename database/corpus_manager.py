@@ -11,38 +11,29 @@ class CorpusManager:
         self.registered_users = registered_users
         self.command_prefix = command_prefix
 
-    def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
-        """
-        Record a message to a user's corpus.
-        Also, if this user's Markov Chain is cached, update it with the new
-            information, too.
-        """
+    def add(self, user: Union[User, Member], message: Message) -> int:
+        """ Record a message to a user's corpus. """
         self.assert_registered(user)
-
-        if not isinstance(messages, list):
-            messages = [messages]
 
         # TODO: Uncomment when model.update() is implemented
         # model = self.bot.get_model(user.id)
 
-        subcorpus = {}
-        for message in messages:
-            # Thank you to Litleck for the idea to include attachment URLs.
-            for embed in message.embeds:
-                desc = embed.description
-                if isinstance(desc, str):
-                    message.content += " " + desc
-            for attachment in message.attachments:
-                message.content += " " + attachment.url
-            subcorpus[str(message.id)] = message.content
-            # model.update(message.content)
+        for embed in message.embeds:
+            desc = embed.description
+            if isinstance(desc, str):
+                message.content += " " + desc
 
-        return self.redis.hset(  # type: ignore
+        # Thank you to Litleck for the idea to include attachment URLs.
+        for attachment in message.attachments:
+            message.content += " " + attachment.url
+
+        # model.update(message.content)
+
+        return self.redis.hset(
             name=f"corpus:{user.id}",
-            mapping=subcorpus,    # type: ignore
+            key=str(message.id),
+            value=message.content,
         )
-        # mypy thinks `key` and `value` arguments are required, but that's not
-        # true when `mapping` is provided.
 
     def get(self, user: Union[User, Member]) -> List[str]:
         """ Get a corpus from the source of truth by user ID. """

@@ -90,8 +90,7 @@ class Parrot(AutoShardedBot):
 
     def validate_message(self, message: Message) -> bool:
         """
-        A message must pass all of these checks
-            before Parrot can learn from it.
+        A message must pass all of these checks before Parrot can learn from it.
         """
         content = message.content
 
@@ -131,29 +130,8 @@ class Parrot(AutoShardedBot):
         )
 
 
-    def learn_from(self, messages: Union[Message, List[Message]]) -> int:
-        """
-        Add a Message or array of Messages to a user's corpus.
-        Every Message in the array must be from the same user.
-        """
-        # Ensure that messages is a list.
-        # If it's not, make it a list with one value.
-        if not isinstance(messages, list):
-            messages = [messages]
-
-        user = messages[0].author
-
-        # Every message in the array must have the same author, because the
-        # Corpus Manager adds every message passed to it to the same user.
-        for message in messages:
-            if message.author != user:
-                raise ValueError("Too many authors; every message in a list passed to learn_from() must have the same author.")
-
-        # Only keep messages that pass all of validate_message()'s checks.
-        messages = list(filter(self.validate_message, messages))
-
-        # Add these messages to this user's corpus and return the number of
-        # messages that were added.
-        if len(messages) > 0:
-            return self.corpora.add(user, messages)
+    def learn_from(self, message: Message) -> int:
+        """ Add a Message to a user's corpus. """
+        if self.validate_message(message):
+            return self.corpora.add(message.author, message)
         return 0
