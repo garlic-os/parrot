@@ -13,7 +13,8 @@ from utils import Paginator
 
 
 class Quickstart(commands.Cog):
-    def __init__(self):
+    def __init__(self, bot: Parrot):
+        self.bot = bot
         # Keep track of Quickstart scans that are currently happening.
         # Key: Channel ID
         # Value: List of User IDs, representing whom Quickstart is scanning for
@@ -172,4 +173,4 @@ class Quickstart(commands.Cog):
 
 
 def setup(bot: Parrot) -> None:
-    bot.add_cog(Quickstart())
+    bot.add_cog(Quickstart(bot))

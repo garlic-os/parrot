@@ -2,10 +2,10 @@ from utils.types import PendingConfirmations
 from bot import Parrot
 
 import asyncio
-import aiohttp
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
-from tempfile import TemporaryFile
+from io import BytesIO
+import ujson as json  # ujson is faster
 from exceptions import NoDataError, UserPermissionError, UserNotFoundError
 from utils.converters import Userlike
 
@@ -24,12 +24,15 @@ class Data(commands.Cog):
 
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
-        with TemporaryFile() as f:
-            f.writelines(self.bot.corpora.get(user))
-            f.seek(0)
-            async with aiohttp.ClientSession() as session:
-                async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
-                    download_url = (await response.json())["link"]
+        with BytesIO(json.dumps(self.bot.corpora.get(user)).encode()) as fp:
+            async with self.bot.http_session.post(
+                "https://file.io/",
+                data={
+                    "file": fp,
+                    "expiry": "6h",
+                }
+            ) as response:
+                download_url = (await response.json())["link"]
 
         # DM the user their download link.
         embed_download_link = ParrotEmbed(
