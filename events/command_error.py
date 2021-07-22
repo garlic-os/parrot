@@ -27,7 +27,7 @@ class CommandErrorEventHandler(commands.Cog):
             error_text = str(error.__cause__)[16:]
         else:
             error_text = str(error)
-            logging.error(f"\n{error_text}\n{traceback.format_exception(error)}\n")
+            traceback.format_exception(None, error, error.__traceback__)
 
         embed = ParrotEmbed(
             title=random.choice(failure_phrases),
