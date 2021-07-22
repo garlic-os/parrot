@@ -52,18 +52,17 @@ class Text(commands.Cog):
         if intimidate:
             sentence = "**" + self.discord_caps(sentence) + "**"
             name = name.upper()
-            
 
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook account much
         #   faster than those of a bot/user account, which is crucial for
         #   imitating lots of users quickly.
-        webhook = await fetch_webhook(ctx)
         try:
             avatar_url = await self.bot.avatars.fetch(user)
         except Exception as error:
-            logging.error(f"\n{error}\n{error.__traceback__}\n")
+            logging.error(f"\n{error}\n{error.__traceback__.format_exc()}\n")
             avatar_url = user.avatar_url
+        webhook = await fetch_webhook(ctx)
         if webhook is None:
             # Fall back to using an embed if Parrot doesn't have manage_webhooks
             #   permission in this channel.
@@ -78,6 +77,7 @@ class Text(commands.Cog):
                 avatar_url=avatar_url,
                 allowed_mentions=AllowedMentions.none(),
             )
+
 
     @commands.command(brief="Imitate someone.")
     @commands.cooldown(2, 2, commands.BucketType.user)
