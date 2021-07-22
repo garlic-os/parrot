@@ -2,6 +2,7 @@ from bot import Parrot
 
 import random
 import logging
+import traceback
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from discord.ext.commands.errors import (
@@ -26,7 +27,7 @@ class CommandErrorEventHandler(commands.Cog):
             error_text = str(error.__cause__)[16:]
         else:
             error_text = str(error)
-            logging.error(f"\n{error_text}\n{error.__traceback__.format_exc()}\n")
+            logging.error(f"\n{error_text}\n{traceback.format_exception(error)}\n")
 
         embed = ParrotEmbed(
             title=random.choice(failure_phrases),

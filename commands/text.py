@@ -8,6 +8,7 @@ from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils import regex
 import logging
+import traceback
 
 
 class Text(commands.Cog):
@@ -60,7 +61,7 @@ class Text(commands.Cog):
         try:
             avatar_url = await self.bot.avatars.fetch(user)
         except Exception as error:
-            logging.error(f"\n{error}\n{error.__traceback__.format_exc()}\n")
+            logging.error(f"\n{error}\n{traceback.format_exception(error)}\n")
             avatar_url = user.avatar_url
         webhook = await fetch_webhook(ctx)
         if webhook is None:
