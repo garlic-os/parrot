@@ -57,7 +57,6 @@ class AvatarManager:
         # to use in a webhook (Discord As A CDN!).
         # Oh well, at least we don't have to store the avatars ourselves now.
         modified_avatar = await self.modify_avatar(str(user.avatar_url))
-        print("*", len(modified_avatar.getvalue()))
         message = await avatar_channel.send(
             file=File(modified_avatar, f"{user.id}.webp")
         )
