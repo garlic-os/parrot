@@ -120,6 +120,8 @@ class Text(commands.Cog):
         """
         Enter some text and turn it into gibberish. If you don't enter any text,
         Parrot will gibberize the last message send in this channel instead.
+        You can also reply to a message (please be polite and turn off the ping
+        reply) and Parrot will gibberize that message.
         """
         # If the author is replying to a message, add that message's text
         # to anything the author might have also said after the command.
@@ -142,6 +144,7 @@ class Text(commands.Cog):
                     raise FriendlyError("😕 Couldn't find a gibberizeable message")
 
         model = GibberishMarkov(text)
+        print(model.state_size)
 
         # Generate gibberish;
         # try up to 10 times to make it not the same as the source text.
