@@ -134,7 +134,7 @@ class Text(commands.Cog):
         # If there is no text and no reference message, try to get the text from
         # the last (usable) message sent in this channel.
         elif len(text) == 0:
-            history = ctx.channel.history(limit=10, before=ctx.message.id)
+            history = ctx.channel.history(limit=10, before=ctx.message)
             while len(text) == 0:
                 try:
                     text += self.find_text(await history.next())
