@@ -128,7 +128,7 @@ class Text(commands.Cog):
             history = ctx.channel.history(limit=10)
             while text is None:
                 try:
-                    text = await history.next()
+                    text = (await history.next()).content
                 except NoMoreItems:
                     raise FriendlyError("😕 That message doesn't have any text!")
 
