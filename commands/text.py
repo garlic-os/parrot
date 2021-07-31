@@ -144,7 +144,6 @@ class Text(commands.Cog):
                     raise FriendlyError("😕 Couldn't find a gibberizeable message")
 
         model = GibberishMarkov(text)
-        print(model.state_size)
 
         # Generate gibberish;
         # try up to 10 times to make it not the same as the source text.
