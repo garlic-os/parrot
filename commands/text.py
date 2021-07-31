@@ -20,8 +20,11 @@ class Text(commands.Cog):
         self.bot = bot
 
 
-    def find_text(self, message: Message) -> Optional[str]:
-        """ Search for text within a message. """
+    def find_text(self, message: Message) -> str:
+        """
+        Search for text within a message.
+        Return an empty string if no text is found.
+        """
         text = []
         if len(message.content) > 0 and not message.content.startswith(self.bot.command_prefix):
             text.append(message.content)
@@ -113,28 +116,34 @@ class Text(commands.Cog):
         brief="Gibberize a sentence.",
     )
     @commands.cooldown(2, 2, commands.BucketType.user)
-    async def gibberish(self, ctx: commands.Context, *, text: str=None) -> None:
+    async def gibberish(self, ctx: commands.Context, *, text: str="") -> None:
         """
         Enter some text and turn it into gibberish. If you don't enter any text,
         Parrot will gibberize the last message send in this channel instead.
         """
-        # If no text is provided, use the message the author is replying to,
-        # otherwise use the most recent valid message.
-        if text is None:
-            if ctx.message.reference and ctx.message.reference.message_id:
-                reference_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-                text = self.find_text(reference_message)
+        # If the author is replying to a message, add that message's text
+        # to anything the author might have also said after the command.
+        if ctx.message.reference and ctx.message.reference.message_id:
+            reference_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+            text += self.find_text(reference_message)
+            if len(text) == 0:
+                # Author didn't include any text of their own, and the message
+                # they're trying to get text from doesn't have any text.
+                raise FriendlyError("😕 That message doesn't have any text!")
 
-            history = ctx.channel.history(limit=10)
-            while text is None:
+        # If there is no text and no reference message, try to get the text from
+        # the last (usable) message sent in this channel.
+        elif len(text) == 0:
+            history = ctx.channel.history(limit=10, before=ctx.message.id)
+            while len(text) == 0:
                 try:
-                    text = (await history.next()).content
+                    text += self.find_text(await history.next())
                 except NoMoreItems:
-                    raise FriendlyError("😕 That message doesn't have any text!")
+                    raise FriendlyError("😕 Couldn't find a gibberizeable message")
 
         model = GibberishMarkov(text)
 
-        # Generate gibberish text;
+        # Generate gibberish;
         # try up to 10 times to make it not the same as the source text.
         for _ in range(10):
             new_text = model.make_sentence()
