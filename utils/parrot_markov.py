@@ -23,7 +23,7 @@ class GibberishMarkov(markovify.Text):
         super().__init__(
             None,
             parsed_sentences=[list(text)],
-            state_size=random.randint(1, 3),
+            state_size=random.randint(1, 2),
             retain_original=False,
             well_formed=False,
         )
