@@ -1,9 +1,10 @@
 
 from database.avatar_manager import AvatarManager
-from typing import List, Optional
+from typing import List, Set
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from discord.ext.commands import AutoShardedBot
 
+import config
 import os
 import time
 import logging
@@ -21,13 +22,12 @@ class Parrot(AutoShardedBot):
     def __init__(
         self, *,
         prefix: str,
-        owner_ids: List[int],
-        admin_role_ids: Optional[List[int]]=None,
+        admin_user_ids: Set[int],
         redis: Redis,
     ):
         super().__init__(
             command_prefix=prefix,
-            owner_ids=owner_ids,
+            owner_ids=admin_user_ids,
             case_insensitive=True,
             allowed_mentions=AllowedMentions.none(),
             activity=Activity(
@@ -35,7 +35,6 @@ class Parrot(AutoShardedBot):
                 type=ActivityType.listening,
             ),
         )
-        self.admin_role_ids = admin_role_ids or []
         self.redis = redis
         self.http_session = ClientSession()
 
@@ -97,7 +96,7 @@ class Parrot(AutoShardedBot):
         return super().run(token, bot=bot, reconnect=reconnect)
 
 
-    @lru_cache(maxsize=int(os.environ.get("CHAIN_CACHE_SIZE", 5)))
+    @lru_cache(maxsize=config.MODEL_CACHE_SIZE)
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         return ParrotMarkov(self.corpora.get(user_id))
@@ -111,7 +110,7 @@ class Parrot(AutoShardedBot):
 
         return (
             # Text content not empty.
-            # mypy giving some nonsense error that doesn't occur in runtime
+            # mypy is giving some nonsense error that doesn't occur in runtime
             len(content) > 0 and  # type: ignore
 
             # Not a Parrot command.
@@ -139,14 +138,14 @@ class Parrot(AutoShardedBot):
             # Parrot must be allowed to learn in this channel.
             message.channel.id in self.learning_channels and
 
-            # People will often say "v" or "z" on accident while spamming;
-            # they don't like when Parrot learns from those mistakes.
+            # People will often say "v" or "z" on accident while spamming,
+            # and it doesn't really make for good learning material.
             content not in ("v", "z")
         )
 
 
     def learn_from(self, message: Message) -> int:
-        """ Add a Message to a user's corpus. """
+        """ Add a message to a user's corpus. """
         if self.validate_message(message):
             return self.corpora.add(message.author, message)
         return 0

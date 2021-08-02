@@ -141,8 +141,8 @@ cython_debug/
 .vscode/
 *.code-workspace
 
-# Parrot data storage
-data/
+# Configuration files
+config.py
 
 *.sh
 pgid

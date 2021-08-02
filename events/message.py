@@ -2,7 +2,7 @@ from discord import Message
 from bot import Parrot
 from exceptions import NotRegisteredError
 
-import os
+import config
 import logging
 from discord.ext import commands
 
@@ -22,11 +22,7 @@ class MessageEventHandler(commands.Cog):
             return
 
         # I am a mature person making a competent Discord bot.
-        if (
-            message.content == "ayy"
-            and
-            os.environ.get("AYY_LMAO", "").lower() in ("true", "1")
-        ):
+        if message.content == "ayy" and config.AYY_LMAO:
             await message.channel.send("lmao")
 
         # Ignore NotRegisteredErrors; Parrot shouldn't learn from non-registered
