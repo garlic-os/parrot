@@ -1,9 +1,5 @@
-from typing import Any, Callable, Coroutine
-from utils.types import ModifiedAvatar
+from utils.types import ModifiedAvatar, ParrotInterface
 from discord import File, TextChannel, User
-from redis import Redis
-from asyncio import AbstractEventLoop
-from aiohttp import ClientSession
 
 import asyncstdlib as a
 import ujson as json  # ujson is faster
@@ -14,23 +10,15 @@ from PIL import Image, ImageOps
 class AvatarManager:
     AVATAR_DATABASE_CHANNEL_ID = 867573882608943127
 
-    def __init__(self, *,
-        redis: Redis,
-        loop: AbstractEventLoop,
-        http_session: ClientSession,
-        fetch_channel: Callable[[int], Coroutine[Any, Any, TextChannel]],
-    ):
-        self.redis = redis
-        self.loop = loop
-        self.http_session = http_session
-        self.fetch_channel = fetch_channel
+    def __init__(self, bot: ParrotInterface):
+        self.bot = bot
 
 
     @a.lru_cache(maxsize=5)
     async def fetch(self, user: User) -> str:
         ledger: ModifiedAvatar = {}
-        response = self.redis.hget("avatars", str(user.id))
-        avatar_channel = await self.fetch_channel(self.AVATAR_DATABASE_CHANNEL_ID)
+        response = self.bot.redis.hget("avatars", str(user.id))
+        avatar_channel = await self.bot.fetch_channel(self.AVATAR_DATABASE_CHANNEL_ID)
 
         if response is not None:
             ledger = json.loads(response)
@@ -43,7 +31,7 @@ class AvatarManager:
             # Respect the user's privacy by deleting the message with their old
             # avatar.
             # Don't wait for this operation to complete before continuing.
-            self.loop.create_task(
+            self.bot.loop.create_task(
                 self._delete_message(avatar_channel, ledger["source_message_id"])
             )
         
@@ -67,7 +55,7 @@ class AvatarManager:
         ledger["original_avatar_url"] = str(user.avatar_url)
         ledger["modified_avatar_url"] = message.attachments[0].url
         ledger["source_message_id"] = message.id
-        self.redis.hset("avatars", str(user.id), json.dumps(ledger))
+        self.bot.redis.hset("avatars", str(user.id), json.dumps(ledger))
 
         return ledger["modified_avatar_url"]
 
@@ -83,7 +71,7 @@ class AvatarManager:
         For use as the avatar in an imitate message to distinguish them from
         messages from real users.
         """
-        async with self.http_session.get(image_url) as response:
+        async with self.bot.http_session.get(image_url) as response:
             with Image.open(BytesIO(await response.read())) as image:
                 image = ImageOps.mirror(image)
                 image = ImageOps.invert(image)

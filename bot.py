@@ -2,14 +2,14 @@
 from database.avatar_manager import AvatarManager
 from typing import List, Set
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
-from discord.ext.commands import AutoShardedBot
+from utils.types import ParrotInterface
 
 import config
 import os
 import time
 import logging
 import time
-from aiohttp import ClientSession
+import aiohttp
 from redis import Redis
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
@@ -18,7 +18,7 @@ from database.redis_set import RedisSet
 from database.corpus_manager import CorpusManager
 
 
-class Parrot(AutoShardedBot):
+class Parrot(ParrotInterface):
     def __init__(
         self, *,
         prefix: str,
@@ -36,28 +36,18 @@ class Parrot(AutoShardedBot):
             ),
         )
         self.redis = redis
-        self.http_session = ClientSession()
+        self.http_session = aiohttp.ClientSession()
 
         self.registered_users = RedisSet(self.redis, "registered_users")
         self.learning_channels = RedisSet(self.redis, "learning_channels")
         self.speaking_channels = RedisSet(self.redis, "speaking_channels")
 
-        self.corpora = CorpusManager(
-            redis=self.redis,
-            registered_users=self.registered_users,
-            command_prefix=self.command_prefix,
-        )
-
-        self.avatars = AvatarManager(
-            redis=self.redis,
-            loop=self.loop,
-            http_session=self.http_session,
-            fetch_channel=self.fetch_channel,
-        )
+        self.corpora = CorpusManager(self)
+        self.avatars = AvatarManager(self)
 
         self.load_extension("jishaku")
-        self.load_folder("events")
-        self.load_folder("commands")
+        self._load_folder("events")
+        self._load_folder("commands")
 
 
     def __del__(self) -> None:
@@ -74,7 +64,7 @@ class Parrot(AutoShardedBot):
         return files
 
 
-    def load_folder(self, folder_name: str) -> None:
+    def _load_folder(self, folder_name: str) -> None:
         for module in self._list_filenames(folder_name):
             path = f"{folder_name}.{module}"
             try:
@@ -144,8 +134,7 @@ class Parrot(AutoShardedBot):
         )
 
 
-    def learn_from(self, message: Message) -> int:
+    def learn_from(self, message: Message) -> None:
         """ Add a message to a user's corpus. """
         if self.validate_message(message):
-            return self.corpora.add(message.author, message)
-        return 0
+            self.corpora.add(message.author, message)
