@@ -3,7 +3,7 @@ from discord import ChannelType, Message
 from bot import Parrot
 from exceptions import NotRegisteredError
 
-import os
+import config
 import logging
 from discord.ext import commands
 from utils import regex
@@ -24,11 +24,7 @@ class MessageEventHandler(commands.Cog):
             return
 
         # I am a mature person making a competent Discord bot.
-        if (
-            message.content == "ayy"
-            and
-            os.environ.get("AYY_LMAO", None) in ("true", "True", "1")
-        ):
+        if (message.content == "ayy" and config.AYY_LMAO):
             await message.channel.send("lmao")
 
         # Ignore NotRegisteredError errors; Parrot shouldn't learn from

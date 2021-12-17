@@ -1,3 +1,4 @@
+import config
 import os
 import sys
 import logging
@@ -32,4 +33,4 @@ bot = Parrot(
     ),
 )
 
-bot.run(os.environ["DISCORD_BOT_TOKEN"])
+bot.run(config.DISCORD_BOT_TOKEN)

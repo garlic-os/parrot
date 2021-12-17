@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from discord.ext.commands import AutoShardedBot
 
+import config
 import os
 import time
 import logging
@@ -82,7 +83,7 @@ class Parrot(AutoShardedBot):
         return super().run(token, bot=bot, reconnect=reconnect)
 
 
-    @lru_cache(maxsize=int(os.environ.get("CHAIN_CACHE_SIZE", 5)))
+    @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         return ParrotMarkov(self.corpora.get(user_id))
