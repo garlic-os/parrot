@@ -67,8 +67,8 @@ class CorpusManager:
     def has(self, user: object) -> bool:
         """ Check if a user's corpus is present on the source of truth. """
         return (
-            (isinstance(user, User) or isinstance(user, Member)) and
-            bool(self.redis.exists(f"corpus:{user.id}"))
+            (isinstance(user, (User, Member)) and
+            bool(self.redis.exists(f"corpus:{user.id}")))
         )
 
     def assert_registered(self, user: Union[User, Member]) -> None:
