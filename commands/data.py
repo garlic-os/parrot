@@ -114,7 +114,7 @@ class Data(commands.Cog):
             user = confirmation["corpus_owner"]
 
             # Delete the user's corpus.
-            self.bot.corpora.remove(user)
+            self.bot.corpora.delete(user)
 
             # Invalidate this confirmation code
             del self.pending_confirmations[confirm_code]

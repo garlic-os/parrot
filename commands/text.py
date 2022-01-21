@@ -113,7 +113,15 @@ class Text(commands.Cog):
                 return
 
         model = GibberishMarkov(text)
-        await ctx.send(model.make_sentence())
+
+        # Generate gibberish;
+        # try up to 10 times to make it not the same as the source text.
+        for _ in range(10):
+            new_text = model.make_sentence()
+            if new_text != text:
+                break
+    
+        await ctx.send(new_text[:2000])
 
 
 def setup(bot: Parrot) -> None:

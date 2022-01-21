@@ -1,5 +1,4 @@
-
-from typing import List, Optional, Union
+from typing import List, Optional, Set, Union
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from discord.ext.commands import AutoShardedBot
 from sqlite3 import Cursor

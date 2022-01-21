@@ -1,15 +1,14 @@
 from typing import List, Union, cast
+from utils.types import CorpusManagerInterface, ParrotInterface
 from discord import User, Member, Message
 from redis import Redis
 from database.redis_set import RedisSet
 from exceptions import NoDataError, NotRegisteredError
 
 
-class CorpusManager:
-    def __init__(self, redis: Redis, registered_users: RedisSet, command_prefix: str):
-        self.redis = redis
-        self.registered_users = registered_users
-        self.command_prefix = command_prefix
+class CorpusManager(CorpusManagerInterface):
+    def __init__(self, bot: ParrotInterface):
+        self.bot = bot
 
     def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
         """
@@ -25,17 +24,13 @@ class CorpusManager:
         # TODO: Uncomment when model.update() is implemented
         # model = self.bot.get_model(user.id)
 
-        subcorpus = {}
-        for message in messages:
-            # Thank you to Litleck for the idea to include attachment URLs.
+        # Also learn from text inside embeds, if the user is a bot.
+        # If it's not from a bot, it's probably just YouTube descriptions and not worth learning from.
+        if message.author.bot:
             for embed in message.embeds:
                 desc = embed.description
                 if isinstance(desc, str):
-                    message.content += " " + desc
-            for attachment in message.attachments:
-                message.content += " " + attachment.url
-            subcorpus[str(message.id)] = message.content
-            # model.update(message.content)
+                    message.content += "\n" + desc
 
         return self.redis.hset(  # type: ignore
             name=f"corpus:{user.id}",

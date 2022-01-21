@@ -10,8 +10,8 @@ python = "^3.7"
 "discord.py" = "^1.5.1"
 jishaku = "^1.19.2"
 markovify = "^0.8.3"
-ujson = "^5.1.0"
-Pillow = "^8.3.1"
+ujson = "^5.4.0"
+Pillow = "^9.0.0"
 asyncstdlib = "^3.9.2"
 
 [tool.poetry.dev-dependencies]
