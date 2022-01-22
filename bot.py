@@ -1,5 +1,3 @@
-
-from database.avatar_manager import AvatarManager
 from typing import List, Set
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from utils.types import ParrotInterface
@@ -15,6 +13,7 @@ from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
 from database.redis_set import RedisSet
+from database.avatar_manager import AvatarManager
 from database.corpus_manager import CorpusManager
 
 

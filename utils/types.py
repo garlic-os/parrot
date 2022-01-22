@@ -6,11 +6,9 @@ else:
     from typing_extensions import TypedDict
 
 from typing import Dict, NamedTuple
-import abc
+from abc import ABCMeta, abstractmethod
 from discord import Message, User
 import aiohttp
-from database.avatar_manager import AvatarManager
-from database.corpus_manager import CorpusManager
 from discord.ext.commands import AutoShardedBot
 from redis import Redis
 from database.redis_set import RedisSet
@@ -31,7 +29,24 @@ class ModifiedAvatar(TypedDict):
     source_message_id: int
 
 
-class ParrotInterface(AutoShardedBot, metaclass=abc.ABCMeta):
+class AvatarManagerInterface(metaclass=ABCMeta):
+    """ TODO """
+    pass
+
+
+class CorpusManagerInterface(metaclass=ABCMeta):
+    """ TODO """
+    pass
+
+class ParrotInterface(AutoShardedBot, metaclass=ABCMeta):
+    redis: Redis
+    http_session: aiohttp.ClientSession
+    registered_users: RedisSet
+    learning_channels: RedisSet
+    speaking_channels: RedisSet
+    corpora: CorpusManagerInterface
+    avatars: AvatarManagerInterface
+
     @classmethod
     def __subclasshook__(cls, subclass):
         return (
@@ -44,47 +59,19 @@ class ParrotInterface(AutoShardedBot, metaclass=abc.ABCMeta):
             NotImplemented
         )
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def validate_message(self, message: Message) -> bool:
         """
         A message must pass all of these checks before Parrot can learn from it.
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def learn_from(self, message: Message) -> int:
         """ Add a message to a user's corpus. """
         raise NotImplementedError
-
-    @property
-    @abc.abstractmethod
-    def redis(self) -> Redis: ...
-
-    @property
-    @abc.abstractmethod
-    def http_session(self) -> aiohttp.ClientSession: ...
-
-    @property
-    @abc.abstractmethod
-    def registered_users(self) -> RedisSet: ...
-
-    @property
-    @abc.abstractmethod
-    def learning_channels(self) -> RedisSet: ...
-
-    @property
-    @abc.abstractmethod
-    def speaking_channels(self) -> RedisSet: ...
-
-    @property
-    @abc.abstractmethod
-    def corpora(self) -> CorpusManager: ...
-
-    @property
-    @abc.abstractmethod
-    def avatars(self) -> AvatarManager: ...

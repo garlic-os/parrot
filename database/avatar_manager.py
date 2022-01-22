@@ -1,4 +1,4 @@
-from utils.types import ModifiedAvatar, ParrotInterface
+from utils.types import AvatarManagerInterface, ModifiedAvatar, ParrotInterface
 from discord import File, TextChannel, User
 
 import asyncstdlib as a
@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image, ImageOps
 
 
-class AvatarManager:
+class AvatarManager(AvatarManagerInterface):
     AVATAR_DATABASE_CHANNEL_ID = 867573882608943127
 
     def __init__(self, bot: ParrotInterface):

@@ -1,10 +1,10 @@
 from typing import List, Union, cast
-from utils.types import ParrotInterface
+from utils.types import CorpusManagerInterface, ParrotInterface
 from discord import User, Member, Message
 from exceptions import NoDataError, NotRegisteredError
 
 
-class CorpusManager:
+class CorpusManager(CorpusManagerInterface):
     def __init__(self, bot: ParrotInterface):
         self.bot = bot
 
