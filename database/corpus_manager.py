@@ -18,7 +18,7 @@ class CorpusManager(CorpusManagerInterface):
         for embed in message.embeds:
             desc = embed.description
             if isinstance(desc, str):
-                message.content += " " + desc
+                message.content += "\n" + desc
 
         # Thank you to Litleck for the idea to include attachment URLs.
         for attachment in message.attachments:
