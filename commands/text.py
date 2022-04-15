@@ -152,7 +152,7 @@ class Text(commands.Cog):
             if new_text != text:
                 break
     
-        await ctx.send(new_text)
+        await ctx.send(new_text[:2000])
 
 
 def setup(bot: Parrot) -> None:
