@@ -6,7 +6,6 @@ import config
 import os
 import time
 import logging
-import time
 import aiohttp
 from redis import Redis
 from functools import lru_cache
