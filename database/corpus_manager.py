@@ -15,10 +15,13 @@ class CorpusManager(CorpusManagerInterface):
         # TODO: Uncomment when model.update() is implemented
         # model = self.bot.get_model(user.id)
 
-        for embed in message.embeds:
-            desc = embed.description
-            if isinstance(desc, str):
-                message.content += " " + desc
+        # Also learn from text inside embeds, if the user is a bot.
+        # If it's not from a bot, it's probably just YouTube descriptions and not worth learning from.
+        if message.author.bot:
+            for embed in message.embeds:
+                desc = embed.description
+                if isinstance(desc, str):
+                    message.content += "\n" + desc
 
         # Thank you to Litleck for the idea to include attachment URLs.
         for attachment in message.attachments:
