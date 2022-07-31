@@ -40,7 +40,7 @@ class GibberishMarkov(markovify.Text):
 
     def make_sentence(self, init_state=None, **kwargs):
         # Make some gibberish. If it ends up the same as the original text,
-        # maybe try again.
+        # maybe try again. But not always, because sometimes it's funny!
         acceptable = False
         while not acceptable:
             sentence = super().make_sentence(init_state=init_state, **kwargs)
