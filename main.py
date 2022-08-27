@@ -3,7 +3,8 @@ import os
 import sys
 import logging
 import ujson as json  # ujson is faster
-from redis import Redis
+import sqlite3
+import atexit
 from dotenv import load_dotenv
 from bot import Parrot
 
@@ -19,18 +20,18 @@ logging.basicConfig(
     ],
 )
 
+logging.info("Logging into database...")
+con = sqlite3.connect(os.path.join("database", "parrot.db"))
+con.isolation_level = None  # autocommit mode
+
 
 logging.info("Initializing bot...")
 bot = Parrot(
-    prefix=os.environ.get("COMMAND_PREFIX", "|"),
-    owner_ids=json.loads(os.environ["OWNERS"]),
-    admin_role_ids=json.loads(os.environ.get("ADMIN_ROLE_IDS", "[]")),
-    redis=Redis(
-        host=os.environ["REDIS_HOST"],
-        port=int(os.environ["REDIS_PORT"]),
-        password=os.environ["REDIS_PASSWORD"],
-        decode_responses=True,
-    ),
+    prefix=config.COMMAND_PREFIX,
+    owner_ids=config.ADMIN_USER_IDS,
+    admin_role_ids=config.ADMIN_ROLE_IDS,
+    db=con.cursor(),
 )
 
 bot.run(config.DISCORD_BOT_TOKEN)
+atexit.register(con.close)

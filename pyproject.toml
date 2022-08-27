@@ -10,8 +10,7 @@ python = "^3.7"
 "discord.py" = {extras = ["voice"], version = "^1.5.1"}
 jishaku = "^1.19.2"
 markovify = "^0.8.3"
-ujson = "^4.0.1"
-redis = "^3.5.3"
+ujson = "^5.1.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.790"

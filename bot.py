@@ -2,17 +2,16 @@
 from typing import List, Optional, Union
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
 from discord.ext.commands import AutoShardedBot
+from sqlite3 import Cursor
 
 import config
 import os
 import time
 import logging
 import time
-from redis import Redis
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
-from database.redis_set import RedisSet
 from database.corpus_manager import CorpusManager
 
 
@@ -22,7 +21,7 @@ class Parrot(AutoShardedBot):
         prefix: str,
         owner_ids: List[int],
         admin_role_ids: Optional[List[int]]=None,
-        redis: Redis,
+        db: Cursor,
     ):
         super().__init__(
             command_prefix=prefix,
@@ -35,13 +34,13 @@ class Parrot(AutoShardedBot):
             ),
         )
         self.admin_role_ids = admin_role_ids or []
-        self.redis = redis
+        self.db = db
 
         self.registered_users = RedisSet(redis, "registered_users")
         self.learning_channels = RedisSet(redis, "learning_channels")
         self.speaking_channels = RedisSet(redis, "speaking_channels")
         self.corpora = CorpusManager(
-            redis=redis,
+            db=db,
             registered_users=self.registered_users,
             command_prefix=self.command_prefix,
         )
@@ -71,16 +70,6 @@ class Parrot(AutoShardedBot):
             except Exception as error:
                 logging.info("❌")
                 logging.error(f"{error}\n")
-
-
-    def run(self, token: str, *, bot: bool=True, reconnect: bool=True) -> None:
-        redis_is_ready = self.redis.ping()
-        if not redis_is_ready:
-            logging.warn("Waiting for the database to finish loading...")
-        while not redis_is_ready:
-            time.sleep(1/10)
-            redis_is_ready = self.redis.ping()
-        return super().run(token, bot=bot, reconnect=reconnect)
 
 
     @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
