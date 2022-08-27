@@ -1,12 +1,10 @@
-from typing import List, Union
-from discord import ChannelType, Message
+from discord import Message
 from bot import Parrot
 from exceptions import NotRegisteredError
 
 import config
 import logging
 from discord.ext import commands
-from utils import regex
 
 
 class MessageEventHandler(commands.Cog):
@@ -24,20 +22,15 @@ class MessageEventHandler(commands.Cog):
             return
 
         # I am a mature person making a competent Discord bot.
-        if (message.content == "ayy" and config.AYY_LMAO):
+        if message.content == "ayy" and config.AYY_LMAO:
             await message.channel.send("lmao")
 
-        # Ignore NotRegisteredError errors; Parrot shouldn't learn from
-        #   non-registered users, anyway.
+        # Ignore NotRegisteredErrors; Parrot shouldn't learn from non-registered
+        # users, anyway.
         try:
-            learned_count = self.bot.learn_from(message)
+            self.bot.learn_from(message)
             tag = f"{message.author.name}#{message.author.discriminator}"
-
-            # Log results.
-            if learned_count == 1:
-                logging.info(f"Collected a message (ID: {message.id}) from user {tag} (ID: {message.author.id})")
-            elif learned_count != 0:
-                logging.info(f"Collected {learned_count} messages from {tag} (ID: {message.author.id})")
+            logging.info(f"Collected a message (ID: {message.id}) from user {tag} (ID: {message.author.id})")
         except NotRegisteredError:
             pass
 

@@ -1,4 +1,5 @@
 from discord.ext import commands
+import config
 
 
 def is_owner(ctx: commands.Context) -> bool:
@@ -11,6 +12,6 @@ def is_admin(ctx: commands.Context) -> bool:
     if is_owner(ctx):
         return True
     for role_id in map((lambda role: role.id), ctx.author.roles):
-        if role_id in ctx.bot.admin_role_ids:
+        if role_id in config.ADMIN_ROLE_IDS:
             return True
     return False

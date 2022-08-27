@@ -1,31 +1,31 @@
-
-from typing import List, Optional, Union
+from typing import List, Set
 from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
-from discord.ext.commands import AutoShardedBot
-from sqlite3 import Cursor
+from utils.types import ParrotInterface
 
 import config
 import os
 import time
 import logging
-import time
+import aiohttp
+from redis import Redis
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
+from database.redis_set import RedisSet
+from database.avatar_manager import AvatarManager
 from database.corpus_manager import CorpusManager
 
 
-class Parrot(AutoShardedBot):
+class Parrot(ParrotInterface):
     def __init__(
         self, *,
         prefix: str,
-        owner_ids: List[int],
-        admin_role_ids: Optional[List[int]]=None,
-        db: Cursor,
+        admin_user_ids: Set[int],
+        redis: Redis,
     ):
         super().__init__(
             command_prefix=prefix,
-            owner_ids=owner_ids,
+            owner_ids=admin_user_ids,
             case_insensitive=True,
             allowed_mentions=AllowedMentions.none(),
             activity=Activity(
@@ -33,21 +33,23 @@ class Parrot(AutoShardedBot):
                 type=ActivityType.listening,
             ),
         )
-        self.admin_role_ids = admin_role_ids or []
-        self.db = db
+        self.redis = redis
+        self.http_session = aiohttp.ClientSession()
 
-        self.registered_users = RedisSet(redis, "registered_users")
-        self.learning_channels = RedisSet(redis, "learning_channels")
-        self.speaking_channels = RedisSet(redis, "speaking_channels")
-        self.corpora = CorpusManager(
-            db=db,
-            registered_users=self.registered_users,
-            command_prefix=self.command_prefix,
-        )
+        self.registered_users = RedisSet(self.redis, "registered_users")
+        self.learning_channels = RedisSet(self.redis, "learning_channels")
+        self.speaking_channels = RedisSet(self.redis, "speaking_channels")
+
+        self.corpora = CorpusManager(self)
+        self.avatars = AvatarManager(self)
 
         self.load_extension("jishaku")
-        self.load_folder("events")
-        self.load_folder("commands")
+        self._load_folder("events")
+        self._load_folder("commands")
+
+
+    def __del__(self) -> None:
+        self.http_session.close()
 
 
     def _list_filenames(self, directory: str) -> List[str]:
@@ -60,7 +62,7 @@ class Parrot(AutoShardedBot):
         return files
 
 
-    def load_folder(self, folder_name: str) -> None:
+    def _load_folder(self, folder_name: str) -> None:
         for module in self._list_filenames(folder_name):
             path = f"{folder_name}.{module}"
             try:
@@ -72,7 +74,17 @@ class Parrot(AutoShardedBot):
                 logging.error(f"{error}\n")
 
 
-    @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
+    def run(self, token: str, *, bot: bool=True, reconnect: bool=True) -> None:
+        redis_is_ready = self.redis.ping()
+        if not redis_is_ready:
+            logging.warn("Waiting for the database to finish loading...")
+        while not redis_is_ready:
+            time.sleep(1/10)
+            redis_is_ready = self.redis.ping()
+        return super().run(token, bot=bot, reconnect=reconnect)
+
+
+    @lru_cache(maxsize=config.MODEL_CACHE_SIZE)
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         return ParrotMarkov(self.corpora.get(user_id))
@@ -80,14 +92,13 @@ class Parrot(AutoShardedBot):
 
     def validate_message(self, message: Message) -> bool:
         """
-        A message must pass all of these checks
-            before Parrot can learn from it.
+        A message must pass all of these checks before Parrot can learn from it.
         """
         content = message.content
 
         return (
             # Text content not empty.
-            # mypy giving some nonsense error that doesn't occur in runtime
+            # mypy is giving some nonsense error that doesn't occur in runtime
             len(content) > 0 and  # type: ignore
 
             # Not a Parrot command.
@@ -115,35 +126,13 @@ class Parrot(AutoShardedBot):
             # Parrot must be allowed to learn in this channel.
             message.channel.id in self.learning_channels and
 
-            # People will often say "v" or "z" on accident while spamming;
-            # they don't like when Parrot learns from those mistakes.
+            # People will often say "v" or "z" on accident while spamming,
+            # and it doesn't really make for good learning material.
             content not in ("v", "z")
         )
 
 
-    def learn_from(self, messages: Union[Message, List[Message]]) -> int:
-        """
-        Add a Message or array of Messages to a user's corpus.
-        Every Message in the array must be from the same user.
-        """
-        # Ensure that messages is a list.
-        # If it's not, make it a list with one value.
-        if not isinstance(messages, list):
-            messages = [messages]
-
-        user = messages[0].author
-
-        # Every message in the array must have the same author, because the
-        # Corpus Manager adds every message passed to it to the same user.
-        for message in messages:
-            if message.author != user:
-                raise ValueError("Too many authors; every message in a list passed to learn_from() must have the same author.")
-
-        # Only keep messages that pass all of validate_message()'s checks.
-        messages = list(filter(self.validate_message, messages))
-
-        # Add these messages to this user's corpus and return the number of
-        # messages that were added.
-        if len(messages) > 0:
-            return self.corpora.add(user, messages)
-        return 0
+    def learn_from(self, message: Message) -> None:
+        """ Add a message to a user's corpus. """
+        if self.validate_message(message):
+            self.corpora.add(message.author, message)
