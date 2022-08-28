@@ -1,34 +1,23 @@
-from typing import Dict, Optional
-from discord import TextChannel, Webhook
+from typing import Optional
+from discord import Forbidden, Webhook
 
 from discord.ext.commands import Context
 
 
-def bot_has_permissions(ctx: Context, **perms: Dict[str, bool]) -> bool:
-    guild = ctx.guild
-    me = guild.me if guild is not None else ctx.bot.user
-    permissions = ctx.channel.permissions_for(me)
+async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
+    # See if Parrot owns a webhook for this channel.
+    res = ctx.bot.db.execute(
+        "SELECT webhook_id FROM channels WHERE id = ?",
+        (channel.id,),
+    ).fetchone()
+    if res is not None:
+        return await ctx.bot.fetch_webhook(res[0])
 
-    for perm, value in perms.items():
-        if getattr(permissions, perm) != value:
-            return False
-    return True
-
-
-async def fetch_webhook(ctx: Context, channel: TextChannel=None) -> Optional[Webhook]:
-    if channel is None:
-        channel = ctx.channel
-
-    if bot_has_permissions(ctx, manage_webhooks=False):
+    # If not, create one.
+    try:
+        return await ctx.channel.create_webhook(
+            name=f"Parrot in #{ctx.channel.name}",
+            avatar=(await ctx.bot.user.avatar_url.read()),
+        )
+    except Forbidden:
         return None
-
-    # Try to find a webhook in this channel that Parrot has created before.
-    for webhook in (await ctx.channel.webhooks()):
-        if webhook.user == ctx.bot.user:
-            return webhook
-
-    # Otherwise, create a new one.
-    return await ctx.channel.create_webhook(
-        name=f"Parrot in #{ctx.channel.name}",
-        avatar=(await ctx.bot.user.avatar_url.read()),
-    )

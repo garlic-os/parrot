@@ -42,7 +42,7 @@ class Text(commands.Cog):
 
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
-        #   error handler deal with.
+        # error handler deal with.
         model = self.bot.get_model(user)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
@@ -54,22 +54,27 @@ class Text(commands.Cog):
 
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook account much
-        #   faster than those of a bot/user account, which is crucial for
-        #   imitating lots of users quickly.
+        # faster than those of a bot/user account, which is crucial for
+        # imitating lots of users quickly.
+        try:
+            avatar_url = await self.bot.avatars.fetch(user)
+        except Exception as error:
+            logging.error("\n".join(traceback.format_exception(None, error, error.__traceback__)))
+            avatar_url = user.avatar_url
+
         webhook = await fetch_webhook(ctx)
         if webhook is None:
-            # Fall back to using an embed if Parrot doesn't have manage_webhooks
-            #   permission in this channel.
+            # Fall back to using an embed if Parrot doesn't have an webhook and
+            # couldn't make one.
             await ctx.send(embed=ParrotEmbed(
-                author=user,
                 description=sentence,
-            ))
+            ).set_author(name=name, icon_url=avatar_url))
         else:
             # Send the sentence through the webhook.
             await webhook.send(
                 content=sentence,
                 username=name,
-                avatar_url=user.avatar_url,
+                avatar_url=avatar_url,
                 allowed_mentions=AllowedMentions.none(),
             )
 

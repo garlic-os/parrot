@@ -1,5 +1,7 @@
 from typing import List, Optional, Set, Union
-from discord import Activity, ActivityType, AllowedMentions, ChannelType, Message
+from discord import (
+    Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
+)
 from discord.ext.commands import AutoShardedBot
 from sqlite3 import Cursor
 
@@ -8,6 +10,7 @@ import os
 import time
 import logging
 import time
+import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
@@ -31,17 +34,53 @@ class Parrot(AutoShardedBot):
                 name=f"everyone ({prefix}help)",
                 type=ActivityType.listening,
             ),
+            intents=Intents.all(),
         )
         self.admin_role_ids = admin_role_ids or []
+        self.http_session = aiohttp.ClientSession()
         self.db = db
 
-        self.registered_users = RedisSet(redis, "registered_users")
-        self.learning_channels = RedisSet(redis, "learning_channels")
-        self.speaking_channels = RedisSet(redis, "speaking_channels")
+        self.db.executescript("""
+            BEGIN;
+            CREATE TABLE IF NOT EXISTS users (
+                id                         INTEGER PRIMARY KEY,
+                is_registered              INTEGER NOT NULL DEFAULT 0,
+                original_avatar_url        TEXT,
+                modified_avatar_url        TEXT,
+                modified_avatar_message_id INTEGER
+            );
+
+            CREATE TABLE IF NOT EXISTS channels (
+                id             INTEGER PRIMARY KEY,
+                can_speak_here INTEGER NOT NULL DEFAULT 0,
+                can_learn_here INTEGER NOT NULL DEFAULT 0,
+                webhook_id     INTEGER
+            );
+
+            CREATE TABLE IF NOT EXISTS messages (
+                id        INTEGER PRIMARY KEY,
+                user_id   INTEGER NOT NULL REFERENCES users(id),
+                timestamp INTEGER NOT NULL,
+                content   TEXT    NOT NULL
+            );
+            COMMIT;
+        """)
+
+        self.update_learning_channels()
+        self.update_speaking_channels()
+        self.update_registered_users()
+
         self.corpora = CorpusManager(
-            db=db,
+            db=self.db,
             registered_users=self.registered_users,
             command_prefix=self.command_prefix,
+        )
+
+        self.avatars = AvatarManager(
+            db=self.db,
+            loop=self.loop,
+            http_session=self.http_session,
+            fetch_channel=self.fetch_channel,
         )
 
         self.load_extension("jishaku")
@@ -49,38 +88,23 @@ class Parrot(AutoShardedBot):
         self.load_folder("commands")
 
 
-    def _list_filenames(self, directory: str) -> List[str]:
-        files = []
-        for filename in os.listdir(directory):
-            abs_path = os.path.join(directory, filename)
-            if os.path.isfile(abs_path):
-                filename = os.path.splitext(filename)[0]
-                files.append(filename)
-        return files
-
-
-    def load_folder(self, folder_name: str) -> None:
-        for module in self._list_filenames(folder_name):
-            path = f"{folder_name}.{module}"
-            try:
-                logging.info(f"Loading {path}... ")
-                self.load_extension(path)
-                logging.info("✅")
-            except Exception as error:
-                logging.info("❌")
-                logging.error(f"{error}\n")
+    def __del__(self):
+        self.http_session.close()
 
 
     @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
     def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
-        return ParrotMarkov(self.corpora.get(user_id))
+        res = self.db.execute(
+            "SELECT content FROM messages WHERE user_id = ?", (user_id,)
+        )
+        messages = [row[0] for row in res.fetchall()]
+        return ParrotMarkov(messages)
         
 
     def validate_message(self, message: Message) -> bool:
         """
-        A message must pass all of these checks
-            before Parrot can learn from it.
+        A message must pass all of these checks before Parrot can learn from it.
         """
         content = message.content
 
@@ -146,3 +170,40 @@ class Parrot(AutoShardedBot):
         if len(messages) > 0:
             return self.corpora.add(user, messages)
         return 0
+
+
+    def update_learning_channels(self) -> None:
+        """ Fetch and cache the set of channels that Parrot can learn from. """
+        res = self.db.execute("SELECT id FROM channels WHERE can_learn_here = 1")
+        self.learning_channels = {row[0] for row in res.fetchall()}
+
+
+    def update_speaking_channels(self) -> None:
+        """ Fetch and cache the set of channels that Parrot can speak in. """
+        res = self.db.execute("SELECT id FROM channels WHERE can_speak_here = 1")
+        self.speaking_channels = {row[0] for row in res.fetchall()}
+
+
+    def update_registered_users(self) -> None:
+        """ Fetch and cache the set of users who are registered. """
+        res = self.db.execute("SELECT id FROM users WHERE is_registered = 1")
+        self.registered_users = {row[0] for row in res.fetchall()}
+
+
+    def load_folder(self, folder_name: str) -> None:
+        filenames = []
+        for filename in os.listdir(folder_name):
+            abs_path = os.path.join(folder_name, filename)
+            if os.path.isfile(abs_path):
+                filename = os.path.splitext(filename)[0]
+                filenames.append(filename)
+
+        for module in filenames:
+            path = f"{folder_name}.{module}"
+            try:
+                logging.info(f"Loading {path}... ")
+                self.load_extension(path)
+                logging.info("✅")
+            except Exception as error:
+                logging.info("❌")
+                logging.error(f"{error}\n")

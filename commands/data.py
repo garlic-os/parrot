@@ -27,9 +27,8 @@ class Data(commands.Cog):
         with TemporaryFile() as f:
             f.writelines(self.bot.corpora.get(user))
             f.seek(0)
-            async with aiohttp.ClientSession() as session:
-                async with session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
-                    download_url = (await response.json())["link"]
+            async with self.bot.http_session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
+                download_url = (await response.json())["link"]
 
         # DM the user their download link.
         embed_download_link = ParrotEmbed(
