@@ -26,12 +26,12 @@ Parrot needs the following Bot Permissions:
 **Required**
 - Send Messages
 - Read Message History (required for Quickstart)
-- Change Nickname
-- Connect
-- Speak (Connect and Speak required for [vo.codes](https://vo.codes/) streaming)
+Parrot also needs **Message Content intent**. Y'know. To learn from messages.
 
 **Optional**
 - Manage Webhooks - This permission lets Parrot use webhooks to mimick users' name and avatar. If not granted, Parrot will use a less-pretty embed instead.
+
+
 
 
 ## Configuration
@@ -39,8 +39,7 @@ Parrot needs a little information from you for it to start working.
 
 **Required**
 - `DISCORD_BOT_TOKEN` - The bot token generated for your copy of Parrot on the Discord Developer Portal.
-- `OWNERS` - An array of the user IDs of the people you want to give Owner priveleges to. Owners get access to commands for managing Parrot. For example, `[54757394934834985, 23947297429259834, 29797299597494445]`.
-- `REDIS_HOST`, `REDIS_PORT`, and `REDIS_PASSWORD` - Credentials for a RedisJSON database to keep the corpora.
+- `ADMIN_USER_IDS` and/or `ADMIN_ROLE_IDS` - An array of IDs of the users or roles you want to give admin privileges to. Admins get access to commands for managing Parrot. For example, `[54757394934834985, 23947297429259834, 29797299597494445]`.
 
 **Optional**
 - `CHAIN_CACHE_SIZE` - How many Markov models to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
