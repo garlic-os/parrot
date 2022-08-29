@@ -15,6 +15,7 @@ from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
 from database.corpus_manager import CorpusManager
+from database.avatar_manager import AvatarManager
 
 
 class Parrot(AutoShardedBot):
