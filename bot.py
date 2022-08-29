@@ -147,8 +147,8 @@ class Parrot(AutoShardedBot):
 
     def learn_from(self, messages: Union[Message, List[Message]]) -> int:
         """
-        Add a Message or array of Messages to a user's corpus.
-        Every Message in the array must be from the same user.
+        Add a Message or list of Messages to a user's corpus.
+        Every Message in the list must be from the same user.
         """
         # Ensure that messages is a list.
         # If it's not, make it a list with one value.
@@ -157,7 +157,7 @@ class Parrot(AutoShardedBot):
 
         user = messages[0].author
 
-        # Every message in the array must have the same author, because the
+        # Every message in the list must have the same author, because the
         # Corpus Manager adds every message passed to it to the same user.
         for message in messages:
             if message.author != user:
