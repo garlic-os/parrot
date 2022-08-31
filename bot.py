@@ -77,7 +77,7 @@ class Parrot(AutoShardedBot):
 
         self.corpora = CorpusManager(
             db=self.db,
-            registered_users=self.registered_users,
+            get_registered_users=self.get_registered_users,
             command_prefix=self.command_prefix,
         )
 
@@ -222,3 +222,6 @@ class Parrot(AutoShardedBot):
             except Exception as error:
                 logging.info("❌")
                 logging.error(f"{error}\n")
+
+    def get_registered_users(self) -> Set[int]:
+        return self.registered_users
