@@ -2,7 +2,6 @@ import logging
 import config
 from bot import Parrot
 
-
 logging.info("Initializing bot...")
 bot = Parrot(
     prefix=config.COMMAND_PREFIX,
