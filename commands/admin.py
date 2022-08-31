@@ -75,8 +75,11 @@ class Admin(commands.Cog):
         if channel.id in self.bot.learning_channels:
             await ctx.send(f"⚠ Already learning in {channel.mention}!")
         else:
-            self.bot.db.execute(
-                "INSERT INTO channels (id, can_learn_here) VALUES (?, 1);",
+            self.bot.db.execute("""
+                INSERT INTO channels (id, can_learn_here)
+                VALUES (?, ?)
+                ON CONFLICT (id) DO UPDATE
+                SET can_speak_here = EXCLUDED.can_learn_here""",
                 (channel.id,)
             )
             self.bot.update_learning_channels()
@@ -96,8 +99,11 @@ class Admin(commands.Cog):
         if channel.id in self.bot.speaking_channels:
             await ctx.send(f"⚠ Already able to speak in {channel.mention}!")
         else:
-            self.bot.db.execute(
-                "INSERT INTO channels (id, can_speak_here) VALUES (?, 1);",
+            self.bot.db.execute("""
+                INSERT INTO channels (id, can_speak_here)
+                VALUES (?, ?)
+                ON CONFLICT (id) DO UPDATE
+                SET can_speak_here = EXCLUDED.can_speak_here""",
                 (channel.id,)
             )
             self.bot.update_speaking_channels()
