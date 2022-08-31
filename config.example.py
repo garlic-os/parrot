@@ -1,7 +1,7 @@
 from typing import List
 import logging
 import sys
-
+import os
 
 # Discord bot token
 DISCORD_BOT_TOKEN: str = ""
@@ -20,11 +20,15 @@ COMMAND_PREFIX: str = "|"
 # Number of Markov chain models to cache at once
 MODEL_CACHE_SIZE: int = 5
 
-# Whether or not to say "lmao" when someone says "ayy"
-AYY_LMAO: bool = True
+# Path a sqlite3 database file to keep Parrot's data.
+# If it doesn't exist, it will be created.
+DB_PATH: str = os.path.join("database", "parrot.sqlite3")
 
 # Number of seconds between database commits
 AUTOSAVE_INTERVAL_SECONDS: int = 60
+
+# Whether or not to say "lmao" when someone says "ayy"
+AYY_LMAO: bool = True
 
 # Python logging module configuration
 logging.basicConfig(
