@@ -133,16 +133,21 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# idk what these are but i dont want to commit them
+# Python cache
 **/__pycache__/
 **/__pypackages__/
 
-# Visual Studio Code
+# IDE files
 .vscode/
 *.code-workspace
 
-# Parrot data storage
-data/
+# Database files
+*.sqlite3
+*.sqlite3-*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
 
-*.sh
-pgid
+# Configuration files
+config.py
