@@ -2,7 +2,7 @@ from discord.ext import commands
 from bot import Parrot
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
-from exceptions import FriendlyError
+from utils.exceptions import FriendlyError
 
 
 class Registration(commands.Cog):

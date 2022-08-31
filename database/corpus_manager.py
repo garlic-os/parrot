@@ -1,7 +1,7 @@
 from typing import List, Union, cast
 from utils.types import CorpusManagerInterface
 from discord import User, Member, Message
-from exceptions import NoDataError, NotRegisteredError
+from utils.exceptions import NoDataError, NotRegisteredError
 
 
 class CorpusManager(CorpusManagerInterface):

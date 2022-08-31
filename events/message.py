@@ -1,7 +1,7 @@
 from typing import List, Union
 from discord import ChannelType, Message
 from bot import Parrot
-from exceptions import NotRegisteredError
+from utils.exceptions import NotRegisteredError
 
 import config
 import logging

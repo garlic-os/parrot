@@ -6,7 +6,7 @@ import aiohttp
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from tempfile import TemporaryFile
-from exceptions import NoDataError, UserPermissionError, UserNotFoundError
+from utils.exceptions import NoDataError, UserPermissionError, UserNotFoundError
 from utils.converters import Userlike
 
 

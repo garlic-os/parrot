@@ -6,7 +6,7 @@ import asyncio
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.channel_crawler import ChannelCrawler
-from exceptions import AlreadyScanning, UserPermissionError
+from utils.exceptions import AlreadyScanning, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
 from utils import Paginator
