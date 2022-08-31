@@ -50,7 +50,7 @@ class CorpusManager(CorpusManagerInterface):
 
 
     def get(self, user: Union[User, Member]) -> List[str]:
-        """ Get a corpus from the local database by user ID. """
+        """ Get a corpus from the database by user ID. """
         self.assert_registered(user)
         res = self.db.execute(
             "SELECT content FROM messages WHERE user_id = ?", (user.id,)
@@ -62,7 +62,7 @@ class CorpusManager(CorpusManagerInterface):
 
 
     def delete(self, user: Union[User, Member]) -> None:
-        """ Delete a corpus from the local database. """
+        """ Delete a corpus from the database. """
         self.db.execute(
             "DELETE FROM messages WHERE user_id = ?", (user.id,)
         )
@@ -73,7 +73,7 @@ class CorpusManager(CorpusManagerInterface):
 
 
     def delete_message(self, message_id: int) -> None:
-        """ Delete a message from the local database. """
+        """ Delete a message from the database. """
         self.db.execute(
             "DELETE FROM messages WHERE id = ?", (message_id,)
         )
