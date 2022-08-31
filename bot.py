@@ -88,9 +88,19 @@ class Parrot(AutoShardedBot):
         self.load_folder("events")
         self.load_folder("commands")
 
+        self.loop.create_task(self.autosave())
+
 
     def __del__(self):
         self.http_session.close()
+        self.db.commit()
+
+    async def autosave(self) -> None:
+        while True:
+            await asyinc.sleep(config.AUTOSAVE_INTERVAL_SECONDS)
+            logging.info("Saving database...")
+            self.db.commit()
+            logging.info("Save complete.")
 
 
     @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))

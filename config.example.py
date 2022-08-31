@@ -23,6 +23,9 @@ MODEL_CACHE_SIZE: int = 5
 # Whether or not to say "lmao" when someone says "ayy"
 AYY_LMAO: bool = True
 
+# Number of seconds between database commits
+AUTOSAVE_INTERVAL_SECONDS: int = 60
+
 # Python logging module configuration
 logging.basicConfig(
     level=logging.INFO,

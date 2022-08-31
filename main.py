@@ -22,7 +22,6 @@ logging.basicConfig(
 
 logging.info("Logging into database...")
 con = sqlite3.connect(os.path.join("database", "parrot.db"))
-con.isolation_level = None  # autocommit mode
 
 
 logging.info("Initializing bot...")
