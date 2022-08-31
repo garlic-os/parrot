@@ -15,9 +15,9 @@ For now, if you want Parrot on your server, you'll have to run it yourself.
 2. Create an invite link with [these permissions](#permissions) and invite the bot to your server.
 2. [Clone this repo.](https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/cloning-a-repository-from-github-to-github-desktop)
 3. Run [`poetry install`](https://python-poetry.org/docs/) in the project's directory.
-4. Create a `.env` file in the project's directory and follow the [config documentation](#configuration) to configure Parrot.
-5. Change the user ID in `"assets/privacy-policy.txt"` with yours, or that of whoever is going to host the bot.
-6. `poetry run python main.py`
+4. Copy `config.example.py` to `config.py` and follow the [config documentation](#configuration) to fill in the needed information.
+5. Change the user ID in `assets/privacy-policy.txt` to yours, or that of whoever is going to host the bot.
+6. `poetry run python main.py`.
 
 
 ## Permissions
@@ -32,8 +32,6 @@ Parrot also needs **Message Content intent**. Y'know. To learn from messages.
 - Manage Webhooks - This permission lets Parrot use webhooks to mimick users' name and avatar. If not granted, Parrot will use a less-pretty embed instead.
 
 
-
-
 ## Configuration
 Parrot needs a little information from you for it to start working.
 
@@ -45,3 +43,8 @@ Parrot needs a little information from you for it to start working.
 - `CHAIN_CACHE_SIZE` - How many Markov models to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
 - `COMMAND_PREFIX` - The character(s) that go before a Parrot command. Default is `"|"`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
+- `AUTOSAVE_INTERVAL_SECONDS` - How often to commit the database to disc. Parrot also saves before shutting down. Default is `60`.
+
+---
+
+I recently refactored Parrot to use sqlite3 instead of Redis. I migrated the database with this tool: https://github.com/the-garlic-os/parrot-redis2sql.

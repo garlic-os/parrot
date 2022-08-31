@@ -36,6 +36,9 @@ class CorpusManager(CorpusManagerInterface):
                     desc = embed.description
                     if isinstance(desc, str):
                         message.content += "\n" + desc
+            # Thank you to Litleck for the idea to include attachment URLs.
+            for attachment in message.attachments:
+                message.content += " " + attachment.url
 
         self.db.executemany("""
             INSERT OR IGNORE INTO messages (id, user_id, timestamp, content)

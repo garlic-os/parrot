@@ -2,7 +2,6 @@ from utils.types import PendingConfirmations
 from bot import Parrot
 
 import asyncio
-import aiohttp
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from tempfile import TemporaryFile

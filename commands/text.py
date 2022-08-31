@@ -1,3 +1,10 @@
+from typing import Optional
+
+import logging
+import traceback
+
+from discord.errors import NoMoreItems
+from discord import AllowedMentions, Message, User
 from utils.parrot_markov import GibberishMarkov
 from discord import AllowedMentions, User
 from bot import Parrot
@@ -7,6 +14,7 @@ from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils import regex
+from utils.exceptions import FriendlyError
 
 
 class Text(commands.Cog):
@@ -20,7 +28,7 @@ class Text(commands.Cog):
         mentions.
         Made by Kaylynn: https://github.com/kaylynn234. Thank you, Kaylynn!
         """
-        words = text.replace(r"*", "").split(" ")
+        words = text.replace("*", "").split(" ")
         for i, word in enumerate(words):
             if regex.do_not_capitalize.match(word) is None:
                 words[i] = word.upper()
@@ -30,11 +38,12 @@ class Text(commands.Cog):
     async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
         # Parrot can't imitate itself!
         if user == self.bot.user:
+            # Send the funny XOK message instead, that'll show 'em.
             embed = ParrotEmbed(
                 title="Error",
                 color_name="red",
             )
-            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")
+            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")  # Windows 7 close button
             embed.set_image(url="https://i.imgur.com/JAQ7pjz.png")  # Xok
             sent_message = await ctx.send(embed=embed)
             await sent_message.add_reaction("🆗")
@@ -50,7 +59,6 @@ class Text(commands.Cog):
         if intimidate:
             sentence = "**" + self.discord_caps(sentence) + "**"
             name = name.upper()
-            
 
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook account much
@@ -78,6 +86,7 @@ class Text(commands.Cog):
                 allowed_mentions=AllowedMentions.none(),
             )
 
+
     @commands.command(brief="Imitate someone.")
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
@@ -96,26 +105,32 @@ class Text(commands.Cog):
         brief="Gibberize a sentence.",
     )
     @commands.cooldown(2, 2, commands.BucketType.user)
-    async def gibberish(self, ctx: commands.Context, *, text: str=None) -> None:
+    async def gibberish(self, ctx: commands.Context, *, text: str="") -> None:
         """
         Enter some text and turn it into gibberish. If you don't enter any text,
         Parrot will gibberize the last message send in this channel instead.
+        You can also reply to a message (please be polite and turn off the ping
+        reply) and Parrot will gibberize that message.
         """
-        # If no text is provided, use the most recent message instead.
-        if text is None:
-            async for message in ctx.channel.history():
-                content = message.content
-                if len(content) > 0 and not content.startswith(self.bot.command_prefix):
-                    text = content
-                    break
-                for embed in message.embeds:
-                    desc = embed.description
-                    if isinstance(desc, str) and len(desc) > 0:
-                        text = desc
+        # If the author is replying to a message, add that message's text
+        # to anything the author might have also said after the command.
+        if ctx.message.reference and ctx.message.reference.message_id:
+            reference_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+            text += self.find_text(reference_message)
+            if len(text) == 0:
+                # Author didn't include any text of their own, and the message
+                # they're trying to get text from doesn't have any text.
+                raise FriendlyError("😕 That message doesn't have any text!")
 
-            if text is None:
-                await ctx.send("😕 Couldn't find message to gibberize")
-                return
+        # If there is no text and no reference message, try to get the text from
+        # the last (usable) message sent in this channel.
+        elif len(text) == 0:
+            history = ctx.channel.history(limit=10, before=ctx.message)
+            while len(text) == 0:
+                try:
+                    text += self.find_text(await history.next())
+                except NoMoreItems:
+                    raise FriendlyError("😕 Couldn't find a gibberizeable message")
 
         model = GibberishMarkov(text)
 

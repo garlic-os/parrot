@@ -3,13 +3,13 @@ from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
 )
 from discord.ext.commands import AutoShardedBot
-from sqlite3 import Cursor
+import sqlite3
 
 import config
+import asyncio
 import os
 import time
 import logging
-import time
 import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
@@ -22,13 +22,13 @@ class Parrot(AutoShardedBot):
     def __init__(
         self, *,
         prefix: str,
-        owner_ids: List[int],
+        db_path: str,
+        admin_user_ids: List[int],
         admin_role_ids: Optional[List[int]]=None,
-        db: Cursor,
     ):
         super().__init__(
             command_prefix=prefix,
-            owner_ids=owner_ids,
+            owner_ids=admin_user_ids,
             case_insensitive=True,
             allowed_mentions=AllowedMentions.none(),
             activity=Activity(
@@ -37,9 +37,13 @@ class Parrot(AutoShardedBot):
             ),
             intents=Intents.all(),
         )
+
         self.admin_role_ids = admin_role_ids or []
         self.http_session = aiohttp.ClientSession()
-        self.db = db
+
+        logging.info("Connecting to database...")
+        self.con = sqlite3.connect(db_path)
+        self.db = self.con.cursor()
 
         self.db.executescript("""
             BEGIN;
@@ -90,16 +94,24 @@ class Parrot(AutoShardedBot):
 
         self.loop.create_task(self.autosave())
 
+    def _list_filenames(self, directory: str) -> List[str]:
+        files = []
+        for filename in os.listdir(directory):
+            abs_path = os.path.join(directory, filename)
+            if os.path.isfile(abs_path):
+                filename = os.path.splitext(filename)[0]
+                files.append(filename)
+        return files
 
     def __del__(self):
         self.http_session.close()
-        self.db.commit()
+        self.con.commit()
 
     async def autosave(self) -> None:
         while True:
-            await asyinc.sleep(config.AUTOSAVE_INTERVAL_SECONDS)
+            await asyncio.sleep(config.AUTOSAVE_INTERVAL_SECONDS)
             logging.info("Saving database...")
-            self.db.commit()
+            self.con.commit()
             logging.info("Save complete.")
 
 
@@ -121,7 +133,7 @@ class Parrot(AutoShardedBot):
 
         return (
             # Text content not empty.
-            # mypy giving some nonsense error that doesn't occur in runtime
+            # mypy is giving some nonsense error that doesn't occur in runtime
             len(content) > 0 and  # type: ignore
 
             # Not a Parrot command.
@@ -149,8 +161,8 @@ class Parrot(AutoShardedBot):
             # Parrot must be allowed to learn in this channel.
             message.channel.id in self.learning_channels and
 
-            # People will often say "v" or "z" on accident while spamming;
-            # they don't like when Parrot learns from those mistakes.
+            # People will often say "v" or "z" on accident while spamming,
+            # and it doesn't really make for good learning material.
             content not in ("v", "z")
         )
 
