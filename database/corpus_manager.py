@@ -37,8 +37,8 @@ class CorpusManager(CorpusManagerInterface):
                     if isinstance(desc, str):
                         message.content += "\n" + desc
 
-        self.db.execute("""
-            INSERT INTO messages (id, user_id, timestamp, content)
+        self.db.executemany("""
+            INSERT OR IGNORE INTO messages (id, user_id, timestamp, content)
             VALUES (?, ?, ?, ?)""",
             [(message.id, user.id, message.created_at, message.content) for message in messages]
         )
