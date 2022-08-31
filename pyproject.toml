@@ -1,20 +1,18 @@
 [tool.poetry]
 name = "parrot"
-version = "3.0.0"
+version = "3.1.0"
 description = ""
 authors = ["garlicOS® <14845347+Grosserly@users.noreply.github.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-"discord.py" = "^1.5.1"
+"discord.py" = "^1.7.3"
 jishaku = "^1.19.2"
 markovify = "^0.8.3"
 ujson = "^5.4.0"
-redis = "^3.5.3"
 Pillow = "^9.0.1"
 asyncstdlib = "^3.9.2"
-
 [tool.poetry.dev-dependencies]
 mypy = "^0.790"
 "discord.py-stubs" = "^1.5.1"

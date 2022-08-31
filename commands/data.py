@@ -4,9 +4,8 @@ from bot import Parrot
 import asyncio
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
-from io import BytesIO
-import ujson as json  # ujson is faster
-from exceptions import NoDataError, UserPermissionError, UserNotFoundError
+from tempfile import TemporaryFile
+from utils.exceptions import NoDataError, UserPermissionError, UserNotFoundError
 from utils.converters import Userlike
 
 
@@ -24,14 +23,10 @@ class Data(commands.Cog):
 
         # Upload to file.io, a free filesharing service where the file is
         #   deleted once it's downloaded.
-        with BytesIO(json.dumps(self.bot.corpora.get(user)).encode()) as fp:
-            async with self.bot.http_session.post(
-                "https://file.io/",
-                data={
-                    "file": fp,
-                    "expiry": "6h",
-                }
-            ) as response:
+        with TemporaryFile() as f:
+            f.writelines(self.bot.corpora.get(user))
+            f.seek(0)
+            async with self.bot.http_session.post("https://file.io/", data={"file": f, "expiry": "6h"}) as response:
                 download_url = (await response.json())["link"]
 
         # DM the user their download link.

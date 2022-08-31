@@ -75,7 +75,14 @@ class Admin(commands.Cog):
         if channel.id in self.bot.learning_channels:
             await ctx.send(f"⚠ Already learning in {channel.mention}!")
         else:
-            self.bot.learning_channels.add(channel.id)
+            self.bot.db.execute("""
+                INSERT INTO channels (id, can_learn_here)
+                VALUES (?, ?)
+                ON CONFLICT (id) DO UPDATE
+                SET can_speak_here = EXCLUDED.can_learn_here""",
+                (channel.id,)
+            )
+            self.bot.update_learning_channels()
             await ctx.send(f"✅ Now learning in {channel.mention}.")
 
 
@@ -92,7 +99,14 @@ class Admin(commands.Cog):
         if channel.id in self.bot.speaking_channels:
             await ctx.send(f"⚠ Already able to speak in {channel.mention}!")
         else:
-            self.bot.speaking_channels.add(channel.id)
+            self.bot.db.execute("""
+                INSERT INTO channels (id, can_speak_here)
+                VALUES (?, ?)
+                ON CONFLICT (id) DO UPDATE
+                SET can_speak_here = EXCLUDED.can_speak_here""",
+                (channel.id,)
+            )
+            self.bot.update_speaking_channels()
             await ctx.send(f"✅ Now able to speak in {channel.mention}.")
 
 
@@ -120,7 +134,11 @@ class Admin(commands.Cog):
         Parrot will stop collecting messages in this channel.
         """
         if channel.id in self.bot.learning_channels:
-            self.bot.learning_channels.remove(channel.id)
+            self.bot.db.execute(
+                "UPDATE channels SET can_learn_here = 0 WHERE id = ?;",
+                (channel.id,)
+            )
+            self.bot.update_learning_channels()
             await ctx.send(f"❌ No longer learning in {channel.mention}.")
         else:
             await ctx.send(f"⚠ Already not learning in {channel.mention}!")
@@ -137,7 +155,11 @@ class Admin(commands.Cog):
         Parrot will no longer be able to imitate people in this channel.
         """
         if channel.id in self.bot.speaking_channels:
-            self.bot.speaking_channels.remove(channel.id)
+            self.bot.db.execute(
+                "UPDATE channels SET can_speak_here = 0 WHERE id = ?;",
+                (channel.id,)
+            )
+            self.bot.update_speaking_channels()
             await ctx.send(f"❌ No longer able to speak in {channel.mention}.")
         else:
             await ctx.send(f"⚠ Already not able to speak in {channel.mention}!")

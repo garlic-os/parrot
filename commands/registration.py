@@ -2,7 +2,7 @@ from discord.ext import commands
 from bot import Parrot
 from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
-from exceptions import FriendlyError
+from utils.exceptions import FriendlyError
 
 
 class Registration(commands.Cog):
@@ -48,7 +48,11 @@ class Registration(commands.Cog):
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only register yourself.")
 
-        self.bot.registered_users.add(ctx.author.id)
+        # Update the "is_registered" field on this user in the database.
+        self.bot.db.execute(
+            "UPDATE users SET is_registered = 1 WHERE id = ?", (ctx.author.id,)
+        )
+        self.bot.update_registered_users()
 
         embed = ParrotEmbed(
             title="✅ Registered!",
@@ -72,7 +76,10 @@ class Registration(commands.Cog):
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only unregister yourself.")
 
-        self.bot.registered_users.remove(ctx.author.id)
+        self.bot.db.execute(
+            "UPDATE users SET is_registered = 0 WHERE id = ?", ctx.author.id
+        )
+        self.bot.update_registered_users()
 
         embed = ParrotEmbed(
             title="Unregistered!",

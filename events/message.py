@@ -1,6 +1,6 @@
 from discord import Message
 from bot import Parrot
-from exceptions import NotRegisteredError
+from utils.exceptions import NotRegisteredError
 
 import config
 import logging

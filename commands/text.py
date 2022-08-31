@@ -1,5 +1,8 @@
 from typing import Optional
 
+import logging
+import traceback
+
 from discord.errors import NoMoreItems
 from discord import AllowedMentions, Message, User
 from utils.parrot_markov import GibberishMarkov
@@ -10,28 +13,12 @@ from utils.parrot_embed import ParrotEmbed
 from utils.converters import Userlike
 from utils.fetch_webhook import fetch_webhook
 from utils import regex
-from exceptions import FriendlyError
-import logging
-import traceback
+from utils.exceptions import FriendlyError
 
 
 class Text(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
-
-
-    def find_text(self, message: Message) -> str:
-        """
-        Search for text within a message.
-        Return an empty string if no text is found.
-        """
-        text = []
-        if len(message.content) > 0 and not message.content.startswith(self.bot.command_prefix):
-            text.append(message.content)
-        for embed in message.embeds:
-            if isinstance(embed.description, str) and len(embed.description) > 0:
-                text.append(embed.description)
-        return " ".join(text)
 
 
     def discord_caps(self, text: str) -> str:
@@ -81,10 +68,11 @@ class Text(commands.Cog):
         except Exception as error:
             logging.error("\n".join(traceback.format_exception(None, error, error.__traceback__)))
             avatar_url = user.avatar_url
+
         webhook = await fetch_webhook(ctx)
         if webhook is None:
-            # Fall back to using an embed if Parrot doesn't have manage_webhooks
-            #   permission in this channel.
+            # Fall back to using an embed if Parrot doesn't have an webhook and
+            # couldn't make one.
             await ctx.send(embed=ParrotEmbed(
                 description=sentence,
             ).set_author(name=name, icon_url=avatar_url))
