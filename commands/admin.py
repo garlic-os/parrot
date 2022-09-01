@@ -15,7 +15,7 @@ class Admin(commands.Cog):
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def delete(self, ctx: commands.Context, message_id: int) -> None:
-        """ Delete a message Parrot has said. """
+        """ Delete a message that Parrot sent. """
         message = await ctx.fetch_message(message_id)
         guild = ctx.guild
         me = guild.me if guild is not None else self.bot.user
