@@ -25,7 +25,7 @@ MODEL_CACHE_SIZE: int = 5
 DB_PATH: str = os.path.join("database", "parrot.sqlite3")
 
 # Number of seconds between database commits
-AUTOSAVE_INTERVAL_SECONDS: int = 60
+AUTOSAVE_INTERVAL_SECONDS: int = 3600
 
 # Whether or not to say "lmao" when someone says "ayy"
 AYY_LMAO: bool = True
