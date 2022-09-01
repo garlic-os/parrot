@@ -18,5 +18,8 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
             name=f"Parrot in #{ctx.channel.name}",
             avatar=(await ctx.bot.user.avatar.read()),
         )
-    except Forbidden:
+    except (Forbidden, AttributeError):
+        # - Forbidden: Parrot lacks permission to make webhooks here.
+        # - AttributeError: Cannot make a webhook in this type of channel, like
+        # a DMChannel.
         return None
