@@ -69,5 +69,5 @@ class MessageEventHandler(commands.Cog):
         #             pass
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(MessageEventHandler(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(MessageEventHandler(bot))

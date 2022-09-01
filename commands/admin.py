@@ -288,5 +288,5 @@ class Admin(commands.Cog):
 
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Admin(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Admin(bot))

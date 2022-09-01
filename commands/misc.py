@@ -46,5 +46,5 @@ class Miscellaneous(commands.Cog):
         await ctx.send(embed=embed)
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Miscellaneous(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Miscellaneous(bot))

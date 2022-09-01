@@ -40,5 +40,5 @@ class CommandErrorEventHandler(Cog):
         await ctx.send(embed=embed, reference=ctx.message)
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(CommandErrorEventHandler("assets/failure-phrases.txt"))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(CommandErrorEventHandler("assets/failure-phrases.txt"))

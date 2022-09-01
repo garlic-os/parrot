@@ -150,5 +150,5 @@ class Text(commands.Cog):
         await ctx.send(new_text[:2000])
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Text(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Text(bot))

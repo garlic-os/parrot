@@ -149,5 +149,5 @@ class Data(commands.Cog):
             await ctx.send(f"Confirmation code `{confirm_code}` is invalid.")
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Data(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Data(bot))

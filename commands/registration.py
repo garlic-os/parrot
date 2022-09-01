@@ -142,5 +142,5 @@ class Registration(commands.Cog):
             await ctx.send("❌ You are not currently registered with Parrot.")
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Registration(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Registration(bot))

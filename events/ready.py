@@ -14,5 +14,5 @@ class ReadyEventHandler(commands.Cog):
         logging.info(f"Logged in as {user}")
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(ReadyEventHandler(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(ReadyEventHandler(bot))

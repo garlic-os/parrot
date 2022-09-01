@@ -213,5 +213,5 @@ class Quickstart(commands.Cog):
             del self.ongoing_scans[ctx.channel.id]
 
 
-def setup(bot: Parrot) -> None:
-    bot.add_cog(Quickstart(bot))
+async def setup(bot: Parrot) -> None:
+    await bot.add_cog(Quickstart(bot))
