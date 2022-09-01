@@ -42,7 +42,7 @@ class Quickstart(commands.Cog):
             )
             embed.set_footer(
                 text=f"Scanning for {user}",
-                icon_url=user.avatar_url,
+                icon_url=user.avatar.url,
             )
             await status_message.edit(embed=embed)
             await asyncio.sleep(2)
@@ -136,7 +136,7 @@ class Quickstart(commands.Cog):
         )
         embed.set_footer(
             text=f"Scanning for {user.mention}",
-            icon_url=user.avatar_url,
+            icon_url=user.avatar.url,
         )
         status_message = await ctx.author.send(embed=embed)
         await ctx.send(embed=ParrotEmbed(
@@ -196,7 +196,7 @@ class Quickstart(commands.Cog):
         embed.set_author(name="✅ Quickstart")
         embed.set_footer(
             text=f"Scanning for {user}",
-            icon_url=user.avatar_url,
+            icon_url=user.avatar.url,
         )
         if crawler.num_collected == 0:
             embed.description += (

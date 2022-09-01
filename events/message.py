@@ -56,7 +56,7 @@ class MessageEventHandler(commands.Cog):
         #             # or if I change Parrot to use different avatars, this will
         #             # probably break. But I guess now we'll just cross that
         #             # bridge when it comes.
-        #             avatar_url = str(src_message.author.avatar_url)
+        #             avatar_url = str(src_message.author.avatar.url)
         #             user_id = avatar_url.split("/")[4]
         #             message.content = user_id
         #             ctx = await self.bot.get_context(message)

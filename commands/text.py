@@ -53,7 +53,7 @@ class Text(commands.Cog):
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         # error handler deal with.
-        model = self.bot.get_model(user)
+        model = self.bot.get_model(user.id)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 
@@ -69,7 +69,7 @@ class Text(commands.Cog):
             avatar_url = await self.bot.avatars.fetch(user)
         except Exception as error:
             logging.error("\n".join(traceback.format_exception(None, error, error.__traceback__)))
-            avatar_url = user.avatar_url
+            avatar_url = user.avatar.url
 
         webhook = await fetch_webhook(ctx)
         if webhook is None:

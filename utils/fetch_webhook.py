@@ -16,7 +16,7 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
     try:
         return await ctx.channel.create_webhook(
             name=f"Parrot in #{ctx.channel.name}",
-            avatar=(await ctx.bot.user.avatar_url.read()),
+            avatar=(await ctx.bot.user.avatar.read()),
         )
     except Forbidden:
         return None

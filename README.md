@@ -42,8 +42,9 @@ Parrot needs a little information from you for it to start working.
 **Optional**
 - `CHAIN_CACHE_SIZE` - How many Markov models to keep in memory at a time. Increasing this number will make Parrot take up (even) more RAM, while decreasing it will Parrot slower at imitating while increasing disk reads and CPU usage. Default is `5`.
 - `COMMAND_PREFIX` - The character(s) that go before a Parrot command. Default is `"|"`.
+- `DB_PATH` - Path to a sqlite3 database file to keep Parrot's data. If it doesn't exist, it will be created.
+- `AUTOSAVE_INTERVAL_SECONDS` - How often to commit the database to disc. Parrot also saves before shutting down. Default is one hour—`3600`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
-- `AUTOSAVE_INTERVAL_SECONDS` - How often to commit the database to disc. Parrot also saves before shutting down. Default is `60`.
 
 ---
 
