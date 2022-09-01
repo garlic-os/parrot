@@ -50,9 +50,12 @@ class AvatarManager:
             # Respect the user's privacy by deleting the message with their old
             # avatar.
             # Don't wait for this operation to complete before continuing.
-            self.loop.create_task(
-                self._delete_message(avatar_channel, modified_avatar_message_id)
-            )
+            # self.loop.create_task(
+            #     self._delete_message(avatar_channel, modified_avatar_message_id)
+            # )
+            # Awaiting it anyway until I can figure out this "you're not
+            # actually in an async context" error
+            await self._delete_message(avatar_channel, modified_avatar_message_id)
 
         # User has changed their avatar since last time they did |imitate or has
         # not done |imitate before, so we must create a modified version of
