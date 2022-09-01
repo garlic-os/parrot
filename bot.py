@@ -2,7 +2,7 @@ from typing import List, Optional, Set, Union
 from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
 )
-from discord.ext.commands import AutoShardedBot
+from discord.ext.commands import AutoShardedBot, Cog
 import sqlite3
 
 import config
@@ -88,16 +88,44 @@ class Parrot(AutoShardedBot):
             fetch_channel=self.fetch_channel,
         )
 
-        self.load_extension("jishaku")
-        self.load_folder("events")
-        self.load_folder("commands")
-
-        self.loop.create_task(self.autosave())
-
 
     def __del__(self):
-        self.http_session.close()
+        logging.info("Saving database...")
         self.con.commit()
+        logging.info("✅")
+        logging.info("Closing HTTP session...")
+        asyncio.run(self.http_session.close())
+        logging.info("✅")
+
+
+    @Cog.listener()
+    async def on_ready(self) -> None:
+        """ Everything that would go in the constructor if it weren't async """
+        logging.info(f"Logged in as {self.user}")
+        self.loop.create_task(self.autosave())
+        await self.load_extension("jishaku")
+        await self.load_folder("events")
+        await self.load_folder("commands")
+
+
+    async def load_folder(self, folder_name: str) -> None:
+        filenames = []
+        for filename in os.listdir(folder_name):
+            abs_path = os.path.join(folder_name, filename)
+            if os.path.isfile(abs_path):
+                filename = os.path.splitext(filename)[0]
+                filenames.append(filename)
+
+        for module in filenames:
+            path = f"{folder_name}.{module}"
+            try:
+                logging.info(f"Loading {path}... ")
+                await self.load_extension(path)
+                logging.info("✅")
+            except Exception as error:
+                logging.info("❌")
+                logging.error(f"{error}\n")
+
 
     async def autosave(self) -> None:
         while True:
@@ -204,24 +232,6 @@ class Parrot(AutoShardedBot):
         res = self.db.execute("SELECT id FROM users WHERE is_registered = 1")
         self.registered_users = {row[0] for row in res.fetchall()}
 
-
-    def load_folder(self, folder_name: str) -> None:
-        filenames = []
-        for filename in os.listdir(folder_name):
-            abs_path = os.path.join(folder_name, filename)
-            if os.path.isfile(abs_path):
-                filename = os.path.splitext(filename)[0]
-                filenames.append(filename)
-
-        for module in filenames:
-            path = f"{folder_name}.{module}"
-            try:
-                logging.info(f"Loading {path}... ")
-                self.load_extension(path)
-                logging.info("✅")
-            except Exception as error:
-                logging.info("❌")
-                logging.error(f"{error}\n")
 
     def get_registered_users(self) -> Set[int]:
         return self.registered_users
