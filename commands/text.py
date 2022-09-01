@@ -1,7 +1,6 @@
 import logging
 import traceback
 
-from discord.errors import NoMoreItems
 from discord import AllowedMentions, User
 from utils.parrot_markov import GibberishMarkov
 from bot import Parrot
@@ -133,7 +132,7 @@ class Text(commands.Cog):
             while len(text) == 0:
                 try:
                     text += self.find_text(await history.next())
-                except NoMoreItems:
+                except StopAsyncIteration:
                     raise FriendlyError(
                         "😕 Couldn't find a gibberizeable message"
                     )
