@@ -30,9 +30,9 @@ class GibberishMarkov(markovify.Text):
         self.original = text
 
     def word_join(self, words: List[str]) -> str:
-        # The generator usually puts spaces between each entry in the list because
-        # it expects them to be words. Since they're actually characters here,
-        # we join the list without spaces.
+        # The generator usually puts spaces between each entry in the list
+        # because it expects them to be words. Since they're actually characters
+        # here, we join the list without spaces.
         # I could be smarter about this and make it use a string instead of a
         # list of strings, but I would have to modify markovify.Chain to do that
         # and I don't want to!

@@ -1,10 +1,8 @@
-from typing import Optional
-
 import logging
 import traceback
 
 from discord.errors import NoMoreItems
-from discord import AllowedMentions, Message, User
+from discord import AllowedMentions, User
 from utils.parrot_markov import GibberishMarkov
 from bot import Parrot
 
@@ -34,7 +32,12 @@ class Text(commands.Cog):
         return " ".join(words)
 
 
-    async def really_imitate(self, ctx: commands.Context, user: User, intimidate: bool=False) -> None:
+    async def really_imitate(
+        self,
+        ctx: commands.Context,
+        user: User,
+        intimidate: bool=False
+    ) -> None:
         # Parrot can't imitate itself!
         if user == self.bot.user:
             # Send the funny XOK message instead, that'll show 'em.
@@ -114,7 +117,9 @@ class Text(commands.Cog):
         # If the author is replying to a message, add that message's text
         # to anything the author might have also said after the command.
         if ctx.message.reference and ctx.message.reference.message_id:
-            reference_message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+            reference_message = await ctx.channel.fetch_message(
+                ctx.message.reference.message_id
+            )
             text += self.find_text(reference_message)
             if len(text) == 0:
                 # Author didn't include any text of their own, and the message
@@ -129,7 +134,9 @@ class Text(commands.Cog):
                 try:
                     text += self.find_text(await history.next())
                 except NoMoreItems:
-                    raise FriendlyError("😕 Couldn't find a gibberizeable message")
+                    raise FriendlyError(
+                        "😕 Couldn't find a gibberizeable message"
+                    )
 
         model = GibberishMarkov(text)
 
@@ -139,7 +146,7 @@ class Text(commands.Cog):
             new_text = model.make_sentence()
             if new_text != text:
                 break
-    
+
         await ctx.send(new_text[:2000])
 
 

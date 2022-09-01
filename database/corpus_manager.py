@@ -1,17 +1,20 @@
-from typing import List, Union, cast
-from utils.types import CorpusManagerInterface
+from typing import List, Union
 from discord import User, Member, Message
 from utils.exceptions import NoDataError, NotRegisteredError
 
 
-class CorpusManager(CorpusManagerInterface):
+class CorpusManager:
     def __init__(self, db, get_registered_users, command_prefix):
         self.db = db
         self.get_registered_users = get_registered_users
         self.command_prefix = command_prefix
 
 
-    def add(self, user: Union[User, Member], messages: Union[Message, List[Message]]) -> int:
+    def add(
+        self,
+        user: Union[User, Member],
+        messages: Union[Message, List[Message]]
+    ) -> int:
         """
         Record messages locally.
         @pre: messages should all be from one user.
@@ -37,10 +40,14 @@ class CorpusManager(CorpusManagerInterface):
             for attachment in message.attachments:
                 message.content += " " + attachment.url
 
-        self.db.executemany("""
+        rows = [(message.id, user.id, message.created_at, message.content)
+                for message in messages]
+        self.db.executemany(
+            """
             INSERT OR IGNORE INTO messages (id, user_id, timestamp, content)
-            VALUES (?, ?, ?, ?)""",
-            [(message.id, user.id, message.created_at, message.content) for message in messages]
+            VALUES (?, ?, ?, ?)
+            """,
+            rows
         )
 
         # Return the number of new messages this added to the database.
@@ -80,7 +87,9 @@ class CorpusManager(CorpusManagerInterface):
         res = self.db.execute("SELECT CHANGES()")
         num_deleted = res.fetchone()[0]
         if num_deleted == 0:
-            raise NoDataError(f"Message with ID {message_id} did not exist in the first place.")
+            raise NoDataError(
+                f"Message with ID {message_id} did not exist in the first place."
+            )
 
 
     def has(self, user: Union[User, Member]) -> bool:
@@ -93,4 +102,8 @@ class CorpusManager(CorpusManagerInterface):
 
     def assert_registered(self, user: Union[User, Member]) -> None:
         if not user.bot and user.id not in self.get_registered_users():
-            raise NotRegisteredError(f"User {user} is not registered. To register, read the privacy policy with `{self.command_prefix}policy`, then register with `{self.command_prefix}register`.")
+            raise NotRegisteredError(
+                f"User {user} is not registered. To register, read the privacy "
+                f"policy with `{self.command_prefix}policy`, then register with"
+                f" `{self.command_prefix}register`."
+            )

@@ -25,7 +25,11 @@ class CommandErrorEventHandler(Cog):
         else:
             # Log all other kinds of errors (REAL errors)
             error_text = str(error)
-            logging.error("\n".join(traceback.format_exception(None, error, error.__traceback__)))
+            logging.error(
+                "\n".join(
+                    traceback.format_exception(None, error, error.__traceback__)
+                )
+            )
 
         # Send the error message to the channel it came from
         embed = ParrotEmbed(

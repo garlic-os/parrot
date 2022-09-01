@@ -8,7 +8,6 @@ import sqlite3
 import config
 import asyncio
 import os
-import time
 import logging
 import aiohttp
 from functools import lru_cache
@@ -48,7 +47,8 @@ class Parrot(AutoShardedBot):
         self.con = sqlite3.connect(db_path)
         self.db = self.con.cursor()
 
-        self.db.executescript("""
+        self.db.executescript(
+            """
             BEGIN;
             CREATE TABLE IF NOT EXISTS users (
                 id                         INTEGER PRIMARY KEY,
@@ -72,7 +72,8 @@ class Parrot(AutoShardedBot):
                 content   TEXT    NOT NULL
             );
             COMMIT;
-        """)
+            """
+        )
 
         self.update_learning_channels()
         self.update_speaking_channels()
@@ -146,7 +147,7 @@ class Parrot(AutoShardedBot):
         )
         messages = [row[0] for row in res.fetchall()]
         return ParrotMarkov(messages)
-        
+
 
     def validate_message(self, message: Message) -> bool:
         """
@@ -206,7 +207,10 @@ class Parrot(AutoShardedBot):
         # Corpus Manager adds every message passed to it to the same user.
         for message in messages:
             if message.author != user:
-                raise ValueError("Too many authors; every message in a list passed to learn_from() must have the same author.")
+                raise ValueError(
+                    "Too many authors; every message in a list passed to"
+                    "learn_from() must have the same author."
+                )
 
         # Only keep messages that pass all of validate_message()'s checks.
         messages = list(filter(self.validate_message, messages))

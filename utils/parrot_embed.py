@@ -31,4 +31,3 @@ class ParrotEmbed(Embed):
 
         color_name = self.ParrotEmbed_args.get("color_name", "default")
         self.color = ParrotEmbed.colors[color_name]
-

@@ -1,16 +1,19 @@
-from utils.types import AvatarManagerInterface
 from discord import File, TextChannel, User
-
-import ujson as json  # ujson is faster
 import aiohttp
 from io import BytesIO
 from PIL import Image, ImageOps
 
 
-class AvatarManager(AvatarManagerInterface):
+class AvatarManager:
     AVATAR_STORE_CHANNEL_ID = 867573882608943127
 
-    def __init__(self, db, loop, http_session: aiohttp.ClientSession, fetch_channel):
+    def __init__(
+        self,
+        db,
+        loop,
+        http_session: aiohttp.ClientSession,
+        fetch_channel
+    ):
         self.db = db
         self.loop = loop
         self.http_session = http_session
@@ -18,13 +21,20 @@ class AvatarManager(AvatarManagerInterface):
 
 
     async def fetch(self, user: User) -> str:
-        res = self.db.execute("""
+        res = self.db.execute(
+            """
             SELECT original_avatar_url,
                    modified_avatar_url,
                    modified_avatar_message_id
             FROM users WHERE id = ?
-        """, (user.id,))
-        original_avatar_url, modified_avatar_url, modified_avatar_message_id = res.fetchone()
+            """,
+            (user.id,)
+        )
+        (
+            original_avatar_url,
+            modified_avatar_url,
+            modified_avatar_message_id
+        ) = res.fetchone()
 
         avatar_channel = await self.fetch_channel(self.AVATAR_STORE_CHANNEL_ID)
 
@@ -33,14 +43,14 @@ class AvatarManager(AvatarManagerInterface):
             # |imitate, so we can use the cached modified avatar.
             if str(user.avatar_url) == original_avatar_url:
                 return modified_avatar_url
-            
+
             # Respect the user's privacy by deleting the message with their old
             # avatar.
             # Don't wait for this operation to complete before continuing.
             self.loop.create_task(
                 self._delete_message(avatar_channel, modified_avatar_message_id)
             )
-        
+
         # User has changed their avatar since last time they did |imitate or has
         # not done |imitate before, so we must create a modified version of
         # their avatar.
@@ -73,7 +83,11 @@ class AvatarManager(AvatarManagerInterface):
         return modified_avatar_url
 
 
-    async def _delete_message(self, channel: TextChannel, message_id: int) -> None:
+    async def _delete_message(
+        self,
+        channel: TextChannel,
+        message_id: int
+    ) -> None:
         message = await channel.fetch_message(message_id)
         await message.delete()
 

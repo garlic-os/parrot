@@ -29,16 +29,21 @@ class Registration(commands.Cog):
     async def policy(self, ctx: commands.Context) -> None:
         """
         View Parrot's privacy policy.
-        Parrot collects the message history of registered users to imitate them. Learn more about Parrot's data collection practices here.
+        Parrot collects the message history of registered users to imitate them.
+        Learn more about Parrot's data collection practices here.
         """
         embed = ParrotEmbed(title="Privacy Policy", description=self.policy_text)
-        embed.set_footer(
-            text=f"{self.bot.command_prefix}register • {self.bot.command_prefix}unregister"
+        embed.set_footer(text=(
+            f"{self.bot.command_prefix}register •"
+            f"{self.bot.command_prefix}unregister")
         )
         await ctx.send(embed=embed)
 
 
-    @commands.command(aliases=["agree", "accept", "initiate", "initate"], brief="Register with Parrot.")
+    @commands.command(
+        aliases=["agree", "accept", "initiate", "initate"],
+        brief="Register with Parrot."
+    )
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def register(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
@@ -57,21 +62,39 @@ class Registration(commands.Cog):
         embed = ParrotEmbed(
             title="✅ Registered!",
             color_name="green",
-            description="Now Parrot can start learning your speech patterns and imitate you.",
+            description=(
+                "Now Parrot can start learning your speech patterns and imitate"
+                "you."
+            )
         )
         embed.add_field(
             name="Tip:",
-            value=f"If this is your first time registering (or if you deleted your data recently), you might want to consider running the `{self.bot.command_prefix}quickstart` command to immediately give Parrot a dataset to imitate you from. This will scan your past messages to create a model of how you speak, so you can start using Parrot right away.",
+            value=(
+                "If this is your first time registering (or if you deleted"
+                "your data recently), you might want to consider running the"
+                f"`{self.bot.command_prefix}quickstart` command to immediately"
+                "give Parrot a dataset to imitate you from. This will scan your"
+                "past messages to create a model of how you speak, so you can"
+                "start using Parrot right away."
+            )
         )
 
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["disagree", "unaccept", "uninitiate", "uninitate"], brief="Unregister with Parrot.")
+    @commands.command(
+        aliases=["disagree", "unaccept", "uninitiate", "uninitate"],
+        brief="Unregister with Parrot."
+    )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def unregister(self, ctx: commands.Context, who: Userlike=None) -> None:
+    async def unregister(
+        self,
+        ctx: commands.Context,
+        who: Userlike=None
+    ) -> None:
         """
         Remove your registration from Parrot.
-        Parrot will stop collecting your messages and will not be able to imitate you until you register again.
+        Parrot will stop collecting your messages and will not be able to
+        imitate you until you register again.
         """
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only unregister yourself.")
@@ -84,7 +107,14 @@ class Registration(commands.Cog):
         embed = ParrotEmbed(
             title="Unregistered!",
             color_name="gray",
-            description=f"Parrot will no longer be able to imitate you, and it has stopped collecting your messages.\n\n_If you're done with Parrot and don't want it to have your messages anymore, or if you just want a fresh start, you can do `{self.bot.command_prefix}forget me` and your existing data will be permanently deleted from Parrot._",
+            description=(
+                "Parrot will no longer be able to imitate you, and it"
+                "has stopped collecting your messages.\n\n_If you're done with"
+                "Parrot and don't want it to have your messages anymore, or if"
+                "you just want a fresh start, you can do"
+                f"`{self.bot.command_prefix}forget me` and your existing data"
+                "will be permanently deleted from Parrot._"
+            )
         )
 
         await ctx.send(embed=embed)
@@ -103,7 +133,8 @@ class Registration(commands.Cog):
     async def status(self, ctx: commands.Context) -> None:
         """
         Check if you're registered with Parrot.
-        You need to be registered for Parrot to be able to analyze your messages and imitate you.
+        You need to be registered for Parrot to be able to analyze your messages
+        and imitate you.
         """
         if ctx.author.id in self.bot.registered_users:
             await ctx.send("✅ You are currently registered with Parrot.")

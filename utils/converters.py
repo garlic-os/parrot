@@ -33,7 +33,10 @@ class Userlike(commands.Converter):
         # Parrot or the person who sent this command.
         if text in ("you", "yourself", "previous"):
             async for message in ctx.channel.history(before=ctx.message):
-                if message.author not in (ctx.bot.user, ctx.author) and message.webhook_id is None:
+                if (
+                    message.author not in (ctx.bot.user, ctx.author) and
+                    message.webhook_id is None
+                ):
                     return message.author
 
         # If this is not a guild, it must be a DM channel, and therefore the

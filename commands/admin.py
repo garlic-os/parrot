@@ -44,7 +44,12 @@ class Admin(commands.Cog):
         invoke_without_command=True,
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def channel(self, ctx: commands.Context, action: str=None, channel_type: str=None) -> None:
+    async def channel(
+        self,
+        ctx: commands.Context,
+        action: str=None,
+        channel_type: str=None
+    ) -> None:
         """ Manage Parrot's channel permissions. """
         if action is None:
             await self.send_help(ctx)
@@ -67,19 +72,26 @@ class Admin(commands.Cog):
         brief="Let Parrot learn in a new channel."
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def add_learning(self, ctx: commands.Context, channel: TextChannel) -> None:
+    async def add_learning(
+        self,
+        ctx: commands.Context,
+        channel: TextChannel
+    ) -> None:
         """
         Give Parrot permission to learn in a new channel.
-        Parrot will start to collect messages from registered users in this channel.
+        Parrot will start to collect messages from registered users in this
+        channel.
         """
         if channel.id in self.bot.learning_channels:
             await ctx.send(f"⚠ Already learning in {channel.mention}!")
         else:
-            self.bot.db.execute("""
+            self.bot.db.execute(
+                """
                 INSERT INTO channels (id, can_learn_here)
                 VALUES (?, ?)
                 ON CONFLICT (id) DO UPDATE
-                SET can_speak_here = EXCLUDED.can_learn_here""",
+                SET can_speak_here = EXCLUDED.can_learn_here
+                """,
                 (channel.id,)
             )
             self.bot.update_learning_channels()
@@ -91,7 +103,11 @@ class Admin(commands.Cog):
         brief="Let Parrot speak in a new channel."
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def add_speaking(self, ctx: commands.Context, channel: TextChannel) -> None:
+    async def add_speaking(
+        self,
+        ctx: commands.Context,
+        channel: TextChannel
+    ) -> None:
         """
         Give Parrot permission to speak in a new channel.
         Parrot will be able to imitate people in this channel.
@@ -99,11 +115,13 @@ class Admin(commands.Cog):
         if channel.id in self.bot.speaking_channels:
             await ctx.send(f"⚠ Already able to speak in {channel.mention}!")
         else:
-            self.bot.db.execute("""
+            self.bot.db.execute(
+                """
                 INSERT INTO channels (id, can_speak_here)
                 VALUES (?, ?)
                 ON CONFLICT (id) DO UPDATE
-                SET can_speak_here = EXCLUDED.can_speak_here""",
+                SET can_speak_here = EXCLUDED.can_speak_here
+                """,
                 (channel.id,)
             )
             self.bot.update_speaking_channels()
@@ -117,7 +135,11 @@ class Admin(commands.Cog):
     )
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def remove(self, ctx: commands.Context, channel_type: str=None) -> None:
+    async def remove(
+        self,
+        ctx: commands.Context,
+        channel_type: str=None
+    ) -> None:
         """ Remove Parrot's learning or speaking permission in a channel. """
         if channel_type is None:
             await self.send_help(ctx)
@@ -128,7 +150,11 @@ class Admin(commands.Cog):
         brief="Remove Parrot's learning permission in a channel."
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def remove_learning(self, ctx: commands.Context, channel: TextChannel) -> None:
+    async def remove_learning(
+        self,
+        ctx: commands.Context,
+        channel: TextChannel
+    ) -> None:
         """
         Remove Parrot's permission to learn in a channel.
         Parrot will stop collecting messages in this channel.
@@ -149,7 +175,11 @@ class Admin(commands.Cog):
         brief="Remove Parrot's speaking permission in a channel."
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def remove_speaking(self, ctx: commands.Context, channel: TextChannel) -> None:
+    async def remove_speaking(
+        self,
+        ctx: commands.Context,
+        channel: TextChannel
+    ) -> None:
         """
         Remove Parrot's permission to speak in a channel.
         Parrot will no longer be able to imitate people in this channel.
@@ -182,7 +212,7 @@ class Admin(commands.Cog):
         for channel in ctx.guild.channels:
             if channel.id in self.bot.learning_channels:
                 channel_mentions.append(channel.mention)
-        
+
         paginator = Paginator.FromList(
             ctx,
             entries=channel_mentions,
@@ -200,7 +230,7 @@ class Admin(commands.Cog):
         for channel in ctx.guild.channels:
             if channel.id in self.bot.speaking_channels:
                 channel_mentions.append(channel.mention)
-        
+
         paginator = Paginator.FromList(
             ctx,
             entries=channel_mentions,
@@ -228,7 +258,12 @@ class Admin(commands.Cog):
     @nickname.command(name="set")
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def nickname_set(self, ctx: commands.Context, *, new_nick: str=None) -> None:
+    async def nickname_set(
+        self,
+        ctx: commands.Context,
+        *,
+        new_nick: str=None
+    ) -> None:
         """ Change Parrot's nickname. """
         if new_nick is None:
             await self.send_help(ctx)

@@ -18,12 +18,9 @@ class ChannelCrawler:
         async for message in self._history:
             if not self.running:
                 break
-
             if self._action(message):
                 self.num_collected += 1
-
         self.running = False
-
 
     def stop(self) -> None:
         self.running = False

@@ -30,7 +30,10 @@ class MessageEventHandler(commands.Cog):
         try:
             self.bot.learn_from(message)
             tag = f"{message.author.name}#{message.author.discriminator}"
-            logging.info(f"Collected a message (ID: {message.id}) from user {tag} (ID: {message.author.id})")
+            logging.info(
+                f"Collected a message (ID: {message.id}) from user {tag}"
+                f"(ID: {message.author.id})"
+            )
         except NotRegisteredError:
             pass
 
