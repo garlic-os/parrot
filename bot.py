@@ -26,6 +26,9 @@ class Parrot(AutoShardedBot):
         admin_user_ids: List[int],
         admin_role_ids: Optional[List[int]]=None,
     ):
+        intents = Intents.default()
+        intents.message_content = True
+
         super().__init__(
             command_prefix=prefix,
             owner_ids=admin_user_ids,
@@ -35,7 +38,7 @@ class Parrot(AutoShardedBot):
                 name=f"everyone ({prefix}help)",
                 type=ActivityType.listening,
             ),
-            intents=Intents.all(),
+            intents=intents,
         )
 
         self.admin_role_ids = admin_role_ids or []
