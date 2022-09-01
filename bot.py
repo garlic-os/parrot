@@ -13,6 +13,7 @@ import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
+from utils.asyncio_run import asyncio_run
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
 
@@ -100,6 +101,20 @@ class Parrot(AutoShardedBot):
         logging.info("Closing HTTP session...")
         asyncio.run(self.http_session.close())
         logging.info("✅")
+
+
+    def run(self, token: str) -> None:
+        """
+        Modified version of discord.Client.run that uses a patched version of
+        asyncio.run that fixes weird errors with aiohttp.ClientSession.
+        """
+        async def runner():
+            async with self:
+                await self.start(token, reconnect=True)
+        try:
+            asyncio_run(runner())
+        except KeyboardInterrupt:
+            pass
 
 
     @Cog.listener()
