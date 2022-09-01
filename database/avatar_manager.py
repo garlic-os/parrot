@@ -2,6 +2,8 @@ from discord import File, TextChannel, User
 import aiohttp
 from io import BytesIO
 from PIL import Image, ImageOps
+import urllib
+import os
 
 
 class AvatarManager:
@@ -41,9 +43,10 @@ class AvatarManager:
         if original_avatar_url is not None:
             # User hasn't changed their avatar since last time they did
             # |imitate, so we can use the cached modified avatar.
-            if str(user.avatar_url) == original_avatar_url:
+            if self._avatar_url_id(user.avatar.url) == self._avatar_url_id(original_avatar_url):
                 return modified_avatar_url
 
+            # Else, user has changed their avatar.
             # Respect the user's privacy by deleting the message with their old
             # avatar.
             # Don't wait for this operation to complete before continuing.
@@ -60,25 +63,27 @@ class AvatarManager:
         # channel on Discord where we can then get the URL of the new avatar
         # to use in a webhook (Discord As A CDN!).
         # Oh well, at least we don't have to store the avatars ourselves now.
-        modified_avatar = await self.modify_avatar(str(user.avatar_url))
+        modified_avatar = await self.modify_avatar(user.avatar.url)
         message = await avatar_channel.send(
             file=File(modified_avatar, f"{user.id}.webp")
         )
 
         # Update the avatar database with the new avatar URL.
-        sql = """
+        self.db.execute(
+            """
             UPDATE users
             SET original_avatar_url = ?,
                 modified_avatar_url = ?,
                 modified_avatar_message_id = ?
             WHERE id = ?
-        """
-        self.db.execute(sql, (
-            str(user.avatar_url),
-            message.attachments[0].url,
-            message.id,
-            user.id
-        ))
+            """,
+            (
+                user.avatar.url,
+                message.attachments[0].url,
+                message.id,
+                user.id
+            )
+        )
 
         return modified_avatar_url
 
@@ -90,6 +95,10 @@ class AvatarManager:
     ) -> None:
         message = await channel.fetch_message(message_id)
         await message.delete()
+
+    def _avatar_url_id(self, url: str) -> str:
+        path = urllib.parse.urlparse(url).path
+        return os.path.splitext(path)
 
 
     async def modify_avatar(self, image_url: str) -> BytesIO:
