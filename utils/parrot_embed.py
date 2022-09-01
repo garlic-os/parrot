@@ -3,6 +3,11 @@ from discord import Embed
 
 
 class ParrotEmbed(Embed):
+    """
+    A Discord Embed with extra features!
+    Concepts stolen from crimsoBOT; copyright (c) 2019 crimso, williammck; MIT
+    https://github.com/crimsobot/crimsoBOT/blob/master/crimsobot/utils/tools.py
+    """
     colors: Dict[str, int] = {
         "default": 0xA755B5,  # Pale purple
         "red": 0xB71C1C,  # Deep, muted red
@@ -11,23 +16,9 @@ class ParrotEmbed(Embed):
         "gray": 0x9E9E9E,  # Dead gray
     }
 
-    """
-    A Discord Embed with extra features!
-    Concepts stolen from crimsoBOT; copyright (c) 2019 crimso, williammck; MIT
-    https://github.com/crimsobot/crimsoBOT/blob/master/crimsobot/utils/tools.py
-    """
-
     def __init__(self, **kwargs):
+        if self.color is None:
+            color_name = kwargs.get("color_name", "default")
+            kwargs["color"] = ParrotEmbed.colors[color_name]
+            kwargs.pop("color_name", None)
         super().__init__(**kwargs)
-        self.ParrotEmbed_args = kwargs
-        self.set_color_by_name()
-        del self.ParrotEmbed_args
-
-    def set_color_by_name(self) -> None:
-        """ Set the embed's color by color_name if color is not defined. """
-        """ If neither are defined, use the default color. """
-        if self.color:  # Let color override color_name
-            return
-
-        color_name = self.ParrotEmbed_args.get("color_name", "default")
-        self.color = ParrotEmbed.colors[color_name]
