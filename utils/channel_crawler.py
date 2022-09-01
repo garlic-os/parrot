@@ -1,10 +1,9 @@
-from typing import Callable
+from typing import AsyncIterator, Callable
 from discord import Message
-from discord.iterators import _FilteredAsyncIterator
 
 
 class ChannelCrawler:
-    def __init__(self, history: _FilteredAsyncIterator, action: Callable[[Message], bool]):
+    def __init__(self, history: AsyncIterator, action: Callable[[Message], bool]):
         self.num_collected = 0
         self.running = True
         self._action = action
