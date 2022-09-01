@@ -20,8 +20,8 @@ COMMAND_PREFIX: str = "|"
 # Number of Markov chain models to cache at once
 MODEL_CACHE_SIZE: int = 5
 
-# Path a sqlite3 database file to keep Parrot's data.
-# If it doesn't exist, it will be created.
+# Path to a sqlite3 database file to keep Parrot's data;
+# if it doesn't exist, it will be created
 DB_PATH: str = os.path.join("database", "parrot.sqlite3")
 
 # Number of seconds between database commits
