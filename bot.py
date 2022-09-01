@@ -43,6 +43,7 @@ class Parrot(AutoShardedBot):
 
         self.admin_role_ids = admin_role_ids or []
         self.http_session = aiohttp.ClientSession()
+        self.finished_initializing = False
 
         logging.info("Connecting to database...")
         self.con = sqlite3.connect(db_path)
@@ -120,11 +121,16 @@ class Parrot(AutoShardedBot):
     @Cog.listener()
     async def on_ready(self) -> None:
         """ Everything that would go in the constructor if it weren't async """
-        logging.info(f"Logged in as {self.user}")
-        self.loop.create_task(self.autosave())
-        await self.load_extension("jishaku")
-        await self.load_folder("events")
-        await self.load_folder("commands")
+        # on_ready also fires when the bot regains connection after losing it.
+        # I only want these things to run the first time it starts.
+        if self.finished_initializing:
+            logging.info("Logged back in.")
+        else:
+            logging.info(f"Logged in as {self.user}")
+            await self.load_extension("jishaku")
+            await self.load_folder("events")
+            await self.load_folder("commands")
+            self.finished_initializing = True
 
 
     async def load_folder(self, folder_name: str) -> None:
