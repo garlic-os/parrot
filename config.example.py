@@ -31,6 +31,7 @@ AUTOSAVE_INTERVAL_SECONDS: int = 3600
 AYY_LMAO: bool = True
 
 # Python logging module configuration
+# Example for logging to a file at the project root
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)-4s %(message)s",
@@ -40,3 +41,8 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout),
     ],
 )
+# Example for use as a systemd service
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format="%(levelname)-4s %(message)s",
+# )
