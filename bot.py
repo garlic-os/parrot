@@ -160,7 +160,11 @@ class Parrot(AutoShardedBot):
         res = self.db.execute(
             "SELECT content FROM messages WHERE user_id = ?", (user_id,)
         )
-        messages = [row[0] for row in res.fetchall()]
+        rows = res.fetchall()
+        messages = []
+        for row in rows:
+            messages.append(row[0])
+        # messages = [row[0] for row in res.fetchall()]
         return ParrotMarkov(messages)
 
 

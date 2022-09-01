@@ -2,6 +2,7 @@ import asyncio
 import nest_asyncio
 
 
+# https://stackoverflow.com/a/63593839
 def asyncio_run(future, as_task=True):
     """
     A better implementation of `asyncio.run`.
