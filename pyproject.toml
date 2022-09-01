@@ -6,9 +6,9 @@ authors = ["garlicOS® <14845347+Grosserly@users.noreply.github.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.7"
-"discord.py" = "^1.7.3"
-jishaku = "^1.19.2"
+python = "^3.8"
+"discord.py" = "^2.0.1"
+jishaku = "^2.5.1"
 markovify = "^0.8.3"
 ujson = "^5.4.0"
 Pillow = "^9.0.1"
