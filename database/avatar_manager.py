@@ -1,23 +1,23 @@
-from discord import File, TextChannel, User
 import aiohttp
-from io import BytesIO
-from PIL import Image, ImageOps
+import asyncio
 import urllib
 import os
+import logging
+from io import BytesIO
+from PIL import Image, ImageOps
+from discord import File, TextChannel, User
+from discord.errors import NotFound
+import config
 
 
 class AvatarManager:
-    AVATAR_STORE_CHANNEL_ID = 867573882608943127
-
     def __init__(
         self,
         db,
-        loop,
         http_session: aiohttp.ClientSession,
         fetch_channel
     ):
         self.db = db
-        self.loop = loop
         self.http_session = http_session
         self.fetch_channel = fetch_channel
 
@@ -38,7 +38,7 @@ class AvatarManager:
             modified_avatar_message_id
         ) = res.fetchone()
 
-        avatar_channel = await self.fetch_channel(self.AVATAR_STORE_CHANNEL_ID)
+        avatar_channel = await self.fetch_channel(config.AVATAR_STORE_CHANNEL_ID)
 
         if original_avatar_url is not None:
             # User hasn't changed their avatar since last time they did
@@ -50,12 +50,12 @@ class AvatarManager:
             # Respect the user's privacy by deleting the message with their old
             # avatar.
             # Don't wait for this operation to complete before continuing.
-            # self.loop.create_task(
-            #     self._delete_message(avatar_channel, modified_avatar_message_id)
-            # )
+            asyncio.create_task(
+                self._delete_message(avatar_channel, modified_avatar_message_id)
+            )
             # Awaiting it anyway until I can figure out this "you're not
             # actually in an async context" error
-            await self._delete_message(avatar_channel, modified_avatar_message_id)
+            # await self._delete_message(avatar_channel, modified_avatar_message_id)
 
         # User has changed their avatar since last time they did |imitate or has
         # not done |imitate before, so we must create a modified version of
@@ -87,7 +87,6 @@ class AvatarManager:
                 user.id
             )
         )
-
         return modified_avatar_url
 
 
@@ -96,8 +95,16 @@ class AvatarManager:
         channel: TextChannel,
         message_id: int
     ) -> None:
-        message = await channel.fetch_message(message_id)
-        await message.delete()
+        try:
+            message = await channel.fetch_message(message_id)
+        except NotFound:
+            logging.warn(
+                f"Tried to delete message {message_id} from the avatar store, "
+                "but it doesn't exist."
+            )
+        else:
+            await message.delete()
+
 
     def _avatar_url_id(self, url: str) -> str:
         path = urllib.parse.urlparse(url).path

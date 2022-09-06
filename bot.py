@@ -3,6 +3,7 @@ from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
 )
 from discord.ext.commands import AutoShardedBot, Cog
+from discord.ext import tasks
 import sqlite3
 
 import config
@@ -13,9 +14,11 @@ import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
-from utils.asyncio_run import asyncio_run
+# from utils.asyncio_run import asyncio_run
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
+
+logger = logging.getLogger(__name__)
 
 
 class Parrot(AutoShardedBot):
@@ -44,8 +47,6 @@ class Parrot(AutoShardedBot):
         self.admin_role_ids = admin_role_ids or []
         self.http_session = aiohttp.ClientSession()
         self.finished_initializing = False
-
-        logging.info("Connecting to database...")
         self.con = sqlite3.connect(db_path)
         self.db = self.con.cursor()
 
@@ -86,36 +87,32 @@ class Parrot(AutoShardedBot):
             get_registered_users=self.get_registered_users,
             command_prefix=self.command_prefix,
         )
-
         self.avatars = AvatarManager(
             db=self.db,
-            loop=self.loop,
             http_session=self.http_session,
             fetch_channel=self.fetch_channel,
         )
 
 
     def __del__(self):
-        logging.info("Saving database...")
-        self.con.commit()
-        logging.info("✅")
-        logging.info("Closing HTTP session...")
+        self.autosave()
+        logger.info("Closing HTTP session...")
         asyncio.run(self.http_session.close())
-        logging.info("✅")
+        logger.info("HTTP session closed.")
 
 
-    def run(self, token: str) -> None:
-        """
-        Modified version of discord.Client.run that uses a patched version of
-        asyncio.run that fixes weird errors with aiohttp.ClientSession.
-        """
-        async def runner():
-            async with self:
-                await self.start(token, reconnect=True)
-        try:
-            asyncio_run(runner())
-        except KeyboardInterrupt:
-            pass
+    # def run(self, token: str) -> None:
+    #     """
+    #     Modified version of discord.Client.run that uses a patched version of
+    #     asyncio.run that fixes weird errors with aiohttp.ClientSession.
+    #     """
+    #     async def runner():
+    #         async with self:
+    #             await self.start(token, reconnect=True)
+    #     try:
+    #         asyncio_run(runner())
+    #     except KeyboardInterrupt:
+    #         pass
 
 
     @Cog.listener()
@@ -124,9 +121,10 @@ class Parrot(AutoShardedBot):
         # on_ready also fires when the bot regains connection after losing it.
         # I only want these things to run the first time it starts.
         if self.finished_initializing:
-            logging.info("Logged back in.")
+            logger.info("Logged back in.")
         else:
-            logging.info(f"Logged in as {self.user}")
+            logger.info(f"Logged in as {self.user}")
+            self.autosave.start()
             await self.load_extension("jishaku")
             await self.load_folder("events")
             await self.load_folder("commands")
@@ -144,20 +142,19 @@ class Parrot(AutoShardedBot):
         for module in filenames:
             path = f"{folder_name}.{module}"
             try:
-                logging.info(f"Loading {path}... ")
+                logger.info(f"Loading {path}... ")
                 await self.load_extension(path)
-                logging.info("✅")
+                logger.info("✅")
             except Exception as error:
-                logging.info("❌")
-                logging.error(f"{error}\n")
+                logger.info("❌")
+                logger.error(f"{error}\n")
 
 
+    @tasks.loop(seconds=config.AUTOSAVE_INTERVAL_SECONDS)
     async def autosave(self) -> None:
-        while True:
-            await asyncio.sleep(config.AUTOSAVE_INTERVAL_SECONDS)
-            logging.info("Saving database...")
-            self.con.commit()
-            logging.info("Save complete.")
+        logger.info("Saving database...")
+        self.con.commit()
+        logger.info("Save complete.")
 
 
     @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))

@@ -1,0 +1,10 @@
+image:
+  max_filesize: 8000000
+  url_contains:
+    - .jpg
+    - .jpeg
+    - .png
+    - .webp
+    - .gif
+gif:
+  max_frames: 300
