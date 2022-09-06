@@ -91,13 +91,13 @@ class Text(commands.Cog):
     @commands.command(brief="Imitate someone.")
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: Userlike) -> None:
-        """ Imitate a registered user. """
+        """ Imitate someone. """
         await self.really_imitate(ctx, user, intimidate=False)
 
     @commands.command(brief="IMITATE SOMEONE.", hidden=True)
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def intimidate(self, ctx: commands.Context, user: Userlike) -> None:
-        """ IMITATE A REGISTERED USER. """
+        """ IMITATE SOMEONE. """
         await self.really_imitate(ctx, user, intimidate=True)
 
 

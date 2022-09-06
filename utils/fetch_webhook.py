@@ -9,15 +9,20 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
         "SELECT webhook_id FROM channels WHERE id = ?",
         (ctx.channel.id,),
     ).fetchone()
-    if res[0] is not None:
+    if res is not None and res[0] is not None:
         return await ctx.bot.fetch_webhook(res[0])
 
     # If not, create one.
     try:
-        return await ctx.channel.create_webhook(
+        webhook = await ctx.channel.create_webhook(
             name=f"Parrot in #{ctx.channel.name}",
             avatar=(await ctx.bot.user.avatar.read()),
         )
+        ctx.bot.db.execute(
+            "UPDATE channels SET webhook_id = ? WHERE id = ?;",
+            (webhook.id, ctx.channel.id)
+        )
+        return webhook
     except (Forbidden, AttributeError):
         # - Forbidden: Parrot lacks permission to make webhooks here.
         # - AttributeError: Cannot make a webhook in this type of channel, like

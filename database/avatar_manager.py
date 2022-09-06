@@ -3,20 +3,21 @@ import asyncio
 import urllib
 import os
 import logging
-from io import BytesIO
-from PIL import Image, ImageOps
 from discord import File, TextChannel, User
 from discord.errors import NotFound
 import config
+from utils.image import modify_avatar
 
 
 class AvatarManager:
     def __init__(
         self,
+        loop,
         db,
         http_session: aiohttp.ClientSession,
         fetch_channel
     ):
+        self.loop = loop
         self.db = db
         self.http_session = http_session
         self.fetch_channel = fetch_channel
@@ -53,22 +54,16 @@ class AvatarManager:
             asyncio.create_task(
                 self._delete_message(avatar_channel, modified_avatar_message_id)
             )
-            # Awaiting it anyway until I can figure out this "you're not
-            # actually in an async context" error
-            # await self._delete_message(avatar_channel, modified_avatar_message_id)
 
         # User has changed their avatar since last time they did |imitate or has
         # not done |imitate before, so we must create a modified version of
         # their avatar.
-        # Ideally, we would just upload this modified avatar as the imitate
-        # webhook's avatar directly, but Discord only accepts URLs for webhook
-        # avatars, not files. So we must first upload the generated image to a
-        # channel on Discord where we can then get the URL of the new avatar
-        # to use in a webhook (Discord As A CDN!).
-        # Oh well, at least we don't have to store the avatars ourselves now.
-        modified_avatar = await self.modify_avatar(user.avatar.url)
+        # We employ the classic Discord As A CDN method to cache the modified
+        # avatars by posting them to a Discord channel and storing the message
+        # IDs for later.
+        modified_avatar, file_format = await modify_avatar(user)
         message = await avatar_channel.send(
-            file=File(modified_avatar, f"{user.id}.webp")
+            file=File(modified_avatar, f"{user.id}.{file_format}")
         )
 
         # Update the avatar database with the new avatar URL.
@@ -111,17 +106,17 @@ class AvatarManager:
         return os.path.splitext(path)
 
 
-    async def modify_avatar(self, image_url: str) -> BytesIO:
-        """
-        Mirror and invert the avatar.
-        For use as the avatar in an imitate message to distinguish them from
-        messages from real users.
-        """
-        async with self.http_session.get(image_url) as response:
-            with Image.open(BytesIO(await response.read())) as image:
-                image = ImageOps.mirror(image)
-                image = ImageOps.invert(image)
-                result = BytesIO()
-                image.save(result, format="WEBP")
-                result.seek(0)
-                return result
+    # async def modify_avatar(self, image_url: str) -> BytesIO:
+    #     """
+    #     Mirror and invert the avatar.
+    #     For use as the avatar in an imitate message to distinguish them from
+    #     messages from real users.
+    #     """
+    #     async with self.http_session.get(image_url) as response:
+    #         with Image.open(BytesIO(await response.read())) as image:
+    #             image = ImageOps.mirror(image)
+    #             image = ImageOps.invert(image)
+    #             result = BytesIO()
+    #             image.save(result, format="WEBP")
+    #             result.seek(0)
+    #             return result

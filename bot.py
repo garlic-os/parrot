@@ -14,11 +14,8 @@ import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
 from utils import regex
-# from utils.asyncio_run import asyncio_run
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
-
-logger = logging.getLogger(__name__)
 
 
 class Parrot(AutoShardedBot):
@@ -45,7 +42,6 @@ class Parrot(AutoShardedBot):
         )
 
         self.admin_role_ids = admin_role_ids or []
-        self.http_session = aiohttp.ClientSession()
         self.finished_initializing = False
         self.con = sqlite3.connect(db_path)
         self.db = self.con.cursor()
@@ -82,53 +78,56 @@ class Parrot(AutoShardedBot):
         self.update_speaking_channels()
         self.update_registered_users()
 
-        self.corpora = CorpusManager(
-            db=self.db,
-            get_registered_users=self.get_registered_users,
-            command_prefix=self.command_prefix,
-        )
-        self.avatars = AvatarManager(
-            db=self.db,
-            http_session=self.http_session,
-            fetch_channel=self.fetch_channel,
-        )
-
 
     def __del__(self):
         self.autosave()
-        logger.info("Closing HTTP session...")
+        logging.info("Closing HTTP session...")
         asyncio.run(self.http_session.close())
-        logger.info("HTTP session closed.")
+        logging.info("HTTP session closed.")
 
 
     # def run(self, token: str) -> None:
     #     """
-    #     Modified version of discord.Client.run that uses a patched version of
-    #     asyncio.run that fixes weird errors with aiohttp.ClientSession.
+    #     Run Parrot as a Task to fix weird errors with aiohttp.ClientSession.
     #     """
     #     async def runner():
     #         async with self:
     #             await self.start(token, reconnect=True)
     #     try:
-    #         asyncio_run(runner())
+    #         run_as_task(runner())
     #     except KeyboardInterrupt:
     #         pass
 
 
     @Cog.listener()
     async def on_ready(self) -> None:
-        """ Everything that would go in the constructor if it weren't async """
-        # on_ready also fires when the bot regains connection after losing it.
-        # I only want these things to run the first time it starts.
+        # on_ready also fires when the bot regains connection.
         if self.finished_initializing:
-            logger.info("Logged back in.")
+            logging.info("Logged back in.")
         else:
-            logger.info(f"Logged in as {self.user}")
-            self.autosave.start()
-            await self.load_extension("jishaku")
-            await self.load_folder("events")
-            await self.load_folder("commands")
+            logging.info(f"Logged in as {self.user}")
             self.finished_initializing = True
+
+
+    async def setup_hook(self) -> None:
+        """ Constructor Part 2: Enter Async """
+        self.http_session = aiohttp.ClientSession(loop=self.loop)
+        self.corpora = CorpusManager(
+            db=self.db,
+            get_registered_users=self.get_registered_users,
+            command_prefix=self.command_prefix,
+        )
+        self.avatars = AvatarManager(
+            loop=self.loop,
+            db=self.db,
+            http_session=self.http_session,
+            fetch_channel=self.fetch_channel,
+        )
+
+        self.autosave.start()
+        await self.load_extension("jishaku")
+        await self.load_folder("events")
+        await self.load_folder("commands")
 
 
     async def load_folder(self, folder_name: str) -> None:
@@ -142,19 +141,19 @@ class Parrot(AutoShardedBot):
         for module in filenames:
             path = f"{folder_name}.{module}"
             try:
-                logger.info(f"Loading {path}... ")
+                logging.info(f"Loading {path}... ")
                 await self.load_extension(path)
-                logger.info("✅")
+                logging.info("✅")
             except Exception as error:
-                logger.info("❌")
-                logger.error(f"{error}\n")
+                logging.info("❌")
+                logging.error(f"{error}\n")
 
 
     @tasks.loop(seconds=config.AUTOSAVE_INTERVAL_SECONDS)
     async def autosave(self) -> None:
-        logger.info("Saving database...")
+        logging.info("Saving database...")
         self.con.commit()
-        logger.info("Save complete.")
+        logging.info("Save complete.")
 
 
     @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
@@ -175,15 +174,13 @@ class Parrot(AutoShardedBot):
         """
         A message must pass all of these checks before Parrot can learn from it.
         """
-        content = message.content
-
         return (
             # Text content not empty.
             # mypy is giving some nonsense error that doesn't occur in runtime
-            len(content) > 0 and  # type: ignore
+            len(message.content) > 0 and  # type: ignore
 
             # Not a Parrot command.
-            not content.startswith(self.command_prefix) and
+            not message.content.startswith(self.command_prefix) and
 
             # Only learn in text channels, not DMs.
             message.channel.type == ChannelType.text and
@@ -193,9 +190,9 @@ class Parrot(AutoShardedBot):
             # special Discord character, Parrot should just avoid it because
             # it's probably a command.
             (
-                content[0].isalnum() or
-                regex.discord_string_start.match(content[0]) or
-                regex.markdown.match(content[0])
+                message.content[0].isalnum() or
+                regex.discord_string_start.match(message.content[0]) or
+                regex.markdown.match(message.content[0])
             ) and
 
             # Don't learn from self.
@@ -209,7 +206,7 @@ class Parrot(AutoShardedBot):
 
             # People will often say "v" or "z" on accident while spamming,
             # and it doesn't really make for good learning material.
-            content not in ("v", "z")
+            message.content not in ("v", "z")
         )
 
 

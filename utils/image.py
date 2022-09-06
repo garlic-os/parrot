@@ -14,7 +14,7 @@ import aiohttp
 from PIL import Image, ImageSequence, ImageOps
 
 from assets import GIF_RULES, IMAGE_RULES
-from crimsobot.utils import tools as c
+from utils import tools as p
 
 
 def gif_frame_transparency(img: Image.Image) -> Image.Image:
@@ -98,47 +98,35 @@ IMG_PROCESS_FUNCTIONS: Mapping[str, Callable[Image.Image, Any]] = {
 }
 
 
-@c.executor_function
+@p.executor_function
 def process_lower_level(img: Image.Image, effect: str, arg: int) -> BytesIO:
     # this will only loop once for still images
-    frame_list, durations = [], []
+    frames: List[Image.Image] = []
+    durations: List[int] = []
 
     # if a GIF loops, it will have the attribute loop = 0; if not, then attribute does not exist
-    try:
-        img.info["loop"]
-        image_loop = True
-    except KeyError:
-        image_loop = False
-        pass
+    image_loop = getattr(img.info, "loop", False)
 
     for _ in ImageSequence.Iterator(img):
-        # if not animated, will throw KeyError
-        try:
-            duration = img.info["duration"]  # type: int
+        if image_loop:
+            duration: int = img.info["duration"]
             durations.append(duration)
-        except KeyError:
-            # an empty tuple for durations tells image_to_buffer that image is still
-            pass
-
-        # these are no longer coroutines
         img_out = IMG_PROCESS_FUNCTIONS[effect](img.convert("RGBA"), arg)
-        frame_list.append(img_out)
+        frames.append(img_out)
 
-    fp = image_to_buffer(frame_list, tuple(durations), image_loop)
+    fp = image_to_buffer(frames, tuple(durations), image_loop)
     return fp
 
 
 async def modify_avatar(user: User) -> Tuple[BytesIO, str]:
     # grab user image and covert to RGBA
     img = await fetch_image(user.avatar.url)
-
     is_gif = getattr(img, "is_animated", False)
 
     if is_gif:
         if img.n_frames > GIF_RULES["max_frames"]:
             raise NotImplementedError("GIF too long; need to process only first frame")
             return None, None
-
         else:
             logging.info(
                 f"Processing GIF avatar for {user}... ",
@@ -157,7 +145,5 @@ async def modify_avatar(user: User) -> Tuple[BytesIO, str]:
         fp = await process_lower_level(img, "resize", scale)
         n_bytes = fp.getbuffer().nbytes
 
-    if is_gif:
-        logging.info(f"Processed GIF avatar for {user}!")
-
+    logging.info(f"Processed new avatar for {user}")
     return fp, img.format
