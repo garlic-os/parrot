@@ -9,7 +9,7 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
         "SELECT webhook_id FROM channels WHERE id = ?",
         (ctx.channel.id,),
     ).fetchone()
-    if res is not None:
+    if res[0] is not None:
         return await ctx.bot.fetch_webhook(res[0])
 
     # If not, create one.
