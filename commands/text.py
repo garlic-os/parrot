@@ -1,7 +1,7 @@
 import logging
 import traceback
 
-from discord import AllowedMentions, User
+from discord import AllowedMentions, Message, User
 from utils.parrot_markov import GibberishMarkov
 from bot import Parrot
 
