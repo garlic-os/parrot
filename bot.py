@@ -86,19 +86,6 @@ class Parrot(AutoShardedBot):
         logging.info("HTTP session closed.")
 
 
-    # def run(self, token: str) -> None:
-    #     """
-    #     Run Parrot as a Task to fix weird errors with aiohttp.ClientSession.
-    #     """
-    #     async def runner():
-    #         async with self:
-    #             await self.start(token, reconnect=True)
-    #     try:
-    #         run_as_task(runner())
-    #     except KeyboardInterrupt:
-    #         pass
-
-
     @Cog.listener()
     async def on_ready(self) -> None:
         # on_ready also fires when the bot regains connection.
