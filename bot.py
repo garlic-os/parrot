@@ -98,7 +98,9 @@ class Parrot(AutoShardedBot):
 
     async def setup_hook(self) -> None:
         """ Constructor Part 2: Enter Async """
+        # You need to give ClientSession the bot's loop or else it poops itself
         self.http_session = aiohttp.ClientSession(loop=self.loop)
+
         self.corpora = CorpusManager(
             db=self.db,
             get_registered_users=self.get_registered_users,
