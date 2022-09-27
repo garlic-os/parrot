@@ -13,6 +13,7 @@ import logging
 import aiohttp
 from functools import lru_cache
 from utils.parrot_markov import ParrotMarkov
+from utils.exceptions import NoDataError
 from utils import regex
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
@@ -156,6 +157,8 @@ class Parrot(AutoShardedBot):
         for row in rows:
             messages.append(row[0])
         # messages = [row[0] for row in res.fetchall()]
+        if len(messages) == 0:
+            raise NoDataError("Speak more! No data on this user.")
         return ParrotMarkov(messages)
 
 
