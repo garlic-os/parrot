@@ -1,5 +1,5 @@
 from typing import Optional
-from discord import Forbidden, Webhook
+from discord import Forbidden, HTTPException, Webhook
 from discord.ext.commands import Context
 
 
@@ -23,8 +23,9 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
             (webhook.id, ctx.channel.id)
         )
         return webhook
-    except (Forbidden, AttributeError):
+    except (Forbidden, HTTPException, AttributeError):
         # - Forbidden: Parrot lacks permission to make webhooks here.
         # - AttributeError: Cannot make a webhook in this type of channel, like
         # a DMChannel.
+        # - HTTPException: something is very wrong
         return None
