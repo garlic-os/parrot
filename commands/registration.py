@@ -100,7 +100,7 @@ class Registration(commands.Cog):
             raise FriendlyError("You can only unregister yourself.")
 
         self.bot.db.execute(
-            "UPDATE users SET is_registered = 0 WHERE id = ?", ctx.author.id
+            "UPDATE users SET is_registered = 0 WHERE id = ?", (ctx.author.id,)
         )
         self.bot.update_registered_users()
 
