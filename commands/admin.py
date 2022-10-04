@@ -48,7 +48,8 @@ class Admin(commands.Cog):
         self,
         ctx: commands.Context,
         action: str=None,
-        channel_type: str=None
+        channel_type: str=None,
+        channel: TextChannel=None,
     ) -> None:
         """ Manage Parrot's channel permissions. """
         if action is None:
@@ -61,7 +62,12 @@ class Admin(commands.Cog):
     )
     @commands.check(is_admin)
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def add(self, ctx: commands.Context, channel_type: str=None) -> None:
+    async def add(
+        self,
+        ctx: commands.Context,
+        channel_type: str=None,
+        channel: TextChannel=None,
+    ) -> None:
         """ Give Parrot learning or speaking permission in a new channel. """
         if channel_type is None:
             await self.send_help(ctx)
@@ -90,7 +96,7 @@ class Admin(commands.Cog):
                 INSERT INTO channels (id, can_learn_here)
                 VALUES (?, 1)
                 ON CONFLICT (id) DO UPDATE
-                SET can_speak_here = EXCLUDED.can_learn_here
+                SET can_learn_here = EXCLUDED.can_learn_here
                 """,
                 (channel.id,)
             )
@@ -138,7 +144,8 @@ class Admin(commands.Cog):
     async def remove(
         self,
         ctx: commands.Context,
-        channel_type: str=None
+        channel_type: str=None,
+        channel: TextChannel=None,
     ) -> None:
         """ Remove Parrot's learning or speaking permission in a channel. """
         if channel_type is None:
