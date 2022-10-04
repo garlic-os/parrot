@@ -88,7 +88,7 @@ class Admin(commands.Cog):
             self.bot.db.execute(
                 """
                 INSERT INTO channels (id, can_learn_here)
-                VALUES (?, ?)
+                VALUES (?, 1)
                 ON CONFLICT (id) DO UPDATE
                 SET can_speak_here = EXCLUDED.can_learn_here
                 """,
@@ -118,7 +118,7 @@ class Admin(commands.Cog):
             self.bot.db.execute(
                 """
                 INSERT INTO channels (id, can_speak_here)
-                VALUES (?, ?)
+                VALUES (?, 1)
                 ON CONFLICT (id) DO UPDATE
                 SET can_speak_here = EXCLUDED.can_speak_here
                 """,
