@@ -1,5 +1,6 @@
 import logging
 import config
+import atexit
 from bot import Parrot
 
 logging.info("Initializing bot...")
@@ -10,3 +11,8 @@ bot = Parrot(
 )
 
 bot.run(config.DISCORD_BOT_TOKEN)
+
+# Make absolutely sure Parrot gets a chance to gracefully shut down
+@atexit.register
+def on_exit() -> None:
+    del bot
