@@ -55,7 +55,13 @@ class Registration(commands.Cog):
 
         # Update the "is_registered" field on this user in the database.
         self.bot.db.execute(
-            "UPDATE users SET is_registered = 1 WHERE id = ?", (ctx.author.id,)
+            """
+            INSERT INTO users (id, is_registered)
+            VALUES (?, 1)
+            ON CONFLICT (id) DO UPDATE
+            SET is_registered = EXCLUDED.is_registered
+            """,
+            (ctx.author.id,)
         )
         self.bot.update_registered_users()
 
