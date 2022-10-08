@@ -2,7 +2,7 @@ from typing import List, Optional, Set, Union
 from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
 )
-from discord.ext.commands import AutoShardedBot, Cog
+from discord.ext import commands
 from discord.ext import tasks
 import sqlite3
 
@@ -19,7 +19,7 @@ from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
 
 
-class Parrot(AutoShardedBot):
+class Parrot(commands.AutoShardedBot):
     def __init__(
         self, *,
         prefix: str,
@@ -87,7 +87,7 @@ class Parrot(AutoShardedBot):
         logging.info("HTTP session closed.")
 
 
-    @Cog.listener()
+    @commands.Cog.listener()
     async def on_ready(self) -> None:
         # on_ready also fires when the bot regains connection.
         if self.finished_initializing:
@@ -168,8 +168,7 @@ class Parrot(AutoShardedBot):
         """
         return (
             # Text content not empty.
-            # mypy is giving some nonsense error that doesn't occur in runtime
-            len(message.content) > 0 and  # type: ignore
+            len(message.content) > 0 and
 
             # Not a Parrot command.
             not message.content.startswith(self.command_prefix) and
