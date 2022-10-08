@@ -89,7 +89,7 @@ class Quickstart(commands.Cog):
         # Tell the user off if they try to run this command in a DM channel.
         if ctx.channel.type != ChannelType.text:
             await ctx.send(
-                "Quickstart is only available in servers. Try running"
+                "Quickstart is only available in servers. Try running "
                 "Quickstart again in a server that Parrot is in."
             )
             return
