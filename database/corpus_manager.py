@@ -13,7 +13,7 @@ class CorpusManager:
     def add(
         self,
         user: Union[User, Member],
-        messages: Union[Message, List[Message]]
+        messages: List[Message]
     ) -> int:
         """
         Record messages locally.
