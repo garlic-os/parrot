@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import cast, Coroutine, Dict, List
 from discord import ChannelType, Message, TextChannel, User
 from bot import Parrot
 
@@ -153,29 +153,24 @@ class Quickstart(commands.Cog):
         ), reference=ctx.message)
 
         # Create an iterator representing this channel's past messages.
-        def message_filter(message: Message) -> bool:
-            return message.author == user
         history = ctx.channel.history(
             limit=100_000,
             after=user.joined_at,
-        ).filter(message_filter)
+        )
 
         # Create an object that will scan through the channel's message history
-        #   and learn from the messages this user has posted.
+        # and learn from the messages this user has posted.
         crawler = ChannelCrawler(
             history=history,
             action=self.bot.learn_from,
+            filter=lambda message: message.author == user,
         )
 
         # Start the crawler and periodically update the status_message with its
-        #   progress.
-        # Fun fact: these HAVE to be asyncio.gathered together. If they aren't,
-        #   either the updater function won't be able to run until after the
-        #   crawler has stopped, or the command will hang forever as the updater
-        #   loops into eternity as it waits for the crawler (which isn't
-        #   running) to tell it to stop.
+        # progress.
+        # asyncio.gather() them together in order to let them run in parallel.
         await asyncio.gather(
-            crawler.crawl(),
+            cast(Coroutine, crawler.crawl()),
             self.live_update_status(
                 source_channel=ctx.channel,
                 status_message=status_message,
