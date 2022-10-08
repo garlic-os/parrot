@@ -76,7 +76,7 @@ class Quickstart(commands.Cog):
         if user.id in self.ongoing_scans[ctx.channel.id]:
             if ctx.author == user:
                 raise AlreadyScanning(
-                    "❌ You are already currently running Quickstart in this"
+                    "❌ You are already currently running Quickstart in this "
                     "channel!"
                 )
             raise AlreadyScanning(
@@ -101,8 +101,8 @@ class Quickstart(commands.Cog):
                 title="Quickstart Channels",
                 description=(
                     "Quickstart is available in channels where Parrot can learn"
-                    "from your messages. Try running Quickstart again in one of"
-                    "these channels:"
+                    " from your messages. Try running Quickstart again in one "
+                    "of these channels:"
                 )
             )
             channel_mentions = []
@@ -146,9 +146,9 @@ class Quickstart(commands.Cog):
         await ctx.send(embed=ParrotEmbed(
             title="Quickstart is scanning",
             description=(
-                f"Parrot is now scanning this channel and learning from {name}"
+                f"Parrot is now scanning this channel and learning from {name} "
                 "past messages.\nThis could take a few minutes.\nCheck your DMs"
-                "to see its progress."
+                " to see its progress."
             )
         ), reference=ctx.message)
 
