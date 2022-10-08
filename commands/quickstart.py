@@ -67,6 +67,9 @@ class Quickstart(commands.Cog):
                 raise UserPermissionError(
                     "Quickstart can only be run on behalf of bots."
                 )
+        
+        # To make mypy happy
+        assert type(user) is User
 
         if ctx.channel.id not in self.ongoing_scans:
             self.ongoing_scans[ctx.channel.id] = []
@@ -162,7 +165,7 @@ class Quickstart(commands.Cog):
         # and learn from the messages this user has posted.
         crawler = ChannelCrawler(
             history=history,
-            action=self.bot.learn_from,
+            action=self.bot.learn_from,  # type: ignore
             filter=lambda message: message.author == user,
         )
 
@@ -198,10 +201,11 @@ class Quickstart(commands.Cog):
             icon_url=user.display_avatar.url,
         )
         if crawler.num_collected == 0:
+            assert embed.description is not None  # to make mypy happy
             embed.description += (
                 f"\n😕 Couldn't find any messages from {name} in this channel."
             )
-            embed.color = ParrotEmbed.colors["red"]
+            embed.color = ParrotEmbed.colors["red"]  # type: ignore
         await asyncio.gather(
             status_message.delete(),
             ctx.author.send(embed=embed)
