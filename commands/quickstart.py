@@ -113,7 +113,7 @@ class Quickstart(commands.Cog):
                 if channel.id in self.bot.learning_channels:
                     channel_mentions.append(channel.mention)
             if len(channel_mentions) == 0:
-                embed.description = "None"
+                embed.description += "\nNone"
                 await ctx.send(embed=embed)
                 return
 
