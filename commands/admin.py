@@ -219,6 +219,10 @@ class Admin(commands.Cog):
         for channel in ctx.guild.channels:
             if channel.id in self.bot.learning_channels:
                 channel_mentions.append(channel.mention)
+        if len(channel_mentions) == 0:
+            embed.description = "None"
+            await ctx.send(embed=embed)
+            return
 
         paginator = Paginator.FromList(
             ctx,
@@ -237,6 +241,10 @@ class Admin(commands.Cog):
         for channel in ctx.guild.channels:
             if channel.id in self.bot.speaking_channels:
                 channel_mentions.append(channel.mention)
+        if len(channel_mentions) == 0:
+            embed.description = "None"
+            await ctx.send(embed=embed)
+            return
 
         paginator = Paginator.FromList(
             ctx,
