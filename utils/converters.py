@@ -1,6 +1,7 @@
 import re
+from typing import Union
 from discord.ext import commands
-from discord import User
+from discord import Member, User
 
 from discord.errors import NotFound
 from utils.exceptions import UserNotFoundError
@@ -17,7 +18,11 @@ class Userlike(commands.Converter):
               person to speak in the channel
     """
 
-    async def convert(self, ctx: commands.Context, text: str=None) -> User:
+    async def convert(
+        self,
+        ctx: commands.Context,
+        text: str=None
+    ) -> Union[User, Member]:
         # Use this error if anything goes wrong.
         user_not_found = UserNotFoundError(f'User "{text}" does not exist.')
 
