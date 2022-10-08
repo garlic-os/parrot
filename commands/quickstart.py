@@ -1,5 +1,5 @@
-from typing import cast, Coroutine, Dict, List
-from discord import ChannelType, Message, TextChannel, User
+from typing import Dict, List, Union
+from discord import ChannelType, Member, Message, TextChannel, User
 from bot import Parrot
 
 import asyncio
@@ -10,6 +10,7 @@ from utils.exceptions import AlreadyScanning, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
 from utils import Paginator
+from utils.exceptions import NotRegisteredError
 
 
 class Quickstart(commands.Cog):
@@ -67,6 +68,8 @@ class Quickstart(commands.Cog):
                 raise UserPermissionError(
                     "Quickstart can only be run on behalf of bots."
                 )
+
+        self.assert_registered(user)
 
         if ctx.channel.id not in self.ongoing_scans:
             self.ongoing_scans[ctx.channel.id] = []
@@ -208,6 +211,15 @@ class Quickstart(commands.Cog):
         self.ongoing_scans[ctx.channel.id].remove(user.id)
         if len(self.ongoing_scans[ctx.channel.id]) == 0:
             del self.ongoing_scans[ctx.channel.id]
+
+
+    def assert_registered(self, user: Union[User, Member]) -> None:
+        if not user.bot and user.id not in self.bot.registered_users:
+            raise NotRegisteredError(
+                f"User {user} is not registered. To register, read the privacy "
+                f"policy with `{self.bot.command_prefix}policy`, then register "
+                f"with `{self.bot.command_prefix}register`."
+            )
 
 
 async def setup(bot: Parrot) -> None:
