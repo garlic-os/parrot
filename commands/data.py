@@ -15,7 +15,7 @@ class Data(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(aliases=["checkout"])
+    @commands.command(aliases=["checkout", "data"])
     @commands.cooldown(2, 3600, commands.BucketType.user)
     async def download(self, ctx: commands.Context) -> None:
         """ Download a copy of your data. """
