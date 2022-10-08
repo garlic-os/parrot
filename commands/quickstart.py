@@ -32,7 +32,7 @@ class Quickstart(commands.Cog):
         while crawler.running:
             embed = ParrotEmbed(
                 description=(
-                    f"**Scanning {source_channel.mention}...**\nCollected"
+                    f"**Scanning {source_channel.mention}...**\nCollected "
                     f"{crawler.num_collected} new messages..."
                 )
             )
@@ -133,7 +133,7 @@ class Quickstart(commands.Cog):
             name = f"{user.mention}'s"
         embed = ParrotEmbed(
             description=(
-                f"**Scanning {ctx.channel.mention}...**\nCollected 0 new"
+                f"**Scanning {ctx.channel.mention}...**\nCollected 0 new "
                 "messages..."
             )
         )
@@ -189,7 +189,7 @@ class Quickstart(commands.Cog):
             name = f"{user}"
         embed = ParrotEmbed(
             description=(
-                f"**Scan in {ctx.channel.mention} complete.**\nCollected"
+                f"**Scan in {ctx.channel.mention} complete.**\nCollected "
                 f"{crawler.num_collected} new messages."
             )
         )
