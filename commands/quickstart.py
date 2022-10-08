@@ -169,18 +169,16 @@ class Quickstart(commands.Cog):
             filter=lambda message: message.author == user,
         )
 
-        # Start the crawler and periodically update the status_message with its
-        # progress.
-        # asyncio.gather() them together in order to let them run in parallel.
-        await asyncio.gather(
-            cast(Coroutine, crawler.crawl()),
+        # In parallel, start the crawler and periodically update the
+        # status_message with its progress.
+        asyncio.create_task(crawler.crawl())
+        asyncio.create_task(
             self.live_update_status(
                 source_channel=ctx.channel,
                 status_message=status_message,
                 user=user,
                 crawler=crawler,
-            ),
-            loop=self.bot.loop,
+            )
         )
 
         # Update the status embed one last time, but DELETE it this time and
