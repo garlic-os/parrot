@@ -83,7 +83,7 @@ class Text(commands.Cog):
             avatar_url = await self.bot.avatars.fetch(user)
         except Exception as error:
             logging.error("\n".join(traceback.format_exception(None, error, error.__traceback__)))
-            avatar_url = user.avatar.url
+            avatar_url = user.display_avatar.url
 
         webhook = await fetch_webhook(ctx)
         if webhook is None:

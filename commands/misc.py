@@ -37,7 +37,7 @@ class Miscellaneous(commands.Cog):
             name="GitHub",
             value="https://github.com/the-garlic-os/parrot",
         )
-        embed.set_thumbnail(url=self.bot.user.avatar.url)
+        embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(
             text=f"Made by {creator.name}",
             icon_url=creator.avatar.url,

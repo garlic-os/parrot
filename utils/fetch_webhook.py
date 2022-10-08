@@ -20,7 +20,7 @@ async def fetch_webhook(ctx: Context) -> Optional[Webhook]:
     try:
         webhook = await ctx.channel.create_webhook(
             name=f"Parrot in #{ctx.channel.name}",
-            avatar=(await ctx.bot.user.avatar.read()),
+            avatar=(await ctx.bot.user.display_avatar.read()),
             reason="Automatically created by Parrot",
         )
         ctx.bot.db.execute(

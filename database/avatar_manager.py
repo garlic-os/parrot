@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-import urllib
+import urllib.parse
 import os
 import logging
 from discord import File, TextChannel, User
@@ -44,7 +44,7 @@ class AvatarManager:
         if original_avatar_url is not None:
             # User hasn't changed their avatar since last time they did
             # |imitate, so we can use the cached modified avatar.
-            if self._avatar_url_id(user.avatar.url) == self._avatar_url_id(original_avatar_url):
+            if self._avatar_url_id(user.display_avatar.url) == self._avatar_url_id(original_avatar_url):
                 return modified_avatar_url
 
             # Else, user has changed their avatar.
@@ -76,7 +76,7 @@ class AvatarManager:
             WHERE id = ?
             """,
             (
-                user.avatar.url,
+                user.display_avatar.url,
                 message.attachments[0].url,
                 message.id,
                 user.id
@@ -103,20 +103,4 @@ class AvatarManager:
 
     def _avatar_url_id(self, url: str) -> str:
         path = urllib.parse.urlparse(url).path
-        return os.path.splitext(path)
-
-
-    # async def modify_avatar(self, image_url: str) -> BytesIO:
-    #     """
-    #     Mirror and invert the avatar.
-    #     For use as the avatar in an imitate message to distinguish them from
-    #     messages from real users.
-    #     """
-    #     async with self.http_session.get(image_url) as response:
-    #         with Image.open(BytesIO(await response.read())) as image:
-    #             image = ImageOps.mirror(image)
-    #             image = ImageOps.invert(image)
-    #             result = BytesIO()
-    #             image.save(result, format="WEBP")
-    #             result.seek(0)
-    #             return result
+        return os.path.splitext(path)[0]

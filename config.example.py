@@ -27,6 +27,9 @@ DB_PATH: str = os.path.join("database", "parrot.sqlite3")
 # Number of seconds between database commits
 AUTOSAVE_INTERVAL_SECONDS: int = 3600
 
+# ID of the channel to post modified avatars to for caching
+AVATAR_STORE_CHANNEL_ID: int = 867573882608943127
+
 # Whether or not to say "lmao" when someone says "ayy"
 AYY_LMAO: bool = True
 
