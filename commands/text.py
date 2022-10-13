@@ -145,7 +145,7 @@ class Text(commands.Cog):
             history = ctx.channel.history(limit=10, before=ctx.message)
             while len(text) == 0:
                 try:
-                    text += self.find_text(await history.next())
+                    text += self.find_text(await history.__anext__())
                 except StopAsyncIteration:
                     raise FriendlyError(
                         "😕 Couldn't find a gibberizeable message"
