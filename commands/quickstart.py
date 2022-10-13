@@ -75,7 +75,7 @@ class Quickstart(commands.Cog):
             self.ongoing_scans[ctx.channel.id] = []
 
         # You can't run Quickstart in a channel that Quickstart is already
-        #   currently scanning for you.
+        # currently scanning for you.
         if user.id in self.ongoing_scans[ctx.channel.id]:
             if ctx.author == user:
                 raise AlreadyScanning(
@@ -98,7 +98,7 @@ class Quickstart(commands.Cog):
             return
 
         # Show the user where they can use Quickstart within this server if they
-        #   use the command in a channel where Parrot can't learn.
+        # use the command in a channel where Parrot can't learn.
         if ctx.channel.id not in self.bot.learning_channels:
             embed = ParrotEmbed(
                 title="Quickstart Channels",
@@ -126,7 +126,7 @@ class Quickstart(commands.Cog):
             return
 
         # Create and embed that will show the status of the Quickstart
-        #   operation and DM it to the user who invoked the command.
+        # operation and DM it to the user who invoked the command.
         if ctx.author == user:
             name = "your"
         else:
