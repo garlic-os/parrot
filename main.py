@@ -12,6 +12,7 @@ bot = Parrot(
 
 bot.run(config.DISCORD_BOT_TOKEN)
 
+
 # Make absolutely sure Parrot gets a chance to gracefully shut down
 @atexit.register
 def on_exit() -> None:
