@@ -2,6 +2,7 @@ from typing import List, Optional, Set, Union
 from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
 )
+import discord
 from discord.ext import commands
 from discord.ext import tasks
 import sqlite3
@@ -27,6 +28,7 @@ class Parrot(commands.AutoShardedBot):
         admin_user_ids: List[int],
         admin_role_ids: Optional[List[int]]=None,
     ):
+        logging.info(f"discord.py v{discord.__version__}")
         intents = Intents.default()
         intents.message_content = True
 
