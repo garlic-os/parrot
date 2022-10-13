@@ -10,7 +10,6 @@ from utils.channel_crawler import ChannelCrawler
 from utils.exceptions import AlreadyScanning, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
-from utils import Paginator
 from utils.exceptions import NotRegisteredError
 
 
@@ -96,34 +95,6 @@ class Quickstart(commands.Cog):
                 "Quickstart is only available in servers. Try running "
                 "Quickstart again in a server that Parrot is in."
             )
-            return
-
-        # Show the user where they can use Quickstart within this server if they
-        # use the command in a channel where Parrot can't learn.
-        if ctx.channel.id not in self.bot.learning_channels:
-            embed = ParrotEmbed(
-                title="Quickstart Channels",
-                description=(
-                    "Quickstart is available in channels where Parrot can learn"
-                    " from your messages. Try running Quickstart again in one "
-                    "of these channels:"
-                )
-            )
-            channel_mentions = []
-            for channel in ctx.guild.channels:
-                if channel.id in self.bot.learning_channels:
-                    channel_mentions.append(channel.mention)
-            if len(channel_mentions) == 0:
-                embed.description += "\nNone"
-                await ctx.send(embed=embed)
-                return
-
-            paginator = Paginator.FromList(
-                ctx,
-                entries=channel_mentions,
-                template_embed=embed,
-            )
-            await paginator.run()
             return
 
         # Create and embed that will show the status of the Quickstart
