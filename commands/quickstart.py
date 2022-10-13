@@ -179,15 +179,15 @@ class Quickstart(commands.Cog):
 
         # In parallel, start the crawler and periodically update the
         # status_message with its progress.
-        asyncio.create_task(
+        asyncio.gather(
             self.live_update_status(
                 source_channel=ctx.channel,
                 status_message=status_message,
                 user=user,
                 crawler=crawler,
-            )
+            ),
+            crawler.crawl(),
         )
-        await crawler.crawl()
 
         # Update the status embed one last time, but DELETE it this time and
         #   post a brand new one so that the user gets a new notification.
