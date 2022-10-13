@@ -3,6 +3,7 @@ from discord import ChannelType, Member, Message, TextChannel, User
 from bot import Parrot
 
 import asyncio
+import itertools
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.channel_crawler import ChannelCrawler
@@ -155,11 +156,17 @@ class Quickstart(commands.Cog):
             )
         ), reference=ctx.message)
 
-        # Create an iterator representing this channel's past messages.
-        history = ctx.channel.history(
-            limit=100_000,
-            after=user.joined_at,
-        )
+        # Create an iterator representing up to 100,000 messages since the user
+        # joined the server.
+        histories = []
+        for channel_id in self.bot.learning_channels:
+            histories.append(
+                await self.bot.fetch_channel(channel_id).history(
+                    limit=100_000,
+                    after=user.joined_at,
+                )
+            )
+        history = itertools.chain(*histories)
 
         # Create an object that will scan through the channel's message history
         # and learn from the messages this user has posted.
@@ -167,6 +174,7 @@ class Quickstart(commands.Cog):
             history=history,
             action=self.bot.learn_from,
             filter=lambda message: message.author == user,
+            limit=100_000,
         )
 
         # In parallel, start the crawler and periodically update the
