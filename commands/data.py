@@ -49,6 +49,16 @@ class Data(commands.Cog):
         await ctx.send(embed=embed_download_ready)
 
 
+    @commands.command(aliases=["pfp", "profilepic", "profilepicture"])
+    @commands.cooldown(2, 3600, commands.BucketType.user)
+    async def avatar(self, ctx: commands.Context, user: Userlike=None) -> None:
+        """ Show your Imitate Clone's avatar. """
+        if user is None:
+            user = ctx.author
+        avatar_url = await self.bot.avatars.fetch(user)
+        await ctx.send(avatar_url)
+
+
     @commands.group()
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def forget(
