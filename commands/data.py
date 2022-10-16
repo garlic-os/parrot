@@ -50,7 +50,7 @@ class Data(commands.Cog):
 
 
     @commands.command(aliases=["pfp", "profilepic", "profilepicture"])
-    @commands.cooldown(2, 3600, commands.BucketType.user)
+    @commands.cooldown(2, 4, commands.BucketType.user)
     async def avatar(self, ctx: commands.Context, user: Userlike=None) -> None:
         """ Show your Imitate Clone's avatar. """
         if user is None:
