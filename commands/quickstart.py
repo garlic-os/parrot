@@ -1,12 +1,12 @@
 from typing import Dict, List, Union
-from discord import ChannelType, Member, Message, TextChannel, User
+from discord import Guild, Member, Message, User
 from bot import Parrot
 
 import asyncio
 import itertools
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
-from utils.channel_crawler import ChannelCrawler
+from utils.history_crawler import HistoryCrawler
 from utils.exceptions import AlreadyScanning, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
@@ -17,23 +17,23 @@ class Quickstart(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
         # Keep track of Quickstart scans that are currently happening.
-        # Key: Channel ID
+        # Key: Guild ID
         # Value: List of User IDs, representing whom Quickstart is scanning for
-        #        in this channel.
+        #        in this guild.
         self.ongoing_scans: Dict[int, List[int]] = {}
 
 
     async def live_update_status(
         self,
-        source_channel: TextChannel,
+        source_guild: Guild,
         status_message: Message,
         user: User,
-        crawler: ChannelCrawler
+        crawler: HistoryCrawler
     ) -> None:
         while crawler.running:
             embed = ParrotEmbed(
                 description=(
-                    f"**Scanning {source_channel.mention}...**\nCollected "
+                    f"**Scanning {source_guild.name}...**\nCollected "
                     f"{crawler.num_collected} new messages..."
                 )
             )
@@ -71,26 +71,26 @@ class Quickstart(commands.Cog):
 
         self.assert_registered(user)
 
-        if ctx.channel.id not in self.ongoing_scans:
-            self.ongoing_scans[ctx.channel.id] = []
+        if ctx.guild.id not in self.ongoing_scans:
+            self.ongoing_scans[ctx.guild.id] = []
 
-        # You can't run Quickstart in a channel that Quickstart is already
+        # You can't run Quickstart in a server that Quickstart is already
         # currently scanning for you.
-        if user.id in self.ongoing_scans[ctx.channel.id]:
+        if user.id in self.ongoing_scans[ctx.guild.id]:
             if ctx.author == user:
                 raise AlreadyScanning(
                     "❌ You are already currently running Quickstart in this "
-                    "channel!"
+                    "server!"
                 )
             raise AlreadyScanning(
-                f"❌ Quickstart is already running for {user} in this channel!"
+                f"❌ Quickstart is already running for {user} in this server!"
             )
 
-        # Record that Quickstart is scanning this channel for this user.
-        self.ongoing_scans[ctx.channel.id].append(user.id)
+        # Record that Quickstart is scanning this guild for this user.
+        self.ongoing_scans[ctx.guild.id].append(user.id)
 
         # Tell the user off if they try to run this command in a DM channel.
-        if ctx.channel.type != ChannelType.text:
+        if ctx.guild is None:
             await ctx.send(
                 "Quickstart is only available in servers. Try running "
                 "Quickstart again in a server that Parrot is in."
@@ -105,7 +105,7 @@ class Quickstart(commands.Cog):
             name = f"{user.mention}'s"
         embed = ParrotEmbed(
             description=(
-                f"**Scanning {ctx.channel.mention}...**\nCollected 0 new "
+                f"**Scanning {ctx.guild.name}...**\nCollected 0 new "
                 "messages..."
             )
         )
@@ -121,7 +121,7 @@ class Quickstart(commands.Cog):
         await ctx.send(embed=ParrotEmbed(
             title="Quickstart is scanning",
             description=(
-                f"Parrot is now scanning this channel and learning from {name} "
+                f"Parrot is now scanning this server and learning from {name} "
                 "past messages.\nThis could take a few minutes.\nCheck your DMs"
                 " to see its progress."
             )
@@ -139,9 +139,9 @@ class Quickstart(commands.Cog):
             )
         history = itertools.chain(*histories)
 
-        # Create an object that will scan through the channel's message history
+        # Create an object that will scan through the server's message history
         # and learn from the messages this user has posted.
-        crawler = ChannelCrawler(
+        crawler = HistoryCrawler(
             history=history,
             action=self.bot.learn_from,
             filter=lambda message: message.author == user,
@@ -152,7 +152,7 @@ class Quickstart(commands.Cog):
         # status_message with its progress.
         asyncio.gather(
             self.live_update_status(
-                source_channel=ctx.channel,
+                source_guild=ctx.guild,
                 status_message=status_message,
                 user=user,
                 crawler=crawler,
@@ -168,7 +168,7 @@ class Quickstart(commands.Cog):
             name = f"{user}"
         embed = ParrotEmbed(
             description=(
-                f"**Scan in {ctx.channel.mention} complete.**\nCollected "
+                f"**Scan in {ctx.guild.name} complete.**\nCollected "
                 f"{crawler.num_collected} new messages."
             )
         )
@@ -179,7 +179,7 @@ class Quickstart(commands.Cog):
         )
         if crawler.num_collected == 0:
             embed.description += (
-                f"\n😕 Couldn't find any messages from {name} in this channel."
+                f"\n😕 Couldn't find any messages from {name} in this server."
             )
             embed.color = ParrotEmbed.colors["red"]
         await asyncio.gather(
@@ -187,9 +187,9 @@ class Quickstart(commands.Cog):
             ctx.author.send(embed=embed)
         )
 
-        self.ongoing_scans[ctx.channel.id].remove(user.id)
-        if len(self.ongoing_scans[ctx.channel.id]) == 0:
-            del self.ongoing_scans[ctx.channel.id]
+        self.ongoing_scans[ctx.guild.id].remove(user.id)
+        if len(self.ongoing_scans[ctx.guild.id]) == 0:
+            del self.ongoing_scans[ctx.guild.id]
 
 
     def assert_registered(self, user: Union[User, Member]) -> None:
