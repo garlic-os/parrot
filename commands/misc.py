@@ -35,7 +35,7 @@ class Miscellaneous(commands.Cog):
         )
         embed.add_field(
             name="GitHub",
-            value="https://github.com/the-garlic-os/parrot",
+            value="https://github.com/garlic-os/parrot",
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(
