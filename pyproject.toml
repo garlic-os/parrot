@@ -11,7 +11,7 @@ python = "^3.8"
 jishaku = "^2.5.1"
 markovify = "^0.8.3"
 ujson = "^5.4.0"
-Pillow = "^9.0.1"
+Pillow = "^9.3.0"
 PyYAML = "^6.0"
 [tool.poetry.dev-dependencies]
 mypy = "^0.790"
