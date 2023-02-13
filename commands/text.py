@@ -45,17 +45,6 @@ class Text(commands.Cog):
         return " ".join(words)
 
 
-    async def send_xok(self, ctx: commands.Context) -> None:
-        embed = ParrotEmbed(
-            title="Error",
-            color_name="red",
-        )
-        embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")  # Windows 7 close button
-        embed.set_image(url="https://i.imgur.com/JAQ7pjz.png")  # Xok
-        sent_message = await ctx.send(embed=embed)
-        await sent_message.add_reaction("🆗")
-
-
     async def really_imitate(
         self,
         ctx: commands.Context,
@@ -65,7 +54,15 @@ class Text(commands.Cog):
         # Parrot can't imitate itself!
         if user == self.bot.user:
             # Send the funny XOK message instead, that'll show 'em.
-            return await self.send_xok(ctx)
+            embed = ParrotEmbed(
+                title="Error",
+                color_name="red",
+            )
+            embed.set_thumbnail(url="https://i.imgur.com/zREuVTW.png")  # Windows 7 close button
+            embed.set_image(url="https://i.imgur.com/JAQ7pjz.png")  # Xok
+            sent_message = await ctx.send(embed=embed)
+            await sent_message.add_reaction("🆗")
+            return
 
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
@@ -116,23 +113,6 @@ class Text(commands.Cog):
     async def intimidate(self, ctx: commands.Context, user: Userlike) -> None:
         """ IMITATE SOMEONE. """
         await self.really_imitate(ctx, user, intimidate=True)
-
-    @commands.command(brief="Send a link this user has sent before.")
-    @commands.cooldown(2, 2, commands.BucketType.user)
-    async def link(self, ctx: commands.Context, user: Userlike) -> None:
-        """ Send a link this user has sent before. """
-        # Parrot can't imitate itself!
-        if user == self.bot.user:
-            return await self.send_xok(ctx)
-
-        model = self.bot.get_model(user.id)
-        # Try multiple sentences until we find one that's a link.
-        for _ in range(50):
-            sentence = model.make_short_sentence(500) or "Error"
-            if regex.url.match(sentence):
-                return await ctx.send(sentence)
-        await ctx.send("no")
-
 
 
     @commands.command(

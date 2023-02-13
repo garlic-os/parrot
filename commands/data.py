@@ -22,10 +22,12 @@ class Data(commands.Cog):
         user = ctx.author
 
         # Upload to file.io, a free filesharing service where the file is
-        #   deleted once it's downloaded.
-        with TemporaryFile() as f:
+        # deleted once it's downloaded.
+        # We can't trust that it will fit in a Discord message.
+        # TODO: Use a better service, like a self-hosted Pastebin.
+        with TemporaryFile("w+", encoding="utf-8") as f:
             f.writelines(self.bot.corpora.get(user))
-            f.seek(0)
+            f.seek(0)  # Prepare the file to be read back over
             async with self.bot.http_session.post(
                 "https://file.io/",
                 data={"file": f, "expiry": "6h"}
@@ -38,7 +40,7 @@ class Data(commands.Cog):
             description=download_url,
         )
         embed_download_link.set_footer(text="Link expires in 6 hours.")
-        await user.send(embed=embed_download_link)
+        asyncio.create_task(user.send(embed=embed_download_link))  # No need to wait
 
         # Tell them to check their DMs.
         embed_download_ready = ParrotEmbed(
