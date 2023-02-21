@@ -26,7 +26,8 @@ class Data(commands.Cog):
         # We can't trust that it will fit in a Discord message.
         # TODO: Use a better service, like a self-hosted Pastebin.
         with TemporaryFile("w+", encoding="utf-8") as f:
-            f.writelines(self.bot.corpora.get(user))
+            for message_content in self.bot.corpora.get(user):
+                f.write(message_content + "\n")
             f.seek(0)  # Prepare the file to be read back over
             async with self.bot.http_session.post(
                 "https://file.io/",
