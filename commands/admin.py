@@ -236,7 +236,7 @@ class Admin(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def view_speaking(self, ctx: commands.Context) -> None:
         """ View the channels Parrot can imitate people in. """
-        embed = ParrotEmbed(title="Parrot is learning from these channels:")
+        embed = ParrotEmbed(title="Parrot can speak in these channels:")
         channel_mentions = []
         for channel in ctx.guild.channels:
             if channel.id in self.bot.speaking_channels:
