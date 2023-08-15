@@ -132,7 +132,7 @@ class Quickstart(commands.Cog):
         histories = []
         for channel_id in self.bot.learning_channels:
             histories.append(
-                await self.bot.fetch_channel(channel_id).history(
+                (await self.bot.fetch_channel(channel_id)).history(
                     limit=100_000,
                     after=user.joined_at,
                 )
