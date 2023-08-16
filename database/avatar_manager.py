@@ -33,15 +33,17 @@ class AvatarManager:
             """,
             (user.id,)
         )
-        (
-            original_avatar_url,
-            modified_avatar_url,
-            modified_avatar_message_id
-        ) = res.fetchone()
+        data = res.fetchone()
 
         avatar_channel = await self.fetch_channel(config.AVATAR_STORE_CHANNEL_ID)
 
-        if original_avatar_url is not None:
+        if data is not None:
+            (
+                original_avatar_url,
+                modified_avatar_url,
+                modified_avatar_message_id
+            ) = data
+
             # User hasn't changed their avatar since last time they did
             # |imitate, so we can use the cached modified avatar.
             if self._avatar_url_id(user.display_avatar.url) == self._avatar_url_id(original_avatar_url):
@@ -82,7 +84,7 @@ class AvatarManager:
                 user.id
             )
         )
-        return modified_avatar_url
+        return message.attachments[0].url
 
 
     async def _delete_message(
