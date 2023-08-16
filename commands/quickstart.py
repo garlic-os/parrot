@@ -81,92 +81,98 @@ class Quickstart(commands.Cog):
 
         self.ongoing_scans.add(user.id)
 
-        # Create and embed that will show the status of the Quickstart
-        # operation and DM it to the user who invoked the command.
-        if ctx.author == user:
-            name = "your"
-        else:
-            name = f"{user.mention}'s"
-        embed = ParrotEmbed(
-            description=(
-                "**Scanning across Parrot's servers...**\n"
-                "Collected 0 new messages..."
-            )
-        )
-        embed.set_author(
-            name="Quickstart",
-            icon_url="https://i.gifer.com/ZZ5H.gif",  # Loading spinner
-        )
-        embed.set_footer(
-            text=f"Scanning for {user.mention}",
-            icon_url=user.display_avatar.url,
-        )
-        status_message = await ctx.author.send(embed=embed)
-        await ctx.send(embed=ParrotEmbed(
-            title="Quickstart is scanning",
-            description=(
-                f"Parrot is now scanning this server and learning from {name} "
-                "past messages.\nThis could take a few minutes.\nCheck your DMs"
-                " to see its progress."
-            )
-        ), reference=ctx.message)
-
-        # Create an iterator representing up to 100,000 messages since the user
-        # joined the server.
-        histories = []
-        for channel_id in self.bot.learning_channels:
-            channel = await self.bot.fetch_channel(channel_id)
-            member = await channel.guild.fetch_member(user.id)
-            histories.append(
-                channel.history(
-                    limit=100_000,
-                    after=member.joined_at,
+        # Clear the user's scan status if anything goes wrong (and this area has
+        # a long history of things going wrong)
+        try:
+            # Create and embed that will show the status of the Quickstart
+            # operation and DM it to the user who invoked the command.
+            if ctx.author == user:
+                name = "your"
+            else:
+                name = f"{user.mention}'s"
+            embed = ParrotEmbed(
+                description=(
+                    "**Scanning across Parrot's servers...**\n"
+                    "Collected 0 new messages..."
                 )
             )
-
-        # Create an object that will scan through the server's message history
-        # and learn from the messages this user has posted.
-        crawler = HistoryCrawler(
-            histories=histories,
-            action=self.bot.learn_from,
-            filter=lambda message: message.author == user,
-            limit=100_000,
-        )
-
-        # In parallel, start the crawler and periodically update the
-        # status_message with its progress.
-        await asyncio.gather(
-            self.live_update_status(
-                status_message=status_message,
-                user=user,
-                crawler=crawler,
-            ),
-            crawler.crawl(),
-        )
-
-        # Update the status embed one last time, but DELETE it this time and
-        #   post a brand new one so that the user gets a new notification.
-        name = "you" if ctx.author == user else f"{user}"
-        embed = ParrotEmbed(
-            description=(
-                f"**Scan complete.**\nCollected "
-                f"{crawler.num_collected} new messages."
+            embed.set_author(
+                name="Quickstart",
+                icon_url="https://i.gifer.com/ZZ5H.gif",  # Loading spinner
             )
-        )
-        embed.set_author(name="✅ Quickstart")
-        embed.set_footer(
-            text=f"Scanning for {user}",
-            icon_url=user.display_avatar.url,
-        )
-        if crawler.num_collected == 0:
-            embed.description += (
-                f"\n😕 Couldn't find any messages from {name} in this server."
+            embed.set_footer(
+                text=f"Scanning for {user.mention}",
+                icon_url=user.display_avatar.url,
             )
-            embed.color = ParrotEmbed.colors["red"]
-        await asyncio.gather(
-            status_message.delete(),
-            ctx.author.send(embed=embed)
-        )
+            status_message = await ctx.author.send(embed=embed)
+            await ctx.send(embed=ParrotEmbed(
+                title="Quickstart is scanning",
+                description=(
+                    f"Parrot is now scanning this server and learning from {name} "
+                    "past messages.\nThis could take a few minutes.\nCheck your DMs"
+                    " to see its progress."
+                )
+            ), reference=ctx.message)
+
+            # Create an iterator representing up to 100,000 messages since the user
+            # joined the server.
+            histories = []
+            for channel_id in self.bot.learning_channels:
+                channel = await self.bot.fetch_channel(channel_id)
+                member = await channel.guild.fetch_member(user.id)
+                histories.append(
+                    channel.history(
+                        limit=100_000,
+                        after=member.joined_at,
+                    )
+                )
+
+            # Create an object that will scan through the server's message history
+            # and learn from the messages this user has posted.
+            crawler = HistoryCrawler(
+                histories=histories,
+                action=self.bot.learn_from,
+                filter=lambda message: message.author == user,
+                limit=100_000,
+            )
+
+            # In parallel, start the crawler and periodically update the
+            # status_message with its progress.
+            await asyncio.gather(
+                self.live_update_status(
+                    status_message=status_message,
+                    user=user,
+                    crawler=crawler,
+                ),
+                crawler.crawl(),
+            )
+
+            # Update the status embed one last time, but DELETE it this time and
+            #   post a brand new one so that the user gets a new notification.
+            name = "you" if ctx.author == user else f"{user}"
+            embed = ParrotEmbed(
+                description=(
+                    f"**Scan complete.**\nCollected "
+                    f"{crawler.num_collected} new messages."
+                )
+            )
+            embed.set_author(name="✅ Quickstart")
+            embed.set_footer(
+                text=f"Scanning for {user}",
+                icon_url=user.display_avatar.url,
+            )
+            if crawler.num_collected == 0:
+                embed.description += (
+                    f"\n😕 Couldn't find any messages from {name} in this server."
+                )
+                embed.color = ParrotEmbed.colors["red"]
+            await asyncio.gather(
+                status_message.delete(),
+                ctx.author.send(embed=embed)
+            )
+        except:  # noqa - we really do need to just catch ANY error
+            self.ongoing_scans.remove(user.id)
+            raise
 
         self.ongoing_scans.remove(user.id)
 
