@@ -37,11 +37,19 @@ class Userlike(commands.Converter):
         # Get the author of the last message send in the channel who isn't
         # Parrot or the person who sent this command.
         if text in ("you", "yourself", "previous"):
-            async for message in ctx.channel.history(before=ctx.message):
+            async for message in ctx.channel.history(
+                before=ctx.message,
+                limit=50
+            ):
                 if (
                     message.author not in (ctx.bot.user, ctx.author) and
                     message.webhook_id is None
                 ):
+                    # Authors of messages from a history iterator are always
+                    # users, not members, so we have to fetch the member
+                    # separately.
+                    if ctx.guild is not None:
+                        return await ctx.guild.fetch_member(message.author.id)
                     return message.author
 
         # If this is not a guild, it must be a DM channel, and therefore the
