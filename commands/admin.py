@@ -1,3 +1,5 @@
+from typing import Iterable, Union
+
 from discord import TextChannel
 from discord.ext import commands
 from bot import Parrot
@@ -72,7 +74,6 @@ class Admin(commands.Cog):
         if channel_type is None:
             await self.send_help(ctx)
 
-
     @add.command(
         name="learning",
         brief="Let Parrot learn in a new channel."
@@ -102,7 +103,6 @@ class Admin(commands.Cog):
             )
             self.bot.update_learning_channels()
             await ctx.send(f"✅ Now learning in {channel.mention}.")
-
 
     @add.command(
         name="speaking",
@@ -151,7 +151,6 @@ class Admin(commands.Cog):
         if channel_type is None:
             await self.send_help(ctx)
 
-
     @remove.command(
         name="learning",
         brief="Remove Parrot's learning permission in a channel."
@@ -175,7 +174,6 @@ class Admin(commands.Cog):
             await ctx.send(f"❌ No longer learning in {channel.mention}.")
         else:
             await ctx.send(f"⚠️️ Already not learning in {channel.mention}!")
-
 
     @remove.command(
         name="speaking",
@@ -209,14 +207,24 @@ class Admin(commands.Cog):
         if channel_type is None:
             await self.send_help(ctx)
 
+    async def do_view_channels(
+        self, *,
+        ctx: commands.Context,
+        channels: Iterable[TextChannel],
+        guild_id: Union[int, None],
+        message: str,
+        failure_message: str
+    ) -> None:
+        if guild_id is None:
+            if ctx.guild is None:
+                await ctx.send(failure_message)
+                return
+            guild_id = ctx.guild.id
+        guild = self.bot.get_guild(guild_id)
 
-    @view.command(name="learning")
-    @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_learning(self, ctx: commands.Context) -> None:
-        """ View the channels Parrot is learning from. """
-        embed = ParrotEmbed(title="Parrot is learning from these channels:")
+        embed = ParrotEmbed(title=message)
         channel_mentions = []
-        for channel in ctx.guild.channels:
+        for channel in guild.channels:
             if channel.id in self.bot.learning_channels:
                 channel_mentions.append(channel.mention)
         if len(channel_mentions) == 0:
@@ -231,27 +239,29 @@ class Admin(commands.Cog):
         )
         await paginator.run()
 
+    @view.command(name="learning")
+    @commands.cooldown(2, 4, commands.BucketType.user)
+    async def view_learning(self, ctx: commands.Context, guild_id: int=None) -> None:
+        """ View the channels Parrot is learning from. """
+        await self.do_view_channels(
+            ctx=ctx,
+            channels=self.bot.learning_channels,
+            guild_id=guild_id,
+            message="Parrot is learning from these channels:",
+            failure_message="Parrot can't speak in DMs. Try passing in a guild ID."
+        )
 
     @view.command(name="speaking")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_speaking(self, ctx: commands.Context) -> None:
+    async def view_speaking(self, ctx: commands.Context, guild_id: int=None) -> None:
         """ View the channels Parrot can imitate people in. """
-        embed = ParrotEmbed(title="Parrot can speak in these channels:")
-        channel_mentions = []
-        for channel in ctx.guild.channels:
-            if channel.id in self.bot.speaking_channels:
-                channel_mentions.append(channel.mention)
-        if len(channel_mentions) == 0:
-            embed.description = "None"
-            await ctx.send(embed=embed)
-            return
-
-        paginator = Paginator.FromList(
-            ctx,
-            entries=channel_mentions,
-            template_embed=embed,
+        await self.do_view_channels(
+            ctx=ctx,
+            channels=self.bot.speaking_channels,
+            guild_id=guild_id,
+            message="Parrot can speak in these channels:",
+            failure_message="Parrot can't speak in DMs. Try passing in a guild ID."
         )
-        await paginator.run()
 
 
     @commands.group(invoke_without_command=True)
