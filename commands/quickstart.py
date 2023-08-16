@@ -1,9 +1,8 @@
-from typing import Dict, List, Union
-from discord import Guild, Member, Message, User
+from typing import Set, Union
+from discord import Member, Message, User
 from bot import Parrot
 
 import asyncio
-import itertools
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.history_crawler import HistoryCrawler
@@ -17,15 +16,12 @@ class Quickstart(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
         # Keep track of Quickstart scans that are currently happening.
-        # Key: Guild ID
-        # Value: List of User IDs, representing whom Quickstart is scanning for
-        #        in this guild.
-        self.ongoing_scans: Dict[int, List[int]] = {}
+        # Contains user IDs
+        self.ongoing_scans: Set[int] = set()
 
 
     async def live_update_status(
         self,
-        source_guild: Guild,
         status_message: Message,
         user: User,
         crawler: HistoryCrawler
@@ -33,7 +29,7 @@ class Quickstart(commands.Cog):
         while crawler.running:
             embed = ParrotEmbed(
                 description=(
-                    f"**Scanning {source_guild.name}...**\nCollected "
+                    f"**Scanning across Parrot's servers...**\nCollected "
                     f"{crawler.num_collected} new messages..."
                 )
             )
@@ -71,12 +67,9 @@ class Quickstart(commands.Cog):
 
         self.assert_registered(user)
 
-        if ctx.guild.id not in self.ongoing_scans:
-            self.ongoing_scans[ctx.guild.id] = []
-
         # You can't run Quickstart in a server that Quickstart is already
         # currently scanning for you.
-        if user.id in self.ongoing_scans[ctx.guild.id]:
+        if user.id in self.ongoing_scans:
             if ctx.author == user:
                 raise AlreadyScanning(
                     "❌ You are already currently running Quickstart in this "
@@ -86,16 +79,7 @@ class Quickstart(commands.Cog):
                 f"❌ Quickstart is already running for {user} in this server!"
             )
 
-        # Record that Quickstart is scanning this guild for this user.
-        self.ongoing_scans[ctx.guild.id].append(user.id)
-
-        # Tell the user off if they try to run this command in a DM channel.
-        if ctx.guild is None:
-            await ctx.send(
-                "Quickstart is only available in servers. Try running "
-                "Quickstart again in a server that Parrot is in."
-            )
-            return
+        self.ongoing_scans.add(user.id)
 
         # Create and embed that will show the status of the Quickstart
         # operation and DM it to the user who invoked the command.
@@ -105,8 +89,8 @@ class Quickstart(commands.Cog):
             name = f"{user.mention}'s"
         embed = ParrotEmbed(
             description=(
-                f"**Scanning {ctx.guild.name}...**\nCollected 0 new "
-                "messages..."
+                "**Scanning across Parrot's servers...**\n"
+                "Collected 0 new messages..."
             )
         )
         embed.set_author(
@@ -131,18 +115,19 @@ class Quickstart(commands.Cog):
         # joined the server.
         histories = []
         for channel_id in self.bot.learning_channels:
+            channel = await self.bot.fetch_channel(channel_id)
+            member = await channel.guild.fetch_member(user.id)
             histories.append(
-                (await self.bot.fetch_channel(channel_id)).history(
+                channel.history(
                     limit=100_000,
-                    after=user.joined_at,
+                    after=member.joined_at,
                 )
             )
-        history = itertools.chain(*histories)
 
         # Create an object that will scan through the server's message history
         # and learn from the messages this user has posted.
         crawler = HistoryCrawler(
-            history=history,
+            histories=histories,
             action=self.bot.learn_from,
             filter=lambda message: message.author == user,
             limit=100_000,
@@ -152,7 +137,6 @@ class Quickstart(commands.Cog):
         # status_message with its progress.
         asyncio.gather(
             self.live_update_status(
-                source_guild=ctx.guild,
                 status_message=status_message,
                 user=user,
                 crawler=crawler,
@@ -162,13 +146,10 @@ class Quickstart(commands.Cog):
 
         # Update the status embed one last time, but DELETE it this time and
         #   post a brand new one so that the user gets a new notification.
-        if ctx.author == user:
-            name = "you"
-        else:
-            name = f"{user}"
+        name = "you" if ctx.author == user else f"{user}"
         embed = ParrotEmbed(
             description=(
-                f"**Scan in {ctx.guild.name} complete.**\nCollected "
+                f"**Scan complete.**\nCollected "
                 f"{crawler.num_collected} new messages."
             )
         )
@@ -187,9 +168,7 @@ class Quickstart(commands.Cog):
             ctx.author.send(embed=embed)
         )
 
-        self.ongoing_scans[ctx.guild.id].remove(user.id)
-        if len(self.ongoing_scans[ctx.guild.id]) == 0:
-            del self.ongoing_scans[ctx.guild.id]
+        self.ongoing_scans.remove(user.id)
 
 
     def assert_registered(self, user: Union[User, Member]) -> None:
