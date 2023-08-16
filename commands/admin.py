@@ -89,7 +89,7 @@ class Admin(commands.Cog):
         channel.
         """
         if channel.id in self.bot.learning_channels:
-            await ctx.send(f"⚠ Already learning in {channel.mention}!")
+            await ctx.send(f"⚠️️ Already learning in {channel.mention}!")
         else:
             self.bot.db.execute(
                 """
@@ -119,7 +119,7 @@ class Admin(commands.Cog):
         Parrot will be able to imitate people in this channel.
         """
         if channel.id in self.bot.speaking_channels:
-            await ctx.send(f"⚠ Already able to speak in {channel.mention}!")
+            await ctx.send(f"⚠️️ Already able to speak in {channel.mention}!")
         else:
             self.bot.db.execute(
                 """
@@ -174,7 +174,7 @@ class Admin(commands.Cog):
             self.bot.update_learning_channels()
             await ctx.send(f"❌ No longer learning in {channel.mention}.")
         else:
-            await ctx.send(f"⚠ Already not learning in {channel.mention}!")
+            await ctx.send(f"⚠️️ Already not learning in {channel.mention}!")
 
 
     @remove.command(
@@ -199,7 +199,7 @@ class Admin(commands.Cog):
             self.bot.update_speaking_channels()
             await ctx.send(f"❌ No longer able to speak in {channel.mention}.")
         else:
-            await ctx.send(f"⚠ Already not able to speak in {channel.mention}!")
+            await ctx.send(f"⚠️️ Already not able to speak in {channel.mention}!")
 
 
     @channel.group(invoke_without_command=True)
