@@ -135,7 +135,7 @@ class Quickstart(commands.Cog):
 
         # In parallel, start the crawler and periodically update the
         # status_message with its progress.
-        asyncio.gather(
+        await asyncio.gather(
             self.live_update_status(
                 status_message=status_message,
                 user=user,
