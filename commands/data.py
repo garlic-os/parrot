@@ -105,8 +105,8 @@ class Data(commands.Cog):
             title="Are you sure?",
             color_name="orange",
             description=(
-                f"This will permantently delete the data of {user}.\nTo"
-                "confirm, paste the following command:\n"
+                f"This will permantently delete the data of {user}.\n"
+                "To confirm, paste the following command:\n"
                 f"`{self.bot.command_prefix}forget confirm {confirm_code}`"
             )
         )
@@ -154,7 +154,7 @@ class Data(commands.Cog):
                 title=f"Parrot has forgotten {user}.",
                 color_name="gray",
                 description=(
-                    "All of the data that Parrot has collected from this user"
+                    "All of the data that Parrot has collected from this user "
                     "has been deleted."
                 ),
             ), reference=ctx.message)
