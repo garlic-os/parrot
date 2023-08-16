@@ -7,8 +7,8 @@ from discord.ext import commands
 from discord.ext import tasks
 import sqlite3
 
+import asyncio_atexit
 import config
-import asyncio
 import os
 import logging
 import aiohttp
@@ -46,6 +46,7 @@ class Parrot(commands.AutoShardedBot):
 
         self.admin_role_ids = admin_role_ids or []
         self.finished_initializing = False
+        self.destructor_called = False
         self.con = sqlite3.connect(db_path)
         self.db = self.con.cursor()
 
@@ -82,11 +83,23 @@ class Parrot(commands.AutoShardedBot):
         self.update_registered_users()
 
 
-    def __del__(self):
-        self.autosave()
+    async def _async__del__(self) -> None:
+        if self.destructor_called:
+            return
+        self.destructor_called = True
+        logging.info("Parrot shutting down...")
+        self.autosave.cancel()
+        await self.close()
+        await self.autosave()
         logging.info("Closing HTTP session...")
-        asyncio.run(self.http_session.close())
+        await self.http_session.close()
         logging.info("HTTP session closed.")
+
+
+    def __del__(self):
+        if self.destructor_called:
+            return
+        self.loop.run_until_complete(self._async__del__())
 
 
     @commands.Cog.listener()
@@ -101,8 +114,14 @@ class Parrot(commands.AutoShardedBot):
 
     async def setup_hook(self) -> None:
         """ Constructor Part 2: Enter Async """
-        # You need to give ClientSession the bot's loop or else it poops itself
         self.http_session = aiohttp.ClientSession(loop=self.loop)
+
+        # Parrot has to do async stuff as part of its destructor, so it can't
+        # actually use __del__, which is strictly synchronous. So we have to
+        # reinvent a little bit of the wheel and manually set a function to run
+        # when Parrot is about to be destroyed -- except instead we'll do it
+        # when the event loop is about to be closed.
+        asyncio_atexit.register(self._async__del__, loop=self.loop)
 
         self.corpora = CorpusManager(
             db=self.db,
