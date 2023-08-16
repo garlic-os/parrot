@@ -1,25 +1,19 @@
 [tool.poetry]
 name = "parrot"
-version = "3.1.0"
+version = "3.1.1"
 description = ""
-authors = ["garlicOS® <14845347+Grosserly@users.noreply.github.com>"]
+authors = ["Nate <14845347+garlic-os@users.noreply.github.com>"]
 license = "MIT"
+readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-"discord.py" = "^2.0.1"
+python = "^3.10"
+"discord.py" = "^2.3.2"
 jishaku = "^2.5.1"
-markovify = "^0.8.3"
-ujson = "^5.4.0"
-Pillow = "^9.3.0"
-PyYAML = "^6.0"
-[tool.poetry.dev-dependencies]
-mypy = "^0.790"
-"discord.py-stubs" = "^1.5.1"
-
-[tool.poetry.group.dev.dependencies]
-flake8 = "^5.0.4"
+markovify = "^0.9.4"
+Pillow = "^10.0.0"
+PyYAML = "^6.0.1"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
