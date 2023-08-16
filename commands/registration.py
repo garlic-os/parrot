@@ -8,36 +8,6 @@ from utils.exceptions import FriendlyError
 class Registration(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
-        with open("assets/privacy-policy.txt", "r") as f:
-            self.policy_text = f.read()
-
-
-    @commands.command(
-        aliases=[
-            "privacy_policy",
-            "privacypolicy",
-            "privacy",
-            "terms_of_service",
-            "termsofservice",
-            "tos",
-            "terms",
-            "eula",
-        ],
-        brief="View Parrot's privacy policy.",
-    )
-    @commands.cooldown(2, 4, commands.BucketType.user)
-    async def policy(self, ctx: commands.Context) -> None:
-        """
-        View Parrot's privacy policy.
-        Parrot collects the message history of registered users to imitate them.
-        Learn more about Parrot's data collection practices here.
-        """
-        embed = ParrotEmbed(title="Privacy Policy", description=self.policy_text)
-        embed.set_footer(text=(
-            f"{self.bot.command_prefix}register •"
-            f"{self.bot.command_prefix}unregister")
-        )
-        await ctx.send(embed=embed)
 
 
     @commands.command(
@@ -46,10 +16,7 @@ class Registration(commands.Cog):
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def register(self, ctx: commands.Context, who: Userlike=None) -> None:
-        """
-        Register to let Parrot imitate you.
-        By registering you agree to Parrot's privacy policy.
-        """
+        """ Register to let Parrot imitate you. """
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only register yourself.")
 
@@ -69,19 +36,17 @@ class Registration(commands.Cog):
             title="✅ Registered!",
             color_name="green",
             description=(
-                "Now Parrot can start learning your speech patterns and imitate"
-                "you."
+                "Now Parrot can start learning your speech patterns and "
+                "imitate you."
             )
         )
         embed.add_field(
             name="Tip:",
             value=(
-                "If this is your first time registering (or if you deleted "
-                "your data recently), you might want to consider running the "
-                f"`{self.bot.command_prefix}quickstart` command to immediately "
-                "give Parrot a dataset to imitate you from. This will scan "
-                "your past messages to create a model of how you speak, so you "
-                "can start using Parrot right away."
+               f"Try the `{self.bot.command_prefix}quickstart` command to "
+                "immediately give Parrot a dataset to imitate you from! It "
+                "will scan your past messages to create a model of how you "
+                "speak so you can start using Parrot right away."
             )
         )
 
@@ -114,7 +79,7 @@ class Registration(commands.Cog):
             title="Unregistered!",
             color_name="gray",
             description=(
-                "Parrot will no longer be able to imitate you, and it "
+                "Parrot will no longer be able to imitate you and it "
                 "has stopped collecting your messages.\n\n_If you're done with "
                 "Parrot and don't want it to have your messages anymore, or if "
                 "you just want a fresh start, you can do "

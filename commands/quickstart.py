@@ -174,9 +174,8 @@ class Quickstart(commands.Cog):
     def assert_registered(self, user: Union[User, Member]) -> None:
         if not user.bot and user.id not in self.bot.registered_users:
             raise NotRegisteredError(
-                f"User {user} is not registered. To register, read the privacy "
-                f"policy with `{self.bot.command_prefix}policy`, then register "
-                f"with `{self.bot.command_prefix}register`."
+                f"User {user} is not opted in to Parrot. To opt in, do the "
+                f"`{self.bot.command_prefix}register` command."
             )
 
 

@@ -16,7 +16,7 @@ For now, if you want Parrot on your server, you'll have to run it yourself.
 2. [Clone this repo.](https://docs.github.com/en/free-pro-team@latest/desktop/contributing-and-collaborating-using-github-desktop/cloning-a-repository-from-github-to-github-desktop)
 3. Run [`poetry install`](https://python-poetry.org/docs/) in the project's directory.
 4. Copy `config.example.py` to `config.py` and follow the [config documentation](#configuration) to fill in the needed information.
-5. Change the user ID in `assets/privacy-policy.txt` to yours, or that of whoever is going to host the bot.
+5. Change `privacy-policy.md` to fit your situation.
 6. `poetry run python main.py`.
 
 
@@ -45,7 +45,3 @@ Parrot needs a little information from you for it to start working.
 - `DB_PATH` - Path to a sqlite3 database file to keep Parrot's data. If it doesn't exist, it will be created.
 - `AUTOSAVE_INTERVAL_SECONDS` - How often to commit the database to disc. Parrot also saves before shutting down. Default is one hour—`3600`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
-
----
-
-I recently refactored Parrot to use sqlite3 instead of Redis. I migrated the database with this tool: https://github.com/the-garlic-os/parrot-redis2sql.
