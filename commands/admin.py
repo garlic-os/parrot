@@ -212,11 +212,18 @@ class Admin(commands.Cog):
 
     @view.command(name="learning")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_learning(self, ctx: commands.Context) -> None:
+    async def view_learning(self, ctx: commands.Context, guild_id: int=None) -> None:
         """ View the channels Parrot is learning from. """
+        if guild_id is None:
+            if ctx.guild is None:
+                await ctx.send("Parrot can't learn in DMs. Try passing in a guild ID.")
+                return
+            guild_id = ctx.guild.id
+        guild = self.bot.get_guild(guild_id)
+
         embed = ParrotEmbed(title="Parrot is learning from these channels:")
         channel_mentions = []
-        for channel in ctx.guild.channels:
+        for channel in guild.channels:
             if channel.id in self.bot.learning_channels:
                 channel_mentions.append(channel.mention)
         if len(channel_mentions) == 0:
@@ -234,11 +241,18 @@ class Admin(commands.Cog):
 
     @view.command(name="speaking")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_speaking(self, ctx: commands.Context) -> None:
+    async def view_speaking(self, ctx: commands.Context, guild_id: int=None) -> None:
         """ View the channels Parrot can imitate people in. """
+        if guild_id is None:
+            if ctx.guild is None:
+                await ctx.send("Parrot can't speak in DMs. Try passing in a guild ID.")
+                return
+            guild_id = ctx.guild.id
+        guild = self.bot.get_guild(guild_id)
+
         embed = ParrotEmbed(title="Parrot can speak in these channels:")
         channel_mentions = []
-        for channel in ctx.guild.channels:
+        for channel in guild.channels:
             if channel.id in self.bot.speaking_channels:
                 channel_mentions.append(channel.mention)
         if len(channel_mentions) == 0:
