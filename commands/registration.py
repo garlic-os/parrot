@@ -76,12 +76,12 @@ class Registration(commands.Cog):
         embed.add_field(
             name="Tip:",
             value=(
-                "If this is your first time registering (or if you deleted"
-                "your data recently), you might want to consider running the"
-                f"`{self.bot.command_prefix}quickstart` command to immediately"
-                "give Parrot a dataset to imitate you from. This will scan your"
-                "past messages to create a model of how you speak, so you can"
-                "start using Parrot right away."
+                "If this is your first time registering (or if you deleted "
+                "your data recently), you might want to consider running the "
+                f"`{self.bot.command_prefix}quickstart` command to immediately "
+                "give Parrot a dataset to imitate you from. This will scan "
+                "your past messages to create a model of how you speak, so you "
+                "can start using Parrot right away."
             )
         )
 
@@ -114,11 +114,11 @@ class Registration(commands.Cog):
             title="Unregistered!",
             color_name="gray",
             description=(
-                "Parrot will no longer be able to imitate you, and it"
-                "has stopped collecting your messages.\n\n_If you're done with"
-                "Parrot and don't want it to have your messages anymore, or if"
-                "you just want a fresh start, you can do"
-                f"`{self.bot.command_prefix}forget me` and your existing data"
+                "Parrot will no longer be able to imitate you, and it "
+                "has stopped collecting your messages.\n\n_If you're done with "
+                "Parrot and don't want it to have your messages anymore, or if "
+                "you just want a fresh start, you can do "
+                f"`{self.bot.command_prefix}forget me` and your existing data "
                 "will be permanently deleted from Parrot._"
             )
         )
