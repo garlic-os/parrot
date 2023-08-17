@@ -3,6 +3,7 @@ from discord import Member, Message, User
 from bot import Parrot
 
 import asyncio
+import discord
 from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.history_crawler import HistoryCrawler
@@ -115,7 +116,11 @@ class Quickstart(commands.Cog):
             histories = []
             for channel_id in self.bot.learning_channels:
                 channel = await self.bot.fetch_channel(channel_id)
-                member = await channel.guild.fetch_member(user.id)
+                member: Member = None
+                try:
+                    member = await channel.guild.fetch_member(user.id)
+                except discord.errors.NotFound:
+                    continue
                 histories.append(
                     channel.history(
                         limit=100_000,
