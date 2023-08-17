@@ -67,16 +67,12 @@ class Quickstart(commands.Cog):
 
         self.assert_registered(user)
 
-        # You can't run Quickstart in a server that Quickstart is already
-        # currently scanning for you.
+        # You can only run one Quickstart scan at a time.
         if user.id in self.ongoing_scans:
             if ctx.author == user:
-                raise AlreadyScanning(
-                    "❌ You are already currently running Quickstart in this "
-                    "server!"
-                )
+                raise AlreadyScanning("❌ Quickstart is already running!")
             raise AlreadyScanning(
-                f"❌ Quickstart is already running for {user} in this server!"
+                f"❌ Quickstart is already running for {user}!"
             )
 
         self.ongoing_scans.add(user.id)
@@ -163,7 +159,7 @@ class Quickstart(commands.Cog):
             )
             if crawler.num_collected == 0:
                 embed.description += (
-                    f"\n😕 Couldn't find any messages from {name} in this server."
+                    f"\n😕 Couldn't find any messages from {name}."
                 )
                 embed.color = ParrotEmbed.colors["red"]
             await asyncio.gather(
