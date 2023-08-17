@@ -8,6 +8,7 @@ from discord.ext import commands
 from utils.parrot_embed import ParrotEmbed
 from utils.history_crawler import HistoryCrawler
 from utils.exceptions import AlreadyScanning, UserPermissionError
+from utils import HistoryCrawler, ParrotEmbed, tag
 from utils.checks import is_admin
 from utils.converters import Userlike
 from utils.exceptions import NotRegisteredError
@@ -39,7 +40,7 @@ class Quickstart(commands.Cog):
                 icon_url="https://i.gifer.com/ZZ5H.gif",  # Loading spinner
             )
             embed.set_footer(
-                text=f"Scanning for {user}",
+                text=f"Scanning for {tag(user)}",
                 icon_url=user.display_avatar.url,
             )
             await status_message.edit(embed=embed)
@@ -73,7 +74,7 @@ class Quickstart(commands.Cog):
             if ctx.author == user:
                 raise AlreadyScanning("❌ Quickstart is already running!")
             raise AlreadyScanning(
-                f"❌ Quickstart is already running for {user}!"
+                f"❌ Quickstart is already running for {tag(user)}!"
             )
 
         self.ongoing_scans.add(user.id)
@@ -105,9 +106,9 @@ class Quickstart(commands.Cog):
             await ctx.send(embed=ParrotEmbed(
                 title="Quickstart is scanning",
                 description=(
-                    f"Parrot is now scanning this server and learning from {name} "
-                    "past messages.\nThis could take a few minutes.\nCheck your DMs"
-                    " to see its progress."
+                    "Parrot is now scanning this server and learning from "
+                    f"{tag(name)} past messages.\nThis could take a few minutes."
+                    "\nCheck your DMs to see its progress."
                 )
             ), reference=ctx.message)
 
@@ -150,7 +151,7 @@ class Quickstart(commands.Cog):
 
             # Update the status embed one last time, but DELETE it this time and
             #   post a brand new one so that the user gets a new notification.
-            name = "you" if ctx.author == user else f"{user}"
+            name = "you" if ctx.author == user else f"{tag(user)}"
             embed = ParrotEmbed(
                 description=(
                     f"**Scan complete.**\nCollected "
@@ -159,12 +160,12 @@ class Quickstart(commands.Cog):
             )
             embed.set_author(name="✅ Quickstart")
             embed.set_footer(
-                text=f"Scanning for {user}",
+                text=f"Scanning for {tag(user)}",
                 icon_url=user.display_avatar.url,
             )
             if crawler.num_collected == 0:
                 embed.description += (
-                    f"\n😕 Couldn't find any messages from {name}."
+                    f"\n😕 Couldn't find any messages from {tag(name)}."
                 )
                 embed.color = ParrotEmbed.colors["red"]
             await asyncio.gather(

@@ -1,6 +1,7 @@
 from typing import List, Union
 from discord import User, Member, Message
 from utils.exceptions import NoDataError, NotRegisteredError
+from utils import tag
 
 
 class CorpusManager:
@@ -64,7 +65,7 @@ class CorpusManager:
         )
         corpus = [row[0] for row in res]
         if len(corpus) == 0:
-            raise NoDataError(f"No data available for user {user}.")
+            raise NoDataError(f"No data available for user {tag(user)}.")
         return corpus
 
 
@@ -76,7 +77,7 @@ class CorpusManager:
         res = self.db.execute("SELECT CHANGES()")
         num_deleted = res.fetchone()[0]
         if num_deleted == 0:
-            raise NoDataError(f"No data available for user {user}.")
+            raise NoDataError(f"No data available for user {tag(user)}.")
 
 
     def delete_message(self, message_id: int) -> None:

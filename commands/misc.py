@@ -1,6 +1,7 @@
 from discord import Embed
 from discord.ext import commands
 from bot import Parrot
+from utils import tag
 
 
 class Miscellaneous(commands.Cog):
@@ -21,7 +22,7 @@ class Miscellaneous(commands.Cog):
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def info(self, ctx: commands.Context) -> None:
         """ Get info about Parrot. """
-        creator = await self.bot.fetch_user("206235904644349953")
+        garlic_os = await self.bot.fetch_user("206235904644349953")
 
         bio = (
             f"Parrot can imitate everyone. Do `{self.bot.command_prefix}imitate"
@@ -39,8 +40,8 @@ class Miscellaneous(commands.Cog):
         )
         embed.set_thumbnail(url=self.bot.user.display_avatar.url)
         embed.set_footer(
-            text=f"Made by {creator.name}",
-            icon_url=creator.avatar.url,
+            text=f"Made by {tag(garlic_os)}",
+            icon_url=garlic_os.avatar.url,
         )
 
         await ctx.send(embed=embed)

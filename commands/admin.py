@@ -4,8 +4,7 @@ from discord import TextChannel
 from discord.ext import commands
 from bot import Parrot
 from utils.checks import is_admin
-from utils.parrot_embed import ParrotEmbed
-from utils import Paginator
+from utils import Paginator, ParrotEmbed, tag
 
 
 class Admin(commands.Cog):
@@ -296,7 +295,7 @@ class Admin(commands.Cog):
 
         await ctx.guild.me.edit(
             nick=new_nick,
-            reason=f"Requested by {ctx.author.name}#{ctx.author.discriminator}",
+            reason=f"Requested by {tag(ctx.author)}",
         )
         await ctx.send(f"✅ Parrot's nickname is now: {ctx.guild.me.nick}")
 
@@ -307,7 +306,7 @@ class Admin(commands.Cog):
         """ Get rid of Parrot's nickname. """
         await ctx.guild.me.edit(
             nick=None,
-            reason=f"Requested by {ctx.author.name}#{ctx.author.discriminator}",
+            reason=f"Requested by {tag(ctx.author)}",
         )
         await ctx.send("✅ Parrot's nickname has been removed.")
 

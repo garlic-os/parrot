@@ -13,9 +13,8 @@ import os
 import logging
 import aiohttp
 from functools import lru_cache
-from utils.parrot_markov import ParrotMarkov
 from utils.exceptions import NoDataError
-from utils import regex
+from utils import ParrotMarkov, regex, tag
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
 
@@ -108,7 +107,7 @@ class Parrot(commands.AutoShardedBot):
         if self.finished_initializing:
             logging.info("Logged back in.")
         else:
-            logging.info(f"Logged in as {self.user}")
+            logging.info(f"Logged in as {tag(self.user)}")
             self.finished_initializing = True
 
 

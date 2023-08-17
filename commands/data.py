@@ -3,8 +3,8 @@ from bot import Parrot
 
 import asyncio
 from discord.ext import commands
-from utils.parrot_embed import ParrotEmbed
 from tempfile import TemporaryFile
+from utils import ParrotEmbed, tag
 from utils.exceptions import NoDataError, UserPermissionError, UserNotFoundError
 from utils.converters import Userlike
 
@@ -90,7 +90,7 @@ class Data(commands.Cog):
             )
 
         if not self.bot.corpora.has(user):
-            raise NoDataError(f"No data available for user {user}.")
+            raise NoDataError(f"No data available for user {tag(user)}.")
 
         confirm_code = ctx.message.id
 
@@ -105,7 +105,7 @@ class Data(commands.Cog):
             title="Are you sure?",
             color_name="orange",
             description=(
-                f"This will permantently delete the data of {user}.\n"
+                f"This will permantently delete the data of {tag(user)}.\n"
                 "To confirm, paste the following command:\n"
                 f"`{self.bot.command_prefix}forget confirm {confirm_code}`"
             )
@@ -151,7 +151,7 @@ class Data(commands.Cog):
             del self.pending_confirmations[confirm_code]
 
             await ctx.send(embed=ParrotEmbed(
-                title=f"Parrot has forgotten {user}.",
+                title=f"Parrot has forgotten {tag(user)}.",
                 color_name="gray",
                 description=(
                     "All of the data that Parrot has collected from this user "

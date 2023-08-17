@@ -15,6 +15,7 @@ from PIL import Image, ImageSequence, ImageOps
 
 from assets import GIF_RULES, IMAGE_RULES
 from utils import tools as p
+from utils import tag
 
 
 def gif_frame_transparency(img: Image.Image) -> Image.Image:
@@ -129,7 +130,7 @@ async def modify_avatar(user: User) -> Tuple[BytesIO, str]:
             return None, None
         else:
             logging.info(
-                f"Processing GIF avatar for {user}... ",
+                f"Processing GIF avatar for {tag(user)}... ",
                 f"{img.width} \u2A09 {img.height} pixels · {img.n_frames} frames"
             )
 
@@ -145,5 +146,5 @@ async def modify_avatar(user: User) -> Tuple[BytesIO, str]:
         fp = await process_lower_level(img, "resize", scale)
         n_bytes = fp.getbuffer().nbytes
 
-    logging.info(f"Processed new avatar for {user}")
+    logging.info(f"Processed new avatar for {tag(user)}")
     return fp, img.format

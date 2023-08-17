@@ -5,6 +5,7 @@ from utils.exceptions import NotRegisteredError
 import config
 import logging
 from discord.ext import commands
+from utils import tag
 
 
 class MessageEventHandler(commands.Cog):
@@ -30,10 +31,9 @@ class MessageEventHandler(commands.Cog):
         try:
             learned_count = self.bot.learn_from(message)
             if learned_count:
-                tag = f"{message.author.name}#{message.author.discriminator}"
                 logging.info(
-                    f"Collected a message (ID: {message.id}) from user {tag}"
-                    f"(ID: {message.author.id})"
+                    f"Collected a message (ID: {message.id}) from user "
+                    f"{tag(message.author)} (ID: {message.author.id})"
                 )
         except NotRegisteredError:
             pass
