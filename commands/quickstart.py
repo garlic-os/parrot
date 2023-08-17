@@ -5,13 +5,10 @@ from bot import Parrot
 import asyncio
 import discord
 from discord.ext import commands
-from utils.parrot_embed import ParrotEmbed
-from utils.history_crawler import HistoryCrawler
-from utils.exceptions import AlreadyScanning, UserPermissionError
 from utils import HistoryCrawler, ParrotEmbed, tag
+from utils.exceptions import AlreadyScanning, NotRegisteredError, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
-from utils.exceptions import NotRegisteredError
 
 
 class Quickstart(commands.Cog):

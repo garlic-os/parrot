@@ -49,7 +49,7 @@ class CustomEmbedPaginator:
         try:
             self.control_emojis.pop(index)
             self.control_commands.pop(index)
-        except:
+        except Exception:
             pass
 
     def clear_reactions(self) -> None:
@@ -230,7 +230,7 @@ class FromList(CustomEmbedPaginator):
             embed.title += f" (Page {i + 1}/{page_count})"
 
             next_endpoint = min(len(entries), (i + 1) * 24)
-            for entry in entries[i * 24 : next_endpoint]:
+            for entry in entries[i * 24: next_endpoint]:
                 if isinstance(entry, tuple):
                     name, value = entry
                 else:
@@ -241,7 +241,7 @@ class FromList(CustomEmbedPaginator):
                 )
 
             self.fromlist_embeds.append(embed)
-        
+
         self.add_reaction("⏪", "back")
         self.add_reaction("⏹", "delete")
         self.add_reaction("⏩", "next")

@@ -2,14 +2,11 @@ import logging
 import traceback
 
 from discord import AllowedMentions, Message, User
-from utils.parrot_markov import GibberishMarkov
 from bot import Parrot
 
 from discord.ext import commands
-from utils.parrot_embed import ParrotEmbed
+from utils import fetch_webhook, GibberishMarkov, ParrotEmbed, regex
 from utils.converters import Userlike
-from utils.fetch_webhook import fetch_webhook
-from utils import regex
 from utils.exceptions import FriendlyError
 
 

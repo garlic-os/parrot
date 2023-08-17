@@ -1,6 +1,6 @@
 from discord.ext import commands
 from bot import Parrot
-from utils.parrot_embed import ParrotEmbed
+from utils import ParrotEmbed
 from utils.converters import Userlike
 from utils.exceptions import FriendlyError
 

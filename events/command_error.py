@@ -5,7 +5,7 @@ import random
 import logging
 import traceback
 from discord.ext.commands import Cog, Context
-from utils.parrot_embed import ParrotEmbed
+from utils import ParrotEmbed
 
 
 class CommandErrorEventHandler(Cog):
