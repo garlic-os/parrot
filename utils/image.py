@@ -66,19 +66,18 @@ async def fetch_image(url: str) -> Image.Image:
     return Image.open(BytesIO(img_bytes))
 
 
-# below are the blocking image functions (that support GIF) which require the executor_function wrapper
+# below are the blocking image functions (that support GIF) which require the
+# executor_function wrapper
 def invert_flip_img(img: Image.Image, _) -> Image.Image:
     # get image size, resize if too big
     width, height = img.size
     if max(width, height) > 500:
         ratio = max(width, height) / 500
         img = img.resize((int(width / ratio), int(height / ratio)), resample=Image.BICUBIC)
-
-    # alpha mask (for later)
+    img = ImageOps.mirror(img)
+    # don't invert alpha channel
     alpha = img.convert("RGBA").split()[-1]
     img = img.convert("RGB")
-
-    img = ImageOps.mirror(img)
     img = ImageOps.invert(img)
     img.putalpha(alpha)
     return img
