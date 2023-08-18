@@ -64,7 +64,7 @@ class Text(commands.Cog):
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         # error handler deal with.
-        model = self.bot.get_model(user.id)
+        model = await self.bot.get_model(user.id)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 
@@ -148,7 +148,7 @@ class Text(commands.Cog):
                         "😕 Couldn't find a gibberizeable message"
                     )
 
-        model = GibberishMarkov(text)
+        model = await GibberishMarkov.new(text)
 
         # Generate gibberish;
         # try up to 10 times to make it not the same as the source text.

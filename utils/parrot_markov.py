@@ -2,6 +2,7 @@ from typing import List
 
 import markovify
 import random
+from utils import executor_function
 
 
 class ParrotMarkov(markovify.Text):
@@ -12,6 +13,11 @@ class ParrotMarkov(markovify.Text):
             retain_original=False,
             well_formed=False,
         )
+
+    @classmethod
+    @executor_function
+    def new(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
 
 
 class GibberishMarkov(markovify.Text):
@@ -28,6 +34,11 @@ class GibberishMarkov(markovify.Text):
             well_formed=False,
         )
         self.original = text
+
+    @classmethod
+    @executor_function
+    def new(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
 
     def word_join(self, words: List[str]) -> str:
         # The generator usually puts spaces between each entry in the list

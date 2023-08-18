@@ -6,26 +6,15 @@ Copyright (c) 2019 crimso, williammck
 """
 
 from io import BytesIO
-from typing import Any, Awaitable, Callable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, List, Mapping, Optional, Tuple
 from discord import User
 
 import logging
 import aiohttp
-import asyncio
-import functools
 from PIL import Image, ImageSequence, ImageOps
 
 from assets import GIF_RULES, IMAGE_RULES
-from utils import tag
-
-
-def executor_function(sync_function: Callable) -> Callable:
-    @functools.wraps(sync_function)
-    async def sync_wrapper(*args, **kwargs) -> Awaitable[Any]:
-        loop = asyncio.get_event_loop()
-        reconstructed_function = functools.partial(sync_function, *args, **kwargs)
-        return await loop.run_in_executor(None, reconstructed_function)
-    return sync_wrapper
+from utils import executor_function, tag
 
 
 def gif_frame_transparency(img: Image.Image) -> Image.Image:

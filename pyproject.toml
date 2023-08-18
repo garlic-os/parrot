@@ -14,6 +14,7 @@ markovify = "^0.9.4"
 Pillow = "^10.0.0"
 PyYAML = "^6.0.1"
 asyncio-atexit = "^1.0.1"
+async-lru = "^2.0.4"
 
 [build-system]
 requires = ["poetry-core"]
