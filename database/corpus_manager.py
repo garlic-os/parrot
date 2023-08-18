@@ -57,6 +57,21 @@ class CorpusManager:
         return res.fetchone()[0]
 
 
+    def edit(self, message_id: int, new_content: str) -> None:
+        """ Edit a message in the database. """
+        self.db.execute(
+            "UPDATE messages SET content = ? WHERE id = ?",
+            (new_content, message_id)
+        )
+        res = self.db.execute("SELECT CHANGES()")
+        num_edited = res.fetchone()[0]
+        if num_edited == 0:
+            raise NoDataError(
+                f"Message with ID {message_id} did not exist in the first "
+                "place."
+            )
+
+
     def get(self, user: Union[User, Member]) -> List[str]:
         """ Get a corpus from the database by user ID. """
         self.assert_registered(user)
