@@ -2,9 +2,11 @@ from typing import List
 
 import markovify
 import random
+from util import executor_function
 
 
 class ParrotMarkov(markovify.Text):
+    @executor_function
     def __init__(self, corpus: List[str]):
         super().__init__(
             input_text=corpus,
@@ -19,6 +21,7 @@ class GibberishMarkov(markovify.Text):
     Feed the corpus to the Markov model character-by-character instead of
     word-by-word for extra craziness!
     """
+    @executor_function
     def __init__(self, text: str):
         super().__init__(
             None,
