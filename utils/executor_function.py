@@ -1,3 +1,10 @@
+"""
+crimsoBOT run_in_executor() decorator
+https://github.com/crimsobot/crimsoBOT/blob/09abe19fd1ea23ed670b5e68a68dac1adc677092/crimsobot/utils/tools.py#L27
+MIT License
+Copyright (c) 2019 crimso, williammck
+"""
+
 from typing import Any, Awaitable, Callable
 
 import asyncio
