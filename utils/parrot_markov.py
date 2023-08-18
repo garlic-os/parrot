@@ -6,7 +6,6 @@ from utils import executor_function
 
 
 class ParrotMarkov(markovify.Text):
-    @executor_function
     def __init__(self, corpus: List[str]):
         super().__init__(
             input_text=corpus,
@@ -15,13 +14,17 @@ class ParrotMarkov(markovify.Text):
             well_formed=False,
         )
 
+    @classmethod
+    @executor_function
+    def new(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
+
 
 class GibberishMarkov(markovify.Text):
     """
     Feed the corpus to the Markov model character-by-character instead of
     word-by-word for extra craziness!
     """
-    @executor_function
     def __init__(self, text: str):
         super().__init__(
             None,
@@ -31,6 +34,11 @@ class GibberishMarkov(markovify.Text):
             well_formed=False,
         )
         self.original = text
+
+    @classmethod
+    @executor_function
+    def new(cls, *args, **kwargs):
+        return cls(*args, **kwargs)
 
     def word_join(self, words: List[str]) -> str:
         # The generator usually puts spaces between each entry in the list

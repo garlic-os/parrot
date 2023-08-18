@@ -148,7 +148,7 @@ class Text(commands.Cog):
                         "😕 Couldn't find a gibberizeable message"
                     )
 
-        model = GibberishMarkov(text)
+        model = await GibberishMarkov.new(text)
 
         # Generate gibberish;
         # try up to 10 times to make it not the same as the source text.

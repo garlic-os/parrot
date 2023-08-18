@@ -12,7 +12,7 @@ import config
 import os
 import logging
 import aiohttp
-from functools import lru_cache
+from async_lru import alru_cache
 from utils.exceptions import NoDataError
 from utils import ParrotMarkov, regex, tag
 from database.corpus_manager import CorpusManager
@@ -166,8 +166,8 @@ class Parrot(commands.AutoShardedBot):
         logging.info("Save complete.")
 
 
-    @lru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
-    def get_model(self, user_id: int) -> ParrotMarkov:
+    @alru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
+    async def get_model(self, user_id: int) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
         res = self.db.execute(
             "SELECT content FROM messages WHERE user_id = ?", (user_id,)
@@ -179,7 +179,7 @@ class Parrot(commands.AutoShardedBot):
         # messages = [row[0] for row in res.fetchall()]
         if len(messages) == 0:
             raise NoDataError("Speak more! No data on this user.")
-        return ParrotMarkov(messages)
+        return await ParrotMarkov.new(messages)
 
 
     def validate_message(self, message: Message) -> bool:
