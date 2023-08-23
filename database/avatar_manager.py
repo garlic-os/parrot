@@ -48,9 +48,7 @@ class AvatarManager:
             # User hasn't changed their avatar since last time they did
             # |imitate, so we can use the cached modified avatar.
             if self._avatar_url_id(user.display_avatar.url) == self._avatar_url_id(original_avatar_url):
-                logging.info(f"[AVATARS] CACHE HIT {tag(user)}")
                 return modified_avatar_url
-            logging.info(f"[AVATARS] CACHE MISS {tag(user)}; data is not None")
 
             # Else, user has changed their avatar.
             # Respect the user's privacy by deleting the message with their old
@@ -59,8 +57,6 @@ class AvatarManager:
             asyncio.create_task(
                 self._delete_message(avatar_channel, modified_avatar_message_id)
             )
-        else:
-            logging.info(f"[AVATARS] CACHE MISS {tag(user)}; data is none")
 
         # User has changed their avatar since last time they did |imitate or has
         # not done |imitate before, so we must create a modified version of

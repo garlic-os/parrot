@@ -13,7 +13,6 @@ import os
 import logging
 import aiohttp
 from async_lru import alru_cache
-from utils.exceptions import NoDataError
 from utils import ParrotMarkov, regex, tag
 from database.corpus_manager import CorpusManager
 from database.avatar_manager import AvatarManager
