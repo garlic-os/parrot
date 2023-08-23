@@ -67,7 +67,7 @@ class CorpusManager:
         num_edited = res.fetchone()[0]
         if num_edited == 0:
             raise NoDataError(
-                f"Message with ID {message_id} did not exist in the first "
+                f"Message with ID {message_id} was not recorded in the first "
                 "place."
             )
 
@@ -104,7 +104,8 @@ class CorpusManager:
         num_deleted = res.fetchone()[0]
         if num_deleted == 0:
             raise NoDataError(
-                f"Message with ID {message_id} did not exist in the first place."
+                f"Message with ID {message_id} was not recorded in the first "
+                "place."
             )
 
 

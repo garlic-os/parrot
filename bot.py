@@ -172,11 +172,7 @@ class Parrot(commands.AutoShardedBot):
         res = self.db.execute(
             "SELECT content FROM messages WHERE user_id = ?", (user_id,)
         )
-        rows = res.fetchall()
-        messages = []
-        for row in rows:
-            messages.append(row[0])
-        # messages = [row[0] for row in res.fetchall()]
+        messages = [row[0] for row in res.fetchall()]
         if len(messages) == 0:
             raise NoDataError("Speak more! No data on this user.")
         return await ParrotMarkov.new(messages)
