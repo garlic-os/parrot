@@ -1,6 +1,6 @@
 from discord.ext import commands
 from bot import Parrot
-from utils import ParrotEmbed
+from utils import ParrotEmbed, tag
 from utils.converters import Userlike
 from utils.exceptions import FriendlyError
 
@@ -101,16 +101,20 @@ class Registration(commands.Cog):
         brief="Check if you're registered with Parrot.",
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def status(self, ctx: commands.Context) -> None:
+    async def status(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
         Check if you're registered with Parrot.
         You need to be registered for Parrot to be able to analyze your messages
         and imitate you.
         """
-        if ctx.author.id in self.bot.registered_users:
-            await ctx.send("✅ You are currently registered with Parrot.")
+        subject_verb = "You are"
+        if who is None:
+            who = ctx.author
+            subject_verb = f"{tag(who)} is"
+        if who.id in self.bot.registered_users:
+            await ctx.send(f"✅ {subject_verb} are currently registered with Parrot.")
         else:
-            await ctx.send("❌ You are not currently registered with Parrot.")
+            await ctx.send(f"❌ {subject_verb} not currently registered with Parrot.")
 
 
 async def setup(bot: Parrot) -> None:
