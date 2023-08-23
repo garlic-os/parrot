@@ -27,6 +27,8 @@ class Parrot(commands.AutoShardedBot):
         admin_user_ids: List[int],
         admin_role_ids: Optional[List[int]]=None,
     ):
+        self.destructor_called = False
+
         logging.info(f"discord.py v{discord.__version__}")
         intents = Intents.default()
         intents.message_content = True  # For learning
@@ -46,7 +48,6 @@ class Parrot(commands.AutoShardedBot):
 
         self.admin_role_ids = admin_role_ids or []
         self.finished_initializing = False
-        self.destructor_called = False
         self.con = sqlite3.connect(db_path)
         self.db = self.con.cursor()
 
