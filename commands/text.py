@@ -64,7 +64,7 @@ class Text(commands.Cog):
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         # error handler deal with.
-        model = await self.bot.get_model(user.id)
+        model = await self.bot.get_model(user)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 

@@ -1,6 +1,6 @@
 from typing import List, Optional, Set, Union
 from discord import (
-    Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents
+    Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents, User
 )
 import discord
 from discord.ext import commands
@@ -167,19 +167,10 @@ class Parrot(commands.AutoShardedBot):
 
 
     @alru_cache(maxsize=int(config.MODEL_CACHE_SIZE))
-    async def get_model(self, user_id: int) -> ParrotMarkov:
+    async def get_model(self, user: User) -> ParrotMarkov:
         """ Get a Markov model by user ID. """
-        res = self.db.execute(
-            "SELECT content FROM messages WHERE user_id = ?", (user_id,)
-        )
-        rows = res.fetchall()
-        messages = []
-        for row in rows:
-            messages.append(row[0])
-        # messages = [row[0] for row in res.fetchall()]
-        if len(messages) == 0:
-            raise NoDataError("Speak more! No data on this user.")
-        return await ParrotMarkov.new(messages)
+        corpus = self.corpora.get(user)
+        return await ParrotMarkov.new(corpus)
 
 
     def validate_message(self, message: Message) -> bool:
