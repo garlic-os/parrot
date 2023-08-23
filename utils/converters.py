@@ -11,7 +11,11 @@ import random
 
 class BaseUserlike(commands.Converter):
     def __init__(self):
-        self._checks = []
+        Check = Callable[
+            [commands.Context, Optional[str]],
+            Awaitable[Optional[Union[User, Member]]]
+        ]
+        self._checks: List[Check] = []
 
     def _user_not_found(text: str) -> UserNotFoundError:
         return UserNotFoundError(f'User "{text}" does not exist.')
