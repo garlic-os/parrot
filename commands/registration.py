@@ -113,7 +113,7 @@ class Registration(commands.Cog):
         if who.bot:
             return await ctx.send("✅ Bots do not need to be registered.")
         if who.id in self.bot.registered_users:
-            await ctx.send(f"✅ {subject_verb} are currently registered with Parrot.")
+            await ctx.send(f"✅ {subject_verb} currently registered with Parrot.")
         else:
             await ctx.send(f"❌ {subject_verb} not currently registered with Parrot.")
 
