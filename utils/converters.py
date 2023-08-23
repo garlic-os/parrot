@@ -103,5 +103,12 @@ class FuzzyUserlike(Userlike):
                 raise UserNotFoundError('The "|imitate someone" feature is disabled.')
             if ctx.guild is None:
                 return ctx.author
-            registered_users_here = ctx.bot.registered_users.intersection(ctx.channel.members)
-            return random.choice(registered_users_here)
+            # List of users who are both in this channel and registered
+            registered_users_here = filter(
+                lambda user: (
+                    user.id in ctx.bot.registered_users or
+                    (user.bot and user.id != ctx.bot.user.id)
+                ),
+                ctx.guild.members
+            )
+            return random.choice(tuple(registered_users_here))
