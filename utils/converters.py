@@ -18,7 +18,7 @@ class BaseUserlike(commands.Converter):
         ]
         self._checks: List[Check] = []
 
-    def _user_not_found(text: str) -> UserNotFoundError:
+    def _user_not_found(self, text: str) -> UserNotFoundError:
         return UserNotFoundError(f'User "{text}" does not exist.')
 
     async def convert(self, ctx: commands.Context, text: str=None) -> Union[User, Member]:
