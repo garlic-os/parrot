@@ -1,4 +1,4 @@
-from typing import Optional, Set, Union
+from typing import Awaitable, Callable, List, Optional, Union
 from discord.ext import commands
 from discord import Member, User
 
@@ -23,7 +23,7 @@ class BaseUserlike(commands.Converter):
         text = text.lower()
 
         for check in self._checks:
-            result = check(ctx, text)
+            result = await check(ctx, text)
             if result is not None:
                 return result
 
@@ -58,19 +58,21 @@ class Userlike(BaseUserlike):
             person who spoke in the channel
     """
     def __init__(self):
+        super().__init__()
         self._checks.append(self._me)
 
-    def _me(self, ctx: commands.Context, text: str) -> Optional[Union[User, Member]]:
+    async def _me(self, ctx, text):
         if text in ("me", "myself"):
             return ctx.author
 
 
 class FuzzyUserlike(Userlike):
     def __init__(self):
+        super().__init__()
         self._checks.append(self._you)
         self._checks.append(self._someone)
 
-    def _you(self, ctx: commands.Context, text: str) -> Optional[Union[User, Member]]:
+    async def _you(self, ctx, text):
         # Get the author of the last message send in the channel who isn't
         # Parrot or the person who sent this command.
         if text in ("you", "yourself", "previous"):
@@ -90,7 +92,7 @@ class FuzzyUserlike(Userlike):
                     return message.author
 
     # Choose a random registered user in this channel.
-    def _someone(self, ctx: commands.Context, text: str) -> Optional[Union[User, Member]]:
+    async def _someone(self, ctx, text):
         if text in ("someone", "somebody", "anyone", "anybody"):
             if ctx.guild is None:
                 return ctx.author
