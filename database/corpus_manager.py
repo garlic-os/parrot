@@ -121,5 +121,5 @@ class CorpusManager:
         if not user.bot and user.id not in self.get_registered_users():
             raise NotRegisteredError(
                 f"User {user} is not opted in to Parrot. To opt in, do the "
-                f"`{self.bot.command_prefix}register` command."
+                f"`{self.command_prefix}register` command."
             )
