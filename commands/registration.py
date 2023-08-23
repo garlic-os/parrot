@@ -111,7 +111,7 @@ class Registration(commands.Cog):
             who = ctx.author
         subject_verb = "You are" if who.id == ctx.author.id else f"{tag(who)} is"
         if who.bot:
-            await ctx.send("✅ Bots do not need to be registered.")
+            return await ctx.send("✅ Bots do not need to be registered.")
         if who.id in self.bot.registered_users:
             await ctx.send(f"✅ {subject_verb} are currently registered with Parrot.")
         else:
