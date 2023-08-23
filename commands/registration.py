@@ -107,10 +107,9 @@ class Registration(commands.Cog):
         You need to be registered for Parrot to be able to analyze your messages
         and imitate you.
         """
-        subject_verb = "You are"
         if who is None:
             who = ctx.author
-            subject_verb = f"{tag(who)} is"
+        subject_verb = "You are" if who.id == ctx.author.id else f"{tag(who)} is"
         if who.id in self.bot.registered_users:
             await ctx.send(f"✅ {subject_verb} are currently registered with Parrot.")
         else:
