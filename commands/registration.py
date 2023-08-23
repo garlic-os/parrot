@@ -109,7 +109,7 @@ class Registration(commands.Cog):
         """
         if who is None:
             who = ctx.author
-        subject_verb = "You are" if who.id == ctx.author.id else f"{tag(who)} is"
+        subject_verb = "You are" if who.id == ctx.author.id else f"{who.mention} is"
         if who.bot:
             return await ctx.send("✅ Bots do not need to be registered.")
         if who.id in self.bot.registered_users:
