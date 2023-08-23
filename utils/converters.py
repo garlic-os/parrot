@@ -7,6 +7,7 @@ from utils.exceptions import UserNotFoundError
 
 import re
 import random
+import config
 
 
 class BaseUserlike(commands.Converter):
@@ -98,6 +99,8 @@ class FuzzyUserlike(Userlike):
     # Choose a random registered user in this channel.
     async def _someone(self, ctx, text):
         if text in ("someone", "somebody", "anyone", "anybody"):
+            if not config.ENABLE_IMITATE_SOMEONE:
+                raise UserNotFoundError('The "|imitate someone" feature is disabled.')
             if ctx.guild is None:
                 return ctx.author
             registered_users_here = ctx.bot.registered_users.intersection(ctx.channel.members)

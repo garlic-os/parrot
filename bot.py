@@ -29,7 +29,8 @@ class Parrot(commands.AutoShardedBot):
     ):
         logging.info(f"discord.py v{discord.__version__}")
         intents = Intents.default()
-        intents.message_content = True
+        intents.message_content = True  # For learning
+        intents.members = config.ENABLE_IMITATE_SOMEONE
 
         super().__init__(
             command_prefix=prefix,

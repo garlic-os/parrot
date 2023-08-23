@@ -33,6 +33,10 @@ AVATAR_STORE_CHANNEL_ID: int = 867573882608943127
 # Whether or not to say "lmao" when someone says "ayy"
 AYY_LMAO: bool = True
 
+# Enable the "|imitate someone" feature
+# Requires Server Members Intent
+ENABLE_IMITATE_SOMEONE: bool = True
+
 # Python logging module configuration
 # Example for logging to a file at the project root
 logging.basicConfig(
