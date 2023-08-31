@@ -16,7 +16,7 @@ class RawMessageEditEventHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_message_edit(self, event: RawMessageUpdateEvent) -> None:
         if "content" not in event.data:
-            logging.error(f"Malformed message edit event: {event.data}")
+            logging.error(f"Unexpected message edit event format: {event.data}")
             return
         try:
             self.bot.corpora.edit(event.message_id, event.data["content"])
