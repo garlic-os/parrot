@@ -64,7 +64,7 @@ class Text(commands.Cog):
         # Fetch this user's model.
         # May throw a NotRegistered or NoData error, which we'll just let the
         # error handler deal with.
-        model = await self.bot.get_model(user.id)
+        model = await self.bot.get_model(user)
         sentence = model.make_short_sentence(500) or "Error"
         name = f"Not {user.display_name}"
 
@@ -103,12 +103,14 @@ class Text(commands.Cog):
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
         """ Imitate someone. """
+        logging.info(f"Imitating {user}")
         await self.really_imitate(ctx, user, intimidate=False)
 
     @commands.command(brief="IMITATE SOMEONE.", hidden=True)
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def intimidate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
         """ IMITATE SOMEONE. """
+        logging.info(f"Intimidating {user}")
         await self.really_imitate(ctx, user, intimidate=True)
 
 

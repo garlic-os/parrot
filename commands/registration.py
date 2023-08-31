@@ -43,7 +43,7 @@ class Registration(commands.Cog):
         embed.add_field(
             name="Tip:",
             value=(
-               f"Try the `{self.bot.command_prefix}quickstart` command to "
+                f"Try the `{self.bot.command_prefix}quickstart` command to "
                 "immediately give Parrot a dataset to imitate you from! It "
                 "will scan your past messages to create a model of how you "
                 "speak so you can start using Parrot right away."
@@ -101,16 +101,21 @@ class Registration(commands.Cog):
         brief="Check if you're registered with Parrot.",
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def status(self, ctx: commands.Context) -> None:
+    async def status(self, ctx: commands.Context, who: Userlike=None) -> None:
         """
         Check if you're registered with Parrot.
         You need to be registered for Parrot to be able to analyze your messages
         and imitate you.
         """
-        if ctx.author.id in self.bot.registered_users:
-            await ctx.send("✅ You are currently registered with Parrot.")
+        if who is None:
+            who = ctx.author
+        subject_verb = "You are" if who.id == ctx.author.id else f"{who.mention} is"
+        if who.bot:
+            return await ctx.send("✅ Bots do not need to be registered.")
+        if who.id in self.bot.registered_users:
+            await ctx.send(f"✅ {subject_verb} currently registered with Parrot.")
         else:
-            await ctx.send("❌ You are not currently registered with Parrot.")
+            await ctx.send(f"❌ {subject_verb} not currently registered with Parrot.")
 
 
 async def setup(bot: Parrot) -> None:

@@ -5,7 +5,7 @@ from bot import Parrot
 import asyncio
 import discord
 from discord.ext import commands
-from utils import HistoryCrawler, ParrotEmbed, tag
+from utils import HistoryCrawler, ParrotEmbed
 from utils.exceptions import AlreadyScanning, NotRegisteredError, UserPermissionError
 from utils.checks import is_admin
 from utils.converters import Userlike
@@ -37,7 +37,7 @@ class Quickstart(commands.Cog):
                 icon_url="https://i.gifer.com/ZZ5H.gif",  # Loading spinner
             )
             embed.set_footer(
-                text=f"Scanning for {tag(user)}",
+                text=f"Scanning for {user}",
                 icon_url=user.display_avatar.url,
             )
             await status_message.edit(embed=embed)
@@ -71,7 +71,7 @@ class Quickstart(commands.Cog):
             if ctx.author == user:
                 raise AlreadyScanning("❌ Quickstart is already running!")
             raise AlreadyScanning(
-                f"❌ Quickstart is already running for {tag(user)}!"
+                f"❌ Quickstart is already running for {user.mention}!"
             )
 
         self.ongoing_scans.add(user.id)
@@ -104,7 +104,7 @@ class Quickstart(commands.Cog):
                 title="Quickstart is scanning",
                 description=(
                     "Parrot is now scanning this server and learning from "
-                    f"{tag(name)} past messages.\nThis could take a few minutes."
+                    f"{name} past messages.\nThis could take a few minutes."
                     "\nCheck your DMs to see its progress."
                 )
             ), reference=ctx.message)
@@ -148,7 +148,7 @@ class Quickstart(commands.Cog):
 
             # Update the status embed one last time, but DELETE it this time and
             #   post a brand new one so that the user gets a new notification.
-            name = "you" if ctx.author == user else f"{tag(user)}"
+            name = "you" if ctx.author == user else f"{user.mention}"
             embed = ParrotEmbed(
                 description=(
                     f"**Scan complete.**\nCollected "
@@ -157,12 +157,12 @@ class Quickstart(commands.Cog):
             )
             embed.set_author(name="✅ Quickstart")
             embed.set_footer(
-                text=f"Scanning for {tag(user)}",
+                text=f"Scanning for {user.mention}",
                 icon_url=user.display_avatar.url,
             )
             if crawler.num_collected == 0:
                 embed.description += (
-                    f"\n😕 Couldn't find any messages from {tag(name)}."
+                    f"\n😕 Couldn't find any messages from {name}."
                 )
                 embed.color = ParrotEmbed.colors["red"]
             await asyncio.gather(
@@ -179,8 +179,8 @@ class Quickstart(commands.Cog):
     def assert_registered(self, user: Union[User, Member]) -> None:
         if not user.bot and user.id not in self.bot.registered_users:
             raise NotRegisteredError(
-                f"User {user} is not opted in to Parrot. To opt in, do the "
-                f"`{self.bot.command_prefix}register` command."
+                f"User {user.mention} is not opted in to Parrot. To opt in, do "
+                f"the `{self.bot.command_prefix}register` command."
             )
 
 

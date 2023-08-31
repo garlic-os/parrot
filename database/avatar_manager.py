@@ -7,6 +7,7 @@ from discord import File, TextChannel, User
 from discord.errors import NotFound
 import config
 from utils.image import modify_avatar
+from utils import tag
 
 
 class AvatarManager:
