@@ -1,6 +1,6 @@
 from discord.ext import commands
 from bot import Parrot
-from utils import ParrotEmbed, tag
+from utils import ParrotEmbed
 from utils.converters import Userlike
 from utils.exceptions import FriendlyError
 
@@ -43,7 +43,7 @@ class Registration(commands.Cog):
         embed.add_field(
             name="Tip:",
             value=(
-               f"Try the `{self.bot.command_prefix}quickstart` command to "
+                f"Try the `{self.bot.command_prefix}quickstart` command to "
                 "immediately give Parrot a dataset to imitate you from! It "
                 "will scan your past messages to create a model of how you "
                 "speak so you can start using Parrot right away."
