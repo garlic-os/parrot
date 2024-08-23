@@ -321,9 +321,9 @@ class Admin(commands.Cog):
             # Upsert the new prefix.
             self.bot.db.execute(
                 """
-                INSERT INTO guilds (guild_id, prefix)
+                INSERT INTO guilds (id, prefix)
                 VALUES (?, ?)
-                ON CONFLICT (guild_id) DO UPDATE
+                ON CONFLICT (id) DO UPDATE
                 SET prefix = EXCLUDED.prefix
                 """,
                 (ctx.guild.id, new_prefix)
