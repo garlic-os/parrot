@@ -313,6 +313,7 @@ class Admin(commands.Cog):
 
     @commands.command()
     @commands.check(is_admin)
+    @commands.guild_only()
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def prefix(self, ctx: commands.Context, *, new_prefix: Optional[str]=None) -> None:
         """ Change the imitation prefix. """
@@ -334,6 +335,7 @@ class Admin(commands.Cog):
 
     @commands.command()
     @commands.check(is_admin)
+    @commands.guild_only()
     @commands.cooldown(2, 4, commands.BucketType.user)
     async def suffix(self, ctx: commands.Context, *, new_suffix: Optional[str]=None) -> None:
         """ Change the imitation suffix. """
