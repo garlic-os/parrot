@@ -321,7 +321,7 @@ class Admin(commands.Cog):
             # Upsert the new prefix.
             self.bot.db.execute(
                 """
-                INSERT INTO servers (guild_id, prefix)
+                INSERT INTO guilds (guild_id, prefix)
                 VALUES (?, ?)
                 ON CONFLICT (guild_id) DO UPDATE
                 SET prefix = EXCLUDED.prefix
@@ -343,9 +343,9 @@ class Admin(commands.Cog):
             # Upsert the new suffix.
             self.bot.db.execute(
                 """
-                INSERT INTO servers (guild_id, suffix)
+                INSERT INTO guilds (id, suffix)
                 VALUES (?, ?)
-                ON CONFLICT (guild_id) DO UPDATE
+                ON CONFLICT (id) DO UPDATE
                 SET suffix = EXCLUDED.suffix
                 """,
                 (ctx.guild.id, new_suffix)

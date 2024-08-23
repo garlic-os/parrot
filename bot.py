@@ -76,7 +76,7 @@ class Parrot(commands.AutoShardedBot):
                 content   TEXT    NOT NULL
             );
 
-            CREATE TABLE IF NOT EXISTS servers (
+            CREATE TABLE IF NOT EXISTS guilds (
                 id INTEGER PRIMARY KEY,
                 imitation_prefix TEXT NOT NULL DEFAULT "Not ",
                 imitation_suffix TEXT NOT NULL DEFAULT ""
@@ -278,7 +278,7 @@ class Parrot(commands.AutoShardedBot):
         res = self.db.execute(
             """
             SELECT imitation_prefix, imitation_suffix
-            FROM servers
+            FROM guilds
             WHERE id = ?
             """,
             (guild_id,)
