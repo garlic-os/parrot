@@ -283,4 +283,7 @@ class Parrot(commands.AutoShardedBot):
             """,
             (guild_id,)
         )
-        return res.fetchone()
+        result = res.fetchone()
+        if result is None:
+            return "Not ", ""
+        return result
