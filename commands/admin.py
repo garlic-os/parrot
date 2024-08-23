@@ -324,7 +324,7 @@ class Admin(commands.Cog):
                 INSERT INTO guilds (id, imitation_prefix)
                 VALUES (?, ?)
                 ON CONFLICT (id) DO UPDATE
-                SET prefix = EXCLUDED.imitation_prefix
+                SET imitation_prefix = EXCLUDED.imitation_prefix
                 """,
                 (ctx.guild.id, new_prefix)
             )
@@ -346,7 +346,7 @@ class Admin(commands.Cog):
                 INSERT INTO guilds (id, imitation_suffix)
                 VALUES (?, ?)
                 ON CONFLICT (id) DO UPDATE
-                SET suffix = EXCLUDED.imitation_suffix
+                SET imitation_suffix = EXCLUDED.imitation_suffix
                 """,
                 (ctx.guild.id, new_suffix)
             )
