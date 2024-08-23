@@ -77,8 +77,8 @@ class Parrot(commands.AutoShardedBot):
             );
 
             CREATE TABLE IF NOT EXISTS servers (
-                id INTEGER PRIMARY KEY
-                imitation_prefix TEXT NOT NULL DEFAULT "Not "
+                id INTEGER PRIMARY KEY,
+                imitation_prefix TEXT NOT NULL DEFAULT "Not ",
                 imitation_suffix TEXT NOT NULL DEFAULT ""
             );
             COMMIT;
