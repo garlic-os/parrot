@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable, Optional, Union
 
 from discord import TextChannel
 from discord.ext import commands
@@ -309,6 +309,49 @@ class Admin(commands.Cog):
             reason=f"Requested by {tag(ctx.author)}",
         )
         await ctx.send("✅ Parrot's nickname has been removed.")
+
+
+    @commands.command()
+    @commands.check(is_admin)
+    @commands.cooldown(2, 4, commands.BucketType.user)
+    async def prefix(self, ctx: commands.Context, *, new_prefix: Optional[str]=None) -> None:
+        """ Change the imitation prefix. """
+        if new_prefix is not None:  # Set
+            # Upsert the new prefix.
+            self.bot.db.execute(
+                """
+                INSERT INTO servers (guild_id, prefix)
+                VALUES (?, ?)
+                ON CONFLICT (guild_id) DO UPDATE
+                SET prefix = EXCLUDED.prefix
+                """,
+                (ctx.guild.id, new_prefix)
+            )
+            await ctx.send(f"✅ Parrot's imitation prefix is now: `{new_prefix}`")
+        else:  # Get
+            prefix, _ = self.bot.get_guild_prefix_suffix(ctx.guild.id)
+            await ctx.send(f"Parrot's imitation prefix is: `{prefix}`")
+
+    @commands.command()
+    @commands.check(is_admin)
+    @commands.cooldown(2, 4, commands.BucketType.user)
+    async def suffix(self, ctx: commands.Context, *, new_suffix: Optional[str]=None) -> None:
+        """ Change the imitation suffix. """
+        if new_suffix is not None:  # Set
+            # Upsert the new suffix.
+            self.bot.db.execute(
+                """
+                INSERT INTO servers (guild_id, suffix)
+                VALUES (?, ?)
+                ON CONFLICT (guild_id) DO UPDATE
+                SET suffix = EXCLUDED.suffix
+                """,
+                (ctx.guild.id, new_suffix)
+            )
+            await ctx.send(f"✅ Parrot's imitation suffix is now: `{new_suffix}`")
+        else:  # Get
+            _, suffix = self.bot.get_guild_prefix_suffix(ctx.guild.id)
+            await ctx.send(f"Parrot's imitation suffix is: `{suffix}`")
 
 
 

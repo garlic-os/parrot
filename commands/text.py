@@ -66,7 +66,9 @@ class Text(commands.Cog):
         # error handler deal with.
         model = await self.bot.get_model(user)
         sentence = model.make_short_sentence(500) or "Error"
-        name = f"Not {user.display_name}"
+
+        prefix, suffix = self.bot.get_guild_prefix_suffix(ctx.guild.id)
+        name = f"{prefix}{user.display_name}{suffix}"
 
         if intimidate:
             sentence = "**" + self.discord_caps(sentence) + "**"

@@ -1,3 +1,4 @@
+from functools import cache
 from typing import List, Optional, Set, Union
 from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents, User
@@ -73,6 +74,12 @@ class Parrot(commands.AutoShardedBot):
                 user_id   INTEGER NOT NULL REFERENCES users(id),
                 timestamp INTEGER NOT NULL,
                 content   TEXT    NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS servers (
+                id INTEGER PRIMARY KEY
+                imitation_prefix TEXT NOT NULL DEFAULT "Not "
+                imitation_suffix TEXT NOT NULL DEFAULT ""
             );
             COMMIT;
             """
@@ -264,3 +271,16 @@ class Parrot(commands.AutoShardedBot):
 
     def get_registered_users(self) -> Set[int]:
         return self.registered_users
+
+
+    @cache
+    def get_guild_prefix_suffix(self, guild_id: int) -> tuple[str, str]:
+        res = self.db.execute(
+            """
+            SELECT imitation_prefix, imitation_suffix
+            FROM servers
+            WHERE id = ?
+            """,
+            (guild_id,)
+        )
+        return res.fetchone()
