@@ -32,6 +32,10 @@ AVATAR_STORE_CHANNEL_ID: int = 867573882608943127
 # Whether or not to say "lmao" when someone says "ayy"
 AYY_LMAO: bool = True
 
+# Chance on [0, 1] to reply to a message with its content filtered through
+# weasel.devolve
+RANDOM_DEVOLVE_CHANCE: float = 0.005
+
 # Enable the "|imitate someone" feature
 # Requires Server Members Intent
 ENABLE_IMITATE_SOMEONE: bool = True
