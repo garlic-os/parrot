@@ -5,6 +5,7 @@ description = ""
 authors = ["Nate <14845347+garlic-os@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
