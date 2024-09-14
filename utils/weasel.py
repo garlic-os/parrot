@@ -1,3 +1,8 @@
+"""
+https://en.wikipedia.org/wiki/Weasel_program
+"""
+
+import asyncio
 import string
 import random
 from typing import Callable, Coroutine, TypedDict
