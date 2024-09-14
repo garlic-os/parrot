@@ -41,8 +41,9 @@ class MessageEventHandler(commands.Cog):
 
         # Randomly decide to devolve a message.
         if random.random() < config.RANDOM_DEVOLVE_CHANCE:
+            text = self.bot.find_text(message)
             await message.reply(
-                await weasel.devolve(message.content),
+                await weasel.devolve(text),
                 silent=True
             )
 

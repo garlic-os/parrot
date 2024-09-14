@@ -287,3 +287,20 @@ class Parrot(commands.AutoShardedBot):
         if result is None:
             return "Not ", ""
         return result
+
+
+    def find_text(self, message: Message) -> str:
+        """
+        Search for text within a message.
+        Return an empty string if no text is found.
+        """
+        text = []
+        if (
+            len(message.content) > 0 and
+            not message.content.startswith(self.command_prefix)
+        ):
+            text.append(message.content)
+        for embed in message.embeds:
+            if isinstance(embed.description, str) and len(embed.description) > 0:
+                text.append(embed.description)
+        return " ".join(text)
