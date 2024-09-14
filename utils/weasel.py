@@ -1,6 +1,6 @@
 import string
 import random
-from typing import Callable, TypedDict
+from typing import Callable, Coroutine, TypedDict
 
 from utils import executor_function
 
@@ -159,3 +159,22 @@ def evolve(objective: str, pop_size: int=3, fitness_percent: float=1) -> str:
             # print("".join(population[0]["genome"]))
     # print()
     return population[0]["genome"]
+
+
+async def devolve(text: str) -> str:
+    fitness = random.uniform(0.6, 0.9)
+
+    chunks: list[str] = []
+    while len(text) > 0:
+        chunks.append(text[:60])
+        text = text[60:]
+
+    devolved_chunks: list[str] = [""] * len(chunks)
+    async def do_devolve(i: int, chunk: str) -> None:
+        devolved_chunks[i] = await evolve(chunk, fitness_percent=fitness)
+
+    tasks: list[Coroutine] = \
+        [do_devolve(i, chunk) for i, chunk in enumerate(chunks)]
+
+    await asyncio.gather(*tasks)
+    return "".join(devolved_chunks)

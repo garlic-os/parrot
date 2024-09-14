@@ -190,26 +190,7 @@ class Text(commands.Cog):
         this channel. You can also reply to a message and Parrot will gibberize
         that.
         """
-        async def devolver(text: str) -> str:
-            fitness = random.uniform(0.6, 0.9)
-    
-            chunks: list[str] = []
-            while len(text) > 0:
-                chunks.append(text[:60])
-                text = text[60:]
-    
-            devolved_chunks: list[str] = [""] * len(chunks)
-            async def do_devolve(i: int, chunk: str) -> None:
-                devolved_text = await weasel.evolve(chunk, fitness_percent=fitness)
-                devolved_chunks[i] = devolved_text
-
-            tasks: list[Coroutine] = \
-                [do_devolve(i, chunk) for i, chunk in enumerate(chunks)]
-
-            await asyncio.gather(*tasks)
-            return "".join(devolved_chunks)
-
-        await self._modify_text(ctx, input_text=text, modifier=devolver)
+        await self._modify_text(ctx, input_text=text, modifier=weasel.devolve)
 
 
 async def setup(bot: Parrot) -> None:
