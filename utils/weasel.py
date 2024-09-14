@@ -1,4 +1,3 @@
-import sys
 import string
 import random
 from typing import Callable, TypedDict
