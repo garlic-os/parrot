@@ -5,6 +5,8 @@ from typing import Callable, TypedDict
 from utils import executor_function
 
 
+DEFAULT_ALPHABET = string.ascii_lowercase
+
 class Individual(TypedDict):
     genome: str
     fitness: int
@@ -16,7 +18,7 @@ Population = list[Individual]
 def get_alphabet(objective: str) -> str:
     """Get the alphabet for the objective string.
     This is the ASCII letters plus any unique characters in the objective."""
-    alphabet = set(string.ascii_letters)
+    alphabet = set(DEFAULT_ALPHABET)
     for char in objective:
         alphabet.add(char)
     return "".join(alphabet)
