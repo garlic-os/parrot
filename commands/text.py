@@ -162,9 +162,8 @@ class Text(commands.Cog):
     async def gibberish(self, ctx: commands.Context, *, text: str="") -> None:
         """
         Enter some text and turn it into gibberish. If you don't enter any text,
-        Parrot will gibberize the last message send in this channel instead.
-        You can also reply to a message (please be polite and turn off the ping
-        reply) and Parrot will gibberize that message.
+        Parrot gibberizes the last message sent in this channel.
+        You can also reply to a message and Parrot will gibberize that.
         """
         async def gibberizer(text: str) -> str:
             model = await GibberishMarkov.new(text)
@@ -183,6 +182,12 @@ class Text(commands.Cog):
     @commands.command(brief="Devolve a sentence.")
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def devolve(self, ctx: commands.Context, *, text: str="") -> None:
+        """
+        Enter some text and devolve it back toward primordial ooze.
+        If you don't enter any text, Parrot gibberizes the last message sent in
+        this channel. You can also reply to a message and Parrot will gibberize
+        that.
+        """
         async def devolver(text: str) -> str:
             return weasel.evolve(text, fitness_percent=random.uniform(0.5, 0.9))
         await self._modify_text(ctx, input_text=text, modifier=devolver)
