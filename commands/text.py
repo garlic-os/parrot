@@ -191,7 +191,7 @@ class Text(commands.Cog):
         that.
         """
         async def devolver(text: str) -> str:
-            return weasel.evolve(text, fitness_percent=random.uniform(0.5, 0.9))
+            return weasel.evolve(text, fitness_percent=random.uniform(0.6, 0.9))
         await self._modify_text(ctx, input_text=text, modifier=devolver)
 
 
