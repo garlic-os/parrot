@@ -1,4 +1,3 @@
-from typing import Dict
 from discord import Embed
 
 
@@ -8,7 +7,7 @@ class ParrotEmbed(Embed):
     Concepts stolen from crimsoBOT; copyright (c) 2019 crimso, williammck; MIT
     https://github.com/crimsobot/crimsoBOT/blob/master/crimsobot/utils/tools.py
     """
-    colors: Dict[str, int] = {
+    colors: dict[str, int] = {
         "default": 0xA755B5,  # Pale purple
         "red": 0xB71C1C,  # Deep, muted red
         "orange": 0xF4511E,  # Deep orange. Reserved for BIG trouble.

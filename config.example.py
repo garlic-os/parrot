@@ -1,4 +1,3 @@
-from typing import List
 import logging
 import sys
 import os
@@ -7,10 +6,10 @@ import os
 DISCORD_BOT_TOKEN: str = ""
 
 # Discord IDs
-ADMIN_USER_IDS: List[int] = [
+ADMIN_USER_IDS: list[int] = [
     206235904644349953,  # garlicOS®
 ]
-ADMIN_ROLE_IDS: List[int] = [
+ADMIN_ROLE_IDS: list[int] = [
 
 ]
 

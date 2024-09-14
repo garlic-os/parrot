@@ -15,7 +15,7 @@ class Registration(commands.Cog):
         brief="Register with Parrot."
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def register(self, ctx: commands.Context, who: Userlike=None) -> None:
+    async def register(self, ctx: commands.Context, who: Userlike | None=None) -> None:
         """ Register to let Parrot imitate you. """
         if who is not None and who.id != ctx.author.id:
             raise FriendlyError("You can only register yourself.")
@@ -60,7 +60,7 @@ class Registration(commands.Cog):
     async def unregister(
         self,
         ctx: commands.Context,
-        who: Userlike=None
+        who: Userlike | None=None
     ) -> None:
         """
         Remove your registration from Parrot.
@@ -101,7 +101,7 @@ class Registration(commands.Cog):
         brief="Check if you're registered with Parrot.",
     )
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def status(self, ctx: commands.Context, who: Userlike=None) -> None:
+    async def status(self, ctx: commands.Context, who: Userlike | None=None) -> None:
         """
         Check if you're registered with Parrot.
         You need to be registered for Parrot to be able to analyze your messages

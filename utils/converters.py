@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, List, Optional, Union
+from typing import Awaitable, Callable
 from discord.ext import commands
 from discord import Member, User
 
@@ -13,15 +13,15 @@ import config
 class BaseUserlike(commands.Converter):
     def __init__(self):
         Check = Callable[
-            [commands.Context, Optional[str]],
-            Awaitable[Optional[Union[User, Member]]]
+            [commands.Context, str | None],
+            Awaitable[User | Member | None]
         ]
-        self._checks: List[Check] = []
+        self._checks: list[Check] = []
 
     def _user_not_found(self, text: str) -> UserNotFoundError:
         return UserNotFoundError(f'User "{text}" does not exist.')
 
-    async def convert(self, ctx: commands.Context, text: str=None) -> Union[User, Member]:
+    async def convert(self, ctx: commands.Context, text: str | None=None) -> User | Member:
         if text is None:
             raise self._user_not_found(text)
 
@@ -103,7 +103,7 @@ class FuzzyUserlike(Userlike):
                 raise UserNotFoundError('The "|imitate someone" feature is disabled.')
             if ctx.guild is None:
                 return ctx.author
-            # List of users who are both in this channel and registered
+            # list of users who are both in this channel and registered
             registered_users_here = filter(
                 lambda user: (
                     user.id in ctx.bot.registered_users or

@@ -1,10 +1,9 @@
 import asyncio
 import logging
-import random
 import traceback
-from typing import Awaitable, Callable, Coroutine
+from typing import Awaitable, Callable
 
-from discord import AllowedMentions, Message, User
+from discord import AllowedMentions, User
 from bot import Parrot
 
 from discord.ext import commands
@@ -16,20 +15,6 @@ from utils.exceptions import FriendlyError
 class Text(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
-
-
-    def find_text(self, message: Message) -> str:
-        """
-        Search for text within a message.
-        Return an empty string if no text is found.
-        """
-        text = []
-        if len(message.content) > 0 and not message.content.startswith(self.bot.command_prefix):
-            text.append(message.content)
-        for embed in message.embeds:
-            if isinstance(embed.description, str) and len(embed.description) > 0:
-                text.append(embed.description)
-        return " ".join(text)
 
 
     def discord_caps(self, text: str) -> str:
@@ -133,7 +118,7 @@ class Text(commands.Cog):
             reference_message = await ctx.channel.fetch_message(
                 ctx.message.reference.message_id
             )
-            input_text += self.find_text(reference_message)
+            input_text += self.bot.find_text(reference_message)
             if len(input_text) == 0:
                 # Author didn't include any text of their own, and the message
                 # they're trying to get text from doesn't have any text.
@@ -145,7 +130,7 @@ class Text(commands.Cog):
             history = ctx.channel.history(limit=10, before=ctx.message)
             while len(input_text) == 0:
                 try:
-                    input_text += self.find_text(await history.__anext__())
+                    input_text += self.bot.find_text(await history.__anext__())
                 except StopAsyncIteration:
                     raise FriendlyError(
                         "😕 Couldn't find a gibberizeable message"

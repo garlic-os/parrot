@@ -1,5 +1,4 @@
 from functools import cache
-from typing import List, Optional, Set, Union
 from discord import (
     Activity, ActivityType, AllowedMentions, ChannelType, Message, Intents, User
 )
@@ -24,8 +23,8 @@ class Parrot(commands.AutoShardedBot):
         self, *,
         prefix: str,
         db_path: str,
-        admin_user_ids: List[int],
-        admin_role_ids: Optional[List[int]]=None,
+        admin_user_ids: list[int],
+        admin_role_ids: list[int] | None=None,
     ):
         self.destructor_called = False
 
@@ -220,7 +219,7 @@ class Parrot(commands.AutoShardedBot):
         )
 
 
-    def learn_from(self, messages: Union[Message, List[Message]]) -> int:
+    def learn_from(self, messages: Message | list[Message]) -> int:
         """
         Add a Message or list of Messages to a user's corpus.
         Every Message in the list must be from the same user.
@@ -269,7 +268,7 @@ class Parrot(commands.AutoShardedBot):
         self.registered_users = {row[0] for row in res.fetchall()}
 
 
-    def get_registered_users(self) -> Set[int]:
+    def get_registered_users(self) -> set[int]:
         return self.registered_users
 
 

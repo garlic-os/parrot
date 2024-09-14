@@ -4,7 +4,6 @@ Copyright (c) 2018 toxicrecker, MIT License
 https://github.com/toxicrecker/DiscordUtils/blob/master/DiscordUtils/Pagination.py
 """
 
-from typing import List, Tuple, Union
 from discord import Embed, Emoji, PartialEmoji, Reaction, User, Member
 from discord.abc import Messageable
 from discord.ext import commands
@@ -12,7 +11,7 @@ from discord.ext import commands
 import asyncio
 import math
 
-Emojilike = Union[Emoji, Reaction, PartialEmoji, str]
+Emojilike = Emoji | Reaction | PartialEmoji | str
 
 
 class CustomEmbedPaginator:
@@ -22,8 +21,8 @@ class CustomEmbedPaginator:
         self.bot = ctx.bot
         self.timeout = int(kwargs.get("timeout", 60))
         self.current_page = 0
-        self.control_emojis: List[Emojilike] = []
-        self.control_commands: List[str] = []
+        self.control_emojis: list[Emojilike] = []
+        self.control_commands: list[str] = []
         self.auto_footer = kwargs.get("auto_footer", False)
         self.remove_reactions = kwargs.get("remove_reactions", False)
 
@@ -56,7 +55,7 @@ class CustomEmbedPaginator:
         self.control_emojis = []
         self.control_commands = []
 
-    async def run(self, embeds: List[Embed], send_to: Messageable=None) -> None:
+    async def run(self, embeds: list[Embed], send_to: Messageable | None=None) -> None:
         self.embeds = embeds
         if not send_to:
             send_to = self.ctx
@@ -70,7 +69,7 @@ class CustomEmbedPaginator:
             await msg.add_reaction(emoji)
         msg = await msg.channel.fetch_message(msg.id)
 
-        def check(reaction: Reaction, user: Union[User, Member]) -> bool:
+        def check(reaction: Reaction, user: User | Member) -> bool:
             return (
                 user == wait_for
                 and reaction.message.id == msg.id
@@ -214,7 +213,12 @@ class CustomEmbedPaginator:
 
 
 class FromList(CustomEmbedPaginator):
-    def __init__(self, ctx: commands.Context, entries: List[Union[str, Tuple[str, str]]], template_embed: Embed=None, **kwargs):
+    def __init__(
+        self,
+        ctx: commands.Context,
+        entries: list[str | tuple[str, str]],
+        template_embed: Embed | None=None, **kwargs
+    ):
         """ Create a paginated embed from a list. """
         super().__init__(ctx, **kwargs)
         self.fromlist_embeds = []
