@@ -101,7 +101,10 @@ class Text(commands.Cog):
             )
 
 
-    @commands.command(brief="Imitate someone.")
+    @commands.command(
+        aliases=["be"],
+        brief="Imitate someone."
+    )
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def imitate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
         """ Imitate someone. """
