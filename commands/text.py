@@ -1,11 +1,13 @@
 import logging
+import random
 import traceback
+from typing import Awaitable, Callable
 
 from discord import AllowedMentions, Message, User
 from bot import Parrot
 
 from discord.ext import commands
-from utils import fetch_webhook, GibberishMarkov, ParrotEmbed, regex
+from utils import fetch_webhook, GibberishMarkov, ParrotEmbed, regex, weasel
 from utils.converters import FuzzyUserlike
 from utils.exceptions import FriendlyError
 
@@ -116,6 +118,42 @@ class Text(commands.Cog):
         await self.really_imitate(ctx, user, intimidate=True)
 
 
+    async def _modify_text(
+        self,
+        ctx: commands.Context,
+        *,
+        input_text: str="",
+        modifier: Callable[[str], Awaitable[str]]
+    ) -> None:
+        """Generic function for commands that just modify text."""
+        # If the author is replying to a message, add that message's text
+        # to anything the author might have also said after the command.
+        if ctx.message.reference and ctx.message.reference.message_id:
+            reference_message = await ctx.channel.fetch_message(
+                ctx.message.reference.message_id
+            )
+            input_text += self.find_text(reference_message)
+            if len(input_text) == 0:
+                # Author didn't include any text of their own, and the message
+                # they're trying to get text from doesn't have any text.
+                raise FriendlyError("😕 That message doesn't have any text!")
+
+        # If there is no text and no reference message, try to get the text from
+        # the last (usable) message sent in this channel.
+        elif len(input_text) == 0:
+            history = ctx.channel.history(limit=10, before=ctx.message)
+            while len(input_text) == 0:
+                try:
+                    input_text += self.find_text(await history.__anext__())
+                except StopAsyncIteration:
+                    raise FriendlyError(
+                        "😕 Couldn't find a gibberizeable message"
+                    )
+
+        input_text = await modifier(input_text)
+        await ctx.send(input_text[:2000])
+
+
     @commands.command(
         aliases=["gibberize"],
         brief="Gibberize a sentence.",
@@ -128,40 +166,26 @@ class Text(commands.Cog):
         You can also reply to a message (please be polite and turn off the ping
         reply) and Parrot will gibberize that message.
         """
-        # If the author is replying to a message, add that message's text
-        # to anything the author might have also said after the command.
-        if ctx.message.reference and ctx.message.reference.message_id:
-            reference_message = await ctx.channel.fetch_message(
-                ctx.message.reference.message_id
-            )
-            text += self.find_text(reference_message)
-            if len(text) == 0:
-                # Author didn't include any text of their own, and the message
-                # they're trying to get text from doesn't have any text.
-                raise FriendlyError("😕 That message doesn't have any text!")
+        async def gibberizer(text: str) -> str:
+            model = await GibberishMarkov.new(text)
+            # Generate gibberish;
+            # try up to 10 times to make it not the same as the source text.
+            old_text = text
+            for _ in range(10):
+                text = model.make_sentence()
+                if text != old_text:
+                    break
+            return text
 
-        # If there is no text and no reference message, try to get the text from
-        # the last (usable) message sent in this channel.
-        elif len(text) == 0:
-            history = ctx.channel.history(limit=10, before=ctx.message)
-            while len(text) == 0:
-                try:
-                    text += self.find_text(await history.__anext__())
-                except StopAsyncIteration:
-                    raise FriendlyError(
-                        "😕 Couldn't find a gibberizeable message"
-                    )
+        await self._modify_text(ctx, input_text=text, modifier=gibberizer)
 
-        model = await GibberishMarkov.new(text)
 
-        # Generate gibberish;
-        # try up to 10 times to make it not the same as the source text.
-        for _ in range(10):
-            new_text = model.make_sentence()
-            if new_text != text:
-                break
-
-        await ctx.send(new_text[:2000])
+    @commands.command(brief="Devolve a sentence.")
+    @commands.cooldown(2, 2, commands.BucketType.user)
+    async def devolve(self, ctx: commands.Context, *, text: str="") -> None:
+        async def devolver(text: str) -> str:
+            return weasel.evolve(text, fitness_percent=random.uniform(0.5, 0.9))
+        await self._modify_text(ctx, input_text=text, modifier=devolver)
 
 
 async def setup(bot: Parrot) -> None:
