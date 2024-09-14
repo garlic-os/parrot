@@ -1,4 +1,3 @@
-from typing import Set, Union
 from discord import Member, Message, User
 from bot import Parrot
 
@@ -16,7 +15,7 @@ class Quickstart(commands.Cog):
         self.bot = bot
         # Keep track of Quickstart scans that are currently happening.
         # Contains user IDs
-        self.ongoing_scans: Set[int] = set()
+        self.ongoing_scans: set[int] = set()
 
 
     async def live_update_status(
@@ -49,7 +48,7 @@ class Quickstart(commands.Cog):
     async def quickstart(
         self,
         ctx: commands.Context,
-        user: Userlike=None
+        user: Userlike | None=None
     ) -> None:
         """ Scan your past messages to get started using Parrot right away. """
         if user is None or ctx.author == user:
@@ -176,7 +175,7 @@ class Quickstart(commands.Cog):
         self.ongoing_scans.remove(user.id)
 
 
-    def assert_registered(self, user: Union[User, Member]) -> None:
+    def assert_registered(self, user: User | Member) -> None:
         if not user.bot and user.id not in self.bot.registered_users:
             raise NotRegisteredError(
                 f"User {user.mention} is not opted in to Parrot. To opt in, do "

@@ -1,9 +1,8 @@
-from typing import Optional
 from discord import Forbidden, HTTPException, NotFound, Webhook
 from discord.ext import commands
 
 
-async def fetch_webhook(ctx: commands.Context) -> Optional[Webhook]:
+async def fetch_webhook(ctx: commands.Context) -> Webhook | None:
     # See if Parrot owns a webhook for this channel.
     res = ctx.bot.db.execute(
         "SELECT webhook_id FROM channels WHERE id = ?",

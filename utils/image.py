@@ -6,7 +6,7 @@ Copyright (c) 2019 crimso, williammck
 """
 
 from io import BytesIO
-from typing import Any, Callable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping
 from discord import User
 
 import logging
@@ -30,9 +30,9 @@ def gif_frame_transparency(img: Image.Image) -> Image.Image:
 
 
 def image_to_buffer(
-    image_list: List[Image.Image],
-    durations: Optional[Tuple[int, ...]] = None,
-    loops: Optional[bool] = None
+    image_list: list[Image.Image],
+    durations: tuple[int, ...] | None = None,
+    loops: bool | None = None
 ) -> BytesIO:
     fp = BytesIO()
 
@@ -100,8 +100,8 @@ IMG_PROCESS_FUNCTIONS: Mapping[str, Callable[Image.Image, Any]] = {
 @executor_function
 def process_lower_level(img: Image.Image, effect: str, arg: int) -> BytesIO:
     # this will only loop once for still images
-    frames: List[Image.Image] = []
-    durations: List[int] = []
+    frames: list[Image.Image] = []
+    durations: list[int] = []
 
     # if a GIF loops, it will have the attribute loop = 0; if not, then attribute does not exist
     image_loop = getattr(img.info, "loop", False)
@@ -117,7 +117,7 @@ def process_lower_level(img: Image.Image, effect: str, arg: int) -> BytesIO:
     return fp
 
 
-async def modify_avatar(user: User) -> Tuple[BytesIO, str]:
+async def modify_avatar(user: User) -> tuple[BytesIO, str]:
     # grab user image and covert to RGBA
     img = await fetch_image(user.avatar.url)
     is_gif = getattr(img, "is_animated", False)

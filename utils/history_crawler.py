@@ -1,4 +1,4 @@
-from typing import AsyncIterator, Callable, List, Union
+from typing import AsyncIterator, Callable
 from discord import Message
 
 
@@ -9,7 +9,7 @@ def dummy_filter(message: Message) -> bool:
 class HistoryCrawler:
     def __init__(
         self,
-        histories: Union[AsyncIterator, List[AsyncIterator]],
+        histories: AsyncIterator | list[AsyncIterator],
         action: Callable[[Message], bool],
         limit: int = 100_000,
         filter: Callable[[Message], bool] = dummy_filter

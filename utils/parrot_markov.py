@@ -1,12 +1,10 @@
-from typing import List
-
 import markovify
 import random
 from utils import executor_function
 
 
 class ParrotMarkov(markovify.Text):
-    def __init__(self, corpus: List[str]):
+    def __init__(self, corpus: list[str]):
         super().__init__(
             input_text=corpus,
             state_size=random.randint(1, 2),
@@ -40,7 +38,7 @@ class GibberishMarkov(markovify.Text):
     def new(cls, *args, **kwargs):
         return cls(*args, **kwargs)
 
-    def word_join(self, words: List[str]) -> str:
+    def word_join(self, words: list[str]) -> str:
         # The generator usually puts spaces between each entry in the list
         # because it expects them to be words. Since they're actually characters
         # here, we join the list without spaces.

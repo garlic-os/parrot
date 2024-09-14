@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, Union
+from typing import Iterable
 
 from discord import TextChannel
 from discord.ext import commands
@@ -48,9 +48,9 @@ class Admin(commands.Cog):
     async def channel(
         self,
         ctx: commands.Context,
-        action: str=None,
-        channel_type: str=None,
-        channel: TextChannel=None,
+        action: str | None=None,
+        channel_type: str | None=None,
+        channel: TextChannel | None=None,
     ) -> None:
         """ Manage Parrot's channel permissions. """
         if action is None:
@@ -66,8 +66,8 @@ class Admin(commands.Cog):
     async def add(
         self,
         ctx: commands.Context,
-        channel_type: str=None,
-        channel: TextChannel=None,
+        channel_type: str | None=None,
+        channel: TextChannel | None=None,
     ) -> None:
         """ Give Parrot learning or speaking permission in a new channel. """
         if channel_type is None:
@@ -143,8 +143,8 @@ class Admin(commands.Cog):
     async def remove(
         self,
         ctx: commands.Context,
-        channel_type: str=None,
-        channel: TextChannel=None,
+        channel_type: str | None=None,
+        channel: TextChannel | None=None,
     ) -> None:
         """ Remove Parrot's learning or speaking permission in a channel. """
         if channel_type is None:
@@ -201,7 +201,7 @@ class Admin(commands.Cog):
 
     @channel.group(invoke_without_command=True)
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view(self, ctx: commands.Context, channel_type: str=None) -> None:
+    async def view(self, ctx: commands.Context, channel_type: str | None=None) -> None:
         """ View the channels Parrot can speak or learn in. """
         if channel_type is None:
             await self.send_help(ctx)
@@ -210,7 +210,7 @@ class Admin(commands.Cog):
         self, *,
         ctx: commands.Context,
         channels: Iterable[TextChannel],
-        guild_id: Union[int, None],
+        guild_id: int | None,
         message: str,
         failure_message: str
     ) -> None:
@@ -240,7 +240,7 @@ class Admin(commands.Cog):
 
     @view.command(name="learning")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_learning(self, ctx: commands.Context, guild_id: int=None) -> None:
+    async def view_learning(self, ctx: commands.Context, guild_id: int | None=None) -> None:
         """ View the channels Parrot is learning from. """
         await self.do_view_channels(
             ctx=ctx,
@@ -252,7 +252,7 @@ class Admin(commands.Cog):
 
     @view.command(name="speaking")
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def view_speaking(self, ctx: commands.Context, guild_id: int=None) -> None:
+    async def view_speaking(self, ctx: commands.Context, guild_id: int | None=None) -> None:
         """ View the channels Parrot can imitate people in. """
         await self.do_view_channels(
             ctx=ctx,
@@ -265,7 +265,7 @@ class Admin(commands.Cog):
 
     @commands.group(invoke_without_command=True)
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def nickname(self, ctx: commands.Context, action: str=None) -> None:
+    async def nickname(self, ctx: commands.Context, action: str | None=None) -> None:
         """ Manage Parrot's nickname. """
         if action is None:
             await self.send_help(ctx)
@@ -286,7 +286,7 @@ class Admin(commands.Cog):
         self,
         ctx: commands.Context,
         *,
-        new_nick: str=None
+        new_nick: str | None=None
     ) -> None:
         """ Change Parrot's nickname. """
         if new_nick is None:
@@ -315,7 +315,7 @@ class Admin(commands.Cog):
     @commands.check(is_admin)
     @commands.guild_only()
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def prefix(self, ctx: commands.Context, *, new_prefix: Optional[str]=None) -> None:
+    async def prefix(self, ctx: commands.Context, *, new_prefix: str | None=None) -> None:
         """ Change the imitation prefix. """
         if new_prefix is not None:  # Set
             # Upsert the new prefix.
@@ -337,7 +337,7 @@ class Admin(commands.Cog):
     @commands.check(is_admin)
     @commands.guild_only()
     @commands.cooldown(2, 4, commands.BucketType.user)
-    async def suffix(self, ctx: commands.Context, *, new_suffix: Optional[str]=None) -> None:
+    async def suffix(self, ctx: commands.Context, *, new_suffix: str | None=None) -> None:
         """ Change the imitation suffix. """
         if new_suffix is not None:  # Set
             # Upsert the new suffix.

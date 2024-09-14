@@ -1,4 +1,4 @@
-from typing import Dict, NamedTuple
+from typing import NamedTuple
 from discord import User
 
 
@@ -8,4 +8,4 @@ class ConfirmationBody(NamedTuple):
 
 
 # Key: Message ID of a forget command
-PendingConfirmations = Dict[int, ConfirmationBody]
+PendingConfirmations = dict[int, ConfirmationBody]

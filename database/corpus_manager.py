@@ -1,4 +1,3 @@
-from typing import List, Union
 from discord import User, Member, Message
 from utils.exceptions import NoDataError, NotRegisteredError
 from utils import tag
@@ -13,8 +12,8 @@ class CorpusManager:
 
     def add(
         self,
-        user: Union[User, Member],
-        messages: List[Message]
+        user: User | Member,
+        messages: list[Message]
     ) -> int:
         """
         Record messages locally.
@@ -72,7 +71,7 @@ class CorpusManager:
             )
 
 
-    def get(self, user: Union[User, Member]) -> List[str]:
+    def get(self, user: User | Member) -> list[str]:
         """ Get a corpus from the database by user ID. """
         self.assert_registered(user)
         res = self.db.execute(
@@ -84,7 +83,7 @@ class CorpusManager:
         return corpus
 
 
-    def delete(self, user: Union[User, Member]) -> None:
+    def delete(self, user: User | Member) -> None:
         """ Delete a corpus from the database. """
         self.db.execute(
             "DELETE FROM messages WHERE user_id = ?", (user.id,)
@@ -109,7 +108,7 @@ class CorpusManager:
             )
 
 
-    def has(self, user: Union[User, Member]) -> bool:
+    def has(self, user: User | Member) -> bool:
         """ Check if the database contains any messages from a user. """
         res = self.db.execute(
             "SELECT COUNT(*) FROM messages WHERE user_id = ?", (user.id,)
@@ -117,7 +116,7 @@ class CorpusManager:
         return res.fetchone()[0] > 0
 
 
-    def assert_registered(self, user: Union[User, Member]) -> None:
+    def assert_registered(self, user: User | Member) -> None:
         if not user.bot and user.id not in self.get_registered_users():
             raise NotRegisteredError(
                 f"User {user.mention} is not opted in to Parrot. To opt in, do "
