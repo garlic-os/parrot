@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 import traceback
@@ -150,8 +151,9 @@ class Text(commands.Cog):
                         "😕 Couldn't find a gibberizeable message"
                     )
 
-        input_text = await modifier(input_text)
-        await ctx.send(input_text[:2000])
+        async with asyncio.timeout(5):
+            text = await modifier(input_text)
+        await ctx.send(text[:2000])
 
 
     @commands.command(
