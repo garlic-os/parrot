@@ -2,6 +2,8 @@ import string
 import random
 from typing import Callable, TypedDict
 
+from utils import executor_function
+
 
 class Individual(TypedDict):
     genome: str
@@ -130,6 +132,7 @@ def survivor_select(individuals: Population, pop_size: int) -> Population:
     return individuals[:pop_size]
 
 
+@executor_function
 def evolve(objective: str, pop_size: int=3, fitness_percent: float=1) -> str:
     """A whole EC run, the main driver."""
     population, alphabet = initialize_pop(objective, pop_size)
