@@ -1,3 +1,4 @@
+import random
 from discord import Message
 from bot import Parrot
 from utils.exceptions import NotRegisteredError
@@ -5,7 +6,7 @@ from utils.exceptions import NotRegisteredError
 import config
 import logging
 from discord.ext import commands
-from utils import tag
+from utils import tag, weasel
 
 
 class MessageEventHandler(commands.Cog):
@@ -37,6 +38,13 @@ class MessageEventHandler(commands.Cog):
                 )
         except NotRegisteredError:
             pass
+
+        # Randomly decide to devolve a message.
+        if random.random() < config.RANDOM_DEVOLVE_CHANCE:
+            await message.reply(
+                await weasel.devolve(message.content),
+                silent=True
+            )
 
         # Imitate again when someone replies to an imitate message.
         # if message.reference is not None:
