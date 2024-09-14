@@ -207,7 +207,7 @@ class Text(commands.Cog):
                 [do_devolve(i, chunk) for i, chunk in enumerate(chunks)]
 
             await asyncio.gather(*tasks)
-            return "".join(chunks)
+            return "".join(devolved_chunks)
 
         await self._modify_text(ctx, input_text=text, modifier=devolver)
 
