@@ -2,6 +2,8 @@ import asyncio
 import logging
 import traceback
 from typing import Awaitable, Callable
+import random
+from enum import Enum
 
 from discord import AllowedMentions, User
 from bot import Parrot
@@ -11,13 +13,17 @@ from utils import fetch_webhook, GibberishMarkov, ParrotEmbed, regex, weasel
 from utils.converters import FuzzyUserlike
 from utils.exceptions import FriendlyError
 
+class ImitateMode(Enum):
+    REGULAR = 1
+    INTIMIDATE = 2
+    IRRITATE = 3
 
 class Text(commands.Cog):
     def __init__(self, bot: Parrot):
         self.bot = bot
 
-
-    def discord_caps(self, text: str) -> str:
+    @staticmethod
+    def discord_caps(text: str) -> str:
         """
         Capitalize a string in a way that remains friendly to URLs, emojis, and
         mentions.
@@ -28,13 +34,26 @@ class Text(commands.Cog):
             if regex.do_not_capitalize.match(word) is None:
                 words[i] = word.upper()
         return " ".join(words)
+    
+    @staticmethod
+    def discord_irritate(text: str) -> str:
+        words = text.replace("*", "").split(" ")
+        for i, word in enumerate(words):
+            if regex.do_not_capitalize.match(word) is None:
+                # words[i] = har.upper() if random.randint(0, 1) else char.lower()
+                for j in range(len(word)):
+                    if random.randint(0, 1):
+                        words[i] = word[:j] + word[j].upper() + word[j+1:]
+                    else:
+                        words[i] = word[:j] + word[j].lower() + word[j+1:]
+        return " ".join(words)
 
 
     async def really_imitate(
         self,
         ctx: commands.Context,
         user: User,
-        intimidate: bool=False
+        mode: ImitateMode = ImitateMode.REGULAR,
     ) -> None:
         # Parrot can't imitate itself!
         if user == self.bot.user:
@@ -58,9 +77,11 @@ class Text(commands.Cog):
         prefix, suffix = self.bot.get_guild_prefix_suffix(ctx.guild.id)
         name = f"{prefix}{user.display_name}{suffix}"
 
-        if intimidate:
+        if mode == ImitateMode.INTIMIDATE:
             sentence = "**" + self.discord_caps(sentence) + "**"
             name = name.upper()
+        elif mode == ImitateMode.IRRITATE:
+            sentence = self.discord_irritate(sentence)
 
         # Prepare to send this sentence through a webhook.
         # Discord lets you change the name and avatar of a webhook account much
@@ -97,14 +118,21 @@ class Text(commands.Cog):
     async def imitate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
         """ Imitate someone. """
         logging.info(f"Imitating {user}")
-        await self.really_imitate(ctx, user, intimidate=False)
+        await self.really_imitate(ctx, user, mode=ImitateMode.REGULAR)
 
     @commands.command(brief="IMITATE SOMEONE.", hidden=True)
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def intimidate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
         """ IMITATE SOMEONE. """
         logging.info(f"Intimidating {user}")
-        await self.really_imitate(ctx, user, intimidate=True)
+        await self.really_imitate(ctx, user, mode=ImitateMode.INTIMIDATE)
+
+    @commands.command(brief="IMITATE SOMEONE.", hidden=True)
+    @commands.cooldown(2, 2, commands.BucketType.user)
+    async def irritate(self, ctx: commands.Context, user: FuzzyUserlike) -> None:
+        """ IRrITate SOmeOnE. """
+        logging.info(f"Irritating {user}")
+        await self.really_imitate(ctx, user, mode=ImitateMode.IRRITATE)
 
 
     async def _modify_text(
