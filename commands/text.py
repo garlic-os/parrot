@@ -111,7 +111,11 @@ class Text(commands.Cog):
         input_text: str="",
         modifier: Callable[[str], Awaitable[str]]
     ) -> None:
-        """Generic function for commands that just modify text."""
+        """Generic function for commands that just modify text.
+        
+        Tries really hard to find text to work with then processes it with your
+        callback.
+        """
         # If the author is replying to a message, add that message's text
         # to anything the author might have also said after the command.
         if ctx.message.reference and ctx.message.reference.message_id:
@@ -171,8 +175,8 @@ class Text(commands.Cog):
     async def devolve(self, ctx: commands.Context, *, text: str="") -> None:
         """
         Enter some text and devolve it back toward primordial ooze.
-        If you don't enter any text, Parrot gibberizes the last message sent in
-        this channel. You can also reply to a message and Parrot will gibberize
+        If you don't enter any text, Parrot devolves the last message sent in
+        this channel. You can also reply to a message and Parrot will devolve
         that.
         """
         await self._modify_text(ctx, input_text=text, modifier=weasel.devolve)
