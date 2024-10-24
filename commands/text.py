@@ -182,5 +182,17 @@ class Text(commands.Cog):
         await self._modify_text(ctx, input_text=text, modifier=weasel.devolve)
 
 
+    @commands.command(brief="Wawa a sentence.", aliases=["stowaway"])
+    @commands.cooldown(2, 2, commands.BucketType.user)
+    async def wawa(self, ctx: commands.Context, *, text: str="") -> None:
+        """
+        Enter some text and have it be repeated back to you by the stowaway.
+        If you don't enter any text, Parrot wawas the last message sent in
+        this channel. You can also reply to a message and Parrot will wawa
+        that.
+        """
+        await self._modify_text(ctx, input_text=text, modifier=weasel.wawa)
+
+
 async def setup(bot: Parrot) -> None:
     await bot.add_cog(Text(bot))
