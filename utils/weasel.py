@@ -187,7 +187,7 @@ async def devolve(text: str) -> str:
 
 RSS_MAX_LENGTH = 15
 def random_small_substring(text: str) -> str:
-    length = random.randint(1, RSS_MAX_LENGTH)
+    length = min(random.randint(1, RSS_MAX_LENGTH), len(text))
     start = random.randint(0, len(text) - length)
     return text[start:start + length]
 
