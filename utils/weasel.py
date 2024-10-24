@@ -47,7 +47,7 @@ def initialize_pop(objective: str, pop_size: int) -> tuple[Population, str]:
 Recombinator = Callable[[Individual, Individual], Population]
 
 def one_point_crossover(parent1: Individual, parent2: Individual) -> Population:
-    crossover_point = random.randint(1, len(parent1["genome"]) - 1)
+    crossover_point = random.randint(1, len(parent1["genome"]) - 2)
     # crossover_point = random.randint(0, len(parent1["genome"]) - 1)
     child1 = parent1["genome"][:crossover_point] + parent2["genome"][crossover_point:]
     child2 = parent2["genome"][:crossover_point] + parent1["genome"][crossover_point:]
