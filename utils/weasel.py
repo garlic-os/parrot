@@ -183,3 +183,18 @@ async def devolve(text: str) -> str:
 
     await asyncio.gather(*tasks)
     return "".join(devolved_chunks)
+
+
+RSS_MAX_LENGTH = 15
+def random_small_substring(text: str) -> str:
+    length = random.randint(1, RSS_MAX_LENGTH)
+    start = random.randint(0, len(text) - length)
+    return text[start:start + length]
+
+
+async def wawa(text: str) -> str:
+    # will still his 100% fitness somewhat often but we just don't want it to
+    # sit for a long time if it's close and we don't care if it's perfect
+    fitness = random.uniform(0.8, 0.95)
+    text = random_small_substring(text)
+    return await evolve(text, fitness_percent=fitness)
