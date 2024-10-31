@@ -70,6 +70,10 @@ def recombine_group(parents: Population, recombine_rate: float) -> Population:
 
     Pair parents 1-2, 3-4, 5-6, etc.
     Recombine at rate, else clone the parents."""
+    if len(parents[0]["genome"]) <= 2:
+        # Recombination will do nothing (worse actually -- it will crash!) if
+        # the genome is too short
+        return parents
     for i in range(0, len(parents), 2):
         if random.random() < recombine_rate:
             child_pair = recombine_pair(parents[i], parents[i + 1])
@@ -193,7 +197,7 @@ def random_small_substring(text: str) -> str:
 
 
 async def wawa(text: str) -> str:
-    # will still his 100% fitness somewhat often but we just don't want it to
+    # will still hit 100% fitness somewhat often but we just don't want it to
     # sit for a long time if it's close and we don't care if it's perfect
     fitness = random.uniform(0.8, 0.95)
     text = random_small_substring(text)
