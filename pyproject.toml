@@ -9,11 +9,11 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
-"discord.py" = "^2.3.2"
-jishaku = "^2.5.1"
+"discord.py" = "^2.4.0"
+jishaku = "^2.6.0"
 markovify = "^0.9.4"
-Pillow = "^10.0.1"
-PyYAML = "^6.0.1"
+Pillow = "^11.0.0"
+PyYAML = "^6.0.2"
 asyncio-atexit = "^1.0.1"
 async-lru = "^2.0.4"
 
