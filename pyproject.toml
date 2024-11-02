@@ -17,6 +17,9 @@ PyYAML = "^6.0.2"
 asyncio-atexit = "^1.0.1"
 async-lru = "^2.0.4"
 
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.29.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
