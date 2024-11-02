@@ -188,7 +188,10 @@ async def devolve(text: str) -> str:
 
 async def wawa(text: str) -> str:
     syls = (find_syllables(word) for word in text.split(" "))
-    syls = [x for xs in syls for x in xs]
-    samples = min(random.randint(1, 3), len(syls))
-    start_index = random.randint(0, len(syls) - samples)
-    return "".join(syls[start_index:start_index + samples])
+    syls_flat = []
+    for syl in syls:
+        syls_flat.extend(syl)
+        syls_flat.append(" ")
+    samples = min(random.randint(1, 3), len(syls_flat))
+    start_index = random.randint(0, len(syls_flat) - samples)
+    return "".join(syls_flat[start_index:start_index + samples])
