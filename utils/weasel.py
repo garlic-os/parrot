@@ -8,6 +8,7 @@ import random
 from typing import Callable, Coroutine, TypedDict
 
 from utils import executor_function
+from utils.syllables import find_syllables
 
 
 DEFAULT_ALPHABET = string.ascii_lowercase
@@ -185,16 +186,9 @@ async def devolve(text: str) -> str:
     return "".join(devolved_chunks)
 
 
-RSS_MAX_LENGTH = 15
-def random_small_substring(text: str) -> str:
-    length = min(random.randint(1, RSS_MAX_LENGTH), len(text))
-    start = random.randint(0, len(text) - length)
-    return text[start:start + length]
-
-
 async def wawa(text: str) -> str:
-    # will still his 100% fitness somewhat often but we just don't want it to
-    # sit for a long time if it's close and we don't care if it's perfect
-    fitness = random.uniform(0.8, 0.95)
-    text = random_small_substring(text)
-    return await evolve(text, fitness_percent=fitness)
+    syls = (find_syllables(word) for word in text.split(" "))
+    syls = [x for xs in syls for x in xs]
+    samples = min(random.randint(1, 3), len(syls))
+    start_index = random.randint(0, len(syls) - samples)
+    return "".join(syls[start_index:start_index + samples])
