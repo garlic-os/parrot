@@ -187,11 +187,15 @@ async def devolve(text: str) -> str:
 
 
 async def wawa(text: str) -> str:
-    syls = (find_syllables(word) for word in text.split(" "))
-    syls_flat = []
-    for syl in syls:
-        syls_flat.extend(syl)
-        syls_flat.append(" ")
-    samples = min(random.randint(1, 3), len(syls_flat))
-    start_index = random.randint(0, len(syls_flat) - samples)
-    return "".join(syls_flat[start_index:start_index + samples])
+    for _ in range(10):
+        syls = (find_syllables(word) for word in text.split(" "))
+        syls_flat = []
+        for syl in syls:
+            syls_flat.extend(syl)
+            syls_flat.append(" ")
+        samples = min(random.randint(1, 3), len(syls_flat))
+        start_index = random.randint(0, len(syls_flat) - samples)
+        result = "".join(syls_flat[start_index:start_index + samples])
+        if len(result) > 0:
+            return result
+    return "\u200b"  # zero width space to send an "empty" message
