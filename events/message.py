@@ -40,12 +40,12 @@ class MessageEventHandler(commands.Cog):
             pass
 
         # Randomly decide to devolve a message.
-        if random.random() < config.RANDOM_DEVOLVE_CHANCE:
-            text = self.bot.find_text(message)
-            await message.reply(
-                await weasel.wawa(text),
-                silent=True
-            )
+        # if random.random() < config.RANDOM_DEVOLVE_CHANCE:
+        #     text = self.bot.find_text(message)
+        #     await message.reply(
+        #         await weasel.wawa(text),
+        #         silent=True
+        #     )
 
         # Imitate again when someone replies to an imitate message.
         # if message.reference is not None:
