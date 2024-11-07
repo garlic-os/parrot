@@ -23,7 +23,7 @@ class RawMessageEditEventHandler(commands.Cog):
         except NoDataError:
             channel = self.bot.get_channel(event.channel_id)
             message = await channel.fetch_message(event.message_id)
-            self.bot.corpora.add(message.author, message)
+            self.bot.corpora.add(message.author, [message])
 
 
 async def setup(bot: Parrot) -> None:
