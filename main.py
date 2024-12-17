@@ -1,12 +1,13 @@
 import logging
-import config
-from bot import Parrot
 
-logging.info("Initializing bot...")
-bot = Parrot(
-    prefix=config.COMMAND_PREFIX,
-    db_path=config.DB_PATH,
-    admin_user_ids=config.ADMIN_USER_IDS,
-)
+from parrot.bot import Parrot
 
-bot.run(config.DISCORD_BOT_TOKEN)
+
+def main() -> None:
+	logging.info("Initializing bot...")
+	bot = Parrot()
+	bot.commence()
+
+
+if __name__ == "__main__":
+	main()
