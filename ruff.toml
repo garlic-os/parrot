@@ -1,0 +1,53 @@
+target-version = "py313"
+src = ["app"]
+line-length = 80
+indent-width = 4
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+[format]
+indent-style = "tab"
+quote-style = "double"
+
+[lint]
+extend-select = [
+    "I",    # isort: https://docs.astral.sh/ruff/rules/#isort-i
+    "UP",   # pyupgrade: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "ANN",  # annotations: https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "PTH",  # use-pathlib-pth: https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+]
+ignore = [
+    "ANN204",  # return type annotation for special method `__init__`
+]
+
+[lint.isort]
+case-sensitive = true
+lines-after-imports = 2
