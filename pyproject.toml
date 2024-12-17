@@ -1,22 +1,20 @@
-[tool.poetry]
+[project]
 name = "parrot"
-version = "3.2.0"
-description = ""
-authors = ["Nate <14845347+garlic-os@users.noreply.github.com>"]
-license = "MIT"
+version = "2.0.0"
+description = "Discord Markov bot that can imitate everyone individually"
 readme = "README.md"
-package-mode = false
+requires-python = ">=3.13"
+dependencies = [
+    "asyncio-atexit>=1.0.1",
+    "discord-py>=2.4.0",
+    "jishaku>=2.6.0",
+    "markovify>=0.9.4",
+    "pillow>=11.0.0",
+    "pydantic-settings>=2.7.0",
+    "sqlmodel>=0.0.22",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-"discord.py" = "^2.3.2"
-jishaku = "^2.5.1"
-markovify = "^0.9.4"
-Pillow = "^10.0.1"
-PyYAML = "^6.0.1"
-asyncio-atexit = "^1.0.1"
-async-lru = "^2.0.4"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "ruff>=0.8.3",
+]
