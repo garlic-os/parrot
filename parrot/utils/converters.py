@@ -1,18 +1,16 @@
 import random
 from collections.abc import Awaitable, Callable
 
-from discord import Member, User
 from discord.errors import NotFound
 from discord.ext import commands
 
 import parrot.utils.regex as patterns
 from parrot.config import settings
-from parrot.utils.exceptions import UserNotFoundError
+from parrot.core.exceptions import UserNotFoundError
+from parrot.core.types import AnyUser
 
 
-type Check = Callable[
-	[commands.Context, str | None], Awaitable[User | Member | None]
-]
+type Check = Callable[[commands.Context, str | None], Awaitable[AnyUser | None]]
 
 
 class BaseUserlike(commands.Converter):
@@ -22,9 +20,7 @@ class BaseUserlike(commands.Converter):
 	def _user_not_found(self, text: str) -> UserNotFoundError:
 		return UserNotFoundError(f'User "{text}" does not exist.')
 
-	async def convert(
-		self, ctx: commands.Context, argument: str
-	) -> User | Member:
+	async def convert(self, ctx: commands.Context, argument: str) -> AnyUser:
 		argument = argument.lower()
 
 		for check in self._checks:
@@ -65,7 +61,9 @@ class Userlike(BaseUserlike):
 		super().__init__()
 		self._checks.append(self._me)
 
-	async def _me(self, ctx, text):
+	async def _me(
+		self, ctx: commands.Context, text: str | None
+	) -> AnyUser | None:
 		if text in ("me", "myself"):
 			return ctx.author
 
@@ -76,7 +74,9 @@ class FuzzyUserlike(Userlike):
 		self._checks.append(self._you)
 		self._checks.append(self._someone)
 
-	async def _you(self, ctx, text):
+	async def _you(
+		self, ctx: commands.Context, text: str | None
+	) -> AnyUser | None:
 		"""Get the author of the last message send in the channel who isn't
 		Parrot or the person who sent this command."""
 		if text in ("you", "yourself", "previous"):
@@ -94,7 +94,9 @@ class FuzzyUserlike(Userlike):
 						return await ctx.guild.fetch_member(message.author.id)
 					return message.author
 
-	async def _someone(self, ctx, text):
+	async def _someone(
+		self, ctx: commands.Context, text: str | None
+	) -> AnyUser | None:
 		"""Choose a random registered user in this channel."""
 		if text in ("someone", "somebody", "anyone", "anybody"):
 			if not settings.enable_imitate_someone:
