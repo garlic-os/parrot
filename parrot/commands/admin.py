@@ -2,14 +2,14 @@ import discord
 from discord.ext import commands
 
 import parrot.db.models as p
-from parrot.bot import Parrot
+from parrot.bot import AbstractParrot
 from parrot.core.types import Permission
 from parrot.utils import Paginator, cast_not_none, checks, tag
 from parrot.utils.parrot_embed import ParrotEmbed
 
 
 class Admin(commands.Cog):
-	def __init__(self, bot: Parrot):
+	def __init__(self, bot: AbstractParrot):
 		self.bot = bot
 
 
@@ -344,5 +344,5 @@ class Admin(commands.Cog):
 
 
 
-async def setup(bot: Parrot) -> None:
+async def setup(bot: AbstractParrot) -> None:
 	await bot.add_cog(Admin(bot))
