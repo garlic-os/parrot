@@ -1,5 +1,6 @@
 class FriendlyError(Exception):
-	""" An error we can show directly to the user. """
+	"""An error we can show directly to the user."""
+
 	def __init__(self, *args: object):
 		# Add "Friendly Error: " to the beginning of the error text
 		if isinstance(args[0], str):
@@ -8,15 +9,15 @@ class FriendlyError(Exception):
 
 
 class NotRegisteredError(FriendlyError):
-	""" Parrot tried to access data from an unregistered user. """
+	"""Parrot tried to access data from an unregistered user."""
 
 
 class NoDataError(FriendlyError):
-	""" Parrot tried to access an empty or nonexistent corpus. """
+	"""Parrot tried to access an empty or nonexistent corpus."""
 
 
 class UserNotFoundError(FriendlyError):
-	""" Parrot tried to get a Discord user who does not exist. """
+	"""Parrot tried to get a Discord user who does not exist."""
 
 
 class UserPermissionError(FriendlyError):
