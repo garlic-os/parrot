@@ -75,7 +75,7 @@ class Parrot(AbstractParrot):
 		# when the event loop is about to be closed.
 		asyncio_atexit.register(self._async__del__, loop=self.loop)
 
-		self.autosave.start()
+		self._autosave.start()
 		await self.load_extension("jishaku")
 		await self.load_extension_folder("event_listeners")
 		await self.load_extension_folder("commands")
@@ -85,9 +85,9 @@ class Parrot(AbstractParrot):
 			return
 		self._destructor_called = True
 		logging.info("Parrot shutting down...")
-		self.autosave.cancel()
+		self._autosave.cancel()
 		await self.close()
-		await self.autosave()
+		await self._autosave()
 		logging.info("Closing HTTP session...")
 		await self.http_session.close()
 		logging.info("HTTP session closed.")
@@ -112,7 +112,7 @@ class Parrot(AbstractParrot):
 				logging.error(f"{error}\n")
 
 	@tasks.loop(seconds=settings.autosave_interval_seconds)
-	async def autosave(self) -> None:
+	async def _autosave(self) -> None:
 		logging.info("Saving to database...")
 		self._db_session.commit()
 		logging.info("Save complete.")
