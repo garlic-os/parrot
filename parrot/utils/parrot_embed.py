@@ -17,6 +17,6 @@ class ParrotEmbed(discord.Embed):
 		Green = 0x43A047  # Darkish muted green
 		Gray = 0x9E9E9E  # Dead gray
 
-	def __init__(self, color_name: Color=Color.Default, *args, **kwargs):
+	def __init__(self, color_name: Color = Color.Default, *args, **kwargs):
 		kwargs["color"] = kwargs.get("color", color_name.value)
 		super().__init__(*args, **kwargs)

@@ -35,6 +35,7 @@ class GuildMeta(Enum):
 	default_imitation_prefix = "Not "
 	default_imitation_suffix = ""
 
+
 class Guild(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	imitation_prefix: str = GuildMeta.default_imitation_prefix.value

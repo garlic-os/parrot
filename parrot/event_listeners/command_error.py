@@ -12,7 +12,9 @@ from parrot.utils.parrot_embed import ParrotEmbed
 
 class CommandErrorEventHandler(commands.Cog):
 	@commands.Cog.listener()
-	async def on_command_error(self, ctx: commands.Context, error: CommandError) -> None:
+	async def on_command_error(
+		self, ctx: commands.Context, error: CommandError
+	) -> None:
 		# Ignore Command Not Found errors
 		if isinstance(error, CommandNotFound):
 			return

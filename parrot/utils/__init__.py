@@ -4,6 +4,8 @@ from parrot.core.types import AnyUser
 
 
 T = TypeVar("T")
+
+
 def cast_not_none(arg: T | None) -> T:
 	return cast(T, arg)
 
