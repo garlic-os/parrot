@@ -56,13 +56,14 @@ class Parrot(AbstractParrot):
 	@commands.Cog.listener()
 	async def on_ready(self) -> None:
 		"""on_ready fires when the bot (re)gains connection."""
-		if self._initialized:
-			logging.info("Logged back in.")
-		elif self.user is None:
+		if self.user is None:
 			logging.error("Invalid `on_ready` state: `self.user` is None")
-		else:
+			return
+		if not self._initialized:
 			logging.info(f"Logged in as {tag(self.user)}")
 			self._initialized = True
+			return
+		logging.info("Logged back in.")
 
 	async def setup_hook(self) -> None:
 		"""Constructor Part 2: Enter Async"""
