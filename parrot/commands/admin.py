@@ -82,7 +82,7 @@ class Admin(commands.Cog):
 		Parrot will start to collect messages from registered users in this
 		channel.
 		"""
-		changed = self.bot.crud.channel_set_permission_flag(
+		changed = self.bot.crud.channel.set_permission_flag(
 			channel, "can_learn_here", True
 		)
 		if changed:
@@ -98,7 +98,7 @@ class Admin(commands.Cog):
 		Give Parrot permission to speak in a new channel.
 		Parrot will be able to imitate people in this channel.
 		"""
-		changed = self.bot.crud.channel_set_permission_flag(
+		changed = self.bot.crud.channel.set_permission_flag(
 			channel, "can_speak_here", True
 		)
 		if changed:
@@ -133,7 +133,7 @@ class Admin(commands.Cog):
 		Remove Parrot's permission to learn in a channel.
 		Parrot will stop collecting messages in this channel.
 		"""
-		changed = self.bot.crud.channel_set_permission_flag(
+		changed = self.bot.crud.channel.set_permission_flag(
 			channel, "can_learn_here", False
 		)
 		if changed:
@@ -152,7 +152,7 @@ class Admin(commands.Cog):
 		Remove Parrot's permission to speak in a channel.
 		Parrot will no longer be able to imitate people in this channel.
 		"""
-		changed = self.bot.crud.channel_set_permission_flag(
+		changed = self.bot.crud.channel.set_permission_flag(
 			channel, "can_speak_here", False
 		)
 		if changed:
@@ -187,7 +187,7 @@ class Admin(commands.Cog):
 			await ctx.send(failure_message)
 			return
 
-		ids = self.bot.crud.guild_get_channel_ids_with_permission(
+		ids = self.bot.crud.guild.get_channel_ids_with_permission(
 			guild, permission
 		)
 		channel_mentions = [c.mention for c in guild.channels if c.id in ids]
@@ -289,20 +289,20 @@ class Admin(commands.Cog):
 	@prefix.command()
 	async def prefix_get(self, ctx: commands.Context) -> None:
 		# ctx.guild guaranteed not None because this command group is guild-only
-		prefix = self.bot.crud.get_prefix(cast_not_none(ctx.guild))
+		prefix = self.bot.crud.guild.get_prefix(cast_not_none(ctx.guild))
 		await ctx.send(f"Parrot's imitation prefix is: `{prefix}`")
 
 	@prefix.command()
 	@commands.check(checks.is_admin)
 	async def prefix_set(self, ctx: commands.Context, new_prefix: str) -> None:
-		self.bot.crud.set_prefix(cast_not_none(ctx.guild), new_prefix)
+		self.bot.crud.guild.set_prefix(cast_not_none(ctx.guild), new_prefix)
 		await ctx.send(f"✅ Parrot's imitation prefix is now: `{new_prefix}`")
 
 	@prefix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
 	async def prefix_clear(self, ctx: commands.Context) -> None:
 		new_prefix = p.GuildMeta.default_imitation_prefix.value
-		self.bot.crud.set_prefix(cast_not_none(ctx.guild), new_prefix)
+		self.bot.crud.guild.set_prefix(cast_not_none(ctx.guild), new_prefix)
 		await ctx.send(
 			f"✅ Parrot's imitation prefix has been reset to: `{new_prefix}`"
 		)
@@ -325,20 +325,20 @@ class Admin(commands.Cog):
 	@suffix.command()
 	async def suffix_get(self, ctx: commands.Context) -> None:
 		# ctx.guild guaranteed not None because this command group is guild-only
-		suffix = self.bot.crud.get_suffix(cast_not_none(ctx.guild))
+		suffix = self.bot.crud.guild.get_suffix(cast_not_none(ctx.guild))
 		await ctx.send(f"Parrot's imitation suffix is: `{suffix}`")
 
 	@suffix.command()
 	@commands.check(checks.is_admin)
 	async def suffix_set(self, ctx: commands.Context, new_suffix: str) -> None:
-		self.bot.crud.set_suffix(cast_not_none(ctx.guild), new_suffix)
+		self.bot.crud.guild.set_suffix(cast_not_none(ctx.guild), new_suffix)
 		await ctx.send(f"✅ Parrot's imitation suffix is now: `{new_suffix}`")
 
 	@suffix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
 	async def suffix_clear(self, ctx: commands.Context) -> None:
 		new_suffix = p.GuildMeta.default_imitation_suffix.value
-		self.bot.crud.set_suffix(cast_not_none(ctx.guild), new_suffix)
+		self.bot.crud.guild.set_suffix(cast_not_none(ctx.guild), new_suffix)
 		await ctx.send(
 			f"✅ Parrot's imitation suffix has been reset to: `{new_suffix}`"
 		)

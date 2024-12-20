@@ -69,6 +69,10 @@ class Parrot(AbstractParrot):
 		await self.load_extension_folder("event_listeners")
 		await self.load_extension_folder("commands")
 
+		# Black magic evil dependency injection
+		await self.load_extension("parrot.db.crud")
+		self.crud = cast(CRUD, self.cogs["CRUD"])
+
 	async def _async__del__(self) -> None:
 		if self._destructor_called:
 			return
