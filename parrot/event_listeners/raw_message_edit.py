@@ -3,11 +3,11 @@ import logging
 import discord
 from discord.ext import commands
 
-from bot import Parrot
+from bot import AbstractParrot
 
 
 class RawMessageEditEventHandler(commands.Cog):
-	def __init__(self, bot: Parrot):
+	def __init__(self, bot: AbstractParrot):
 		self.bot = bot
 
 	# Update the database when a message is edited.
@@ -31,5 +31,5 @@ class RawMessageEditEventHandler(commands.Cog):
 			self.bot.crud.message.record(message)
 
 
-async def setup(bot: Parrot) -> None:
+async def setup(bot: AbstractParrot) -> None:
 	await bot.add_cog(RawMessageEditEventHandler(bot))
