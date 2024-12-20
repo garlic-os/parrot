@@ -1,9 +1,10 @@
 from typing import Literal
 
 from discord import ClientUser, Member, User
+from parrot.bot import AbstractParrot
 
 
-type Snowflake = int
+Snowflake = int
 type AnyUser = User | Member | ClientUser
 
 # Something an admin has decided Parrot can or can't do in a channel.

@@ -21,11 +21,11 @@ class AbstractParrot(commands.AutoShardedBot):
 
 	crud: CRUD
 	http_session: aiohttp.ClientSession
+	db_session: sqlmodel.Session
 
 
-class Parrot(AbstractParrot):
+class AbstractParrot(AbstractParrot):
 	_destructor_called: bool
-	_db_session: sqlmodel.Session
 
 	def __init__(self):
 		self._destructor_called = False
@@ -49,19 +49,17 @@ class Parrot(AbstractParrot):
 		engine = sqlmodel.create_engine(settings.db_url).execution_options(
 			autocommit=False
 		)
-		self._db_session = sqlmodel.Session(engine)
-		self.crud = CRUD(self._db_session)
-
+		self.db_session = sqlmodel.Session(engine)
 
 	async def setup_hook(self) -> None:
 		"""Constructor Part 2: Enter Async"""
 		self.http_session = aiohttp.ClientSession(loop=self.loop)
 
 		# Parrot has to do async stuff as part of its destructor, so it can't
-		# actually use __del__, which is strictly synchronous. So we have to
+		# actually use __del__, a method strictly synchronous. So we have to
 		# reinvent a little bit of the wheel and manually set a function to run
-		# when Parrot is about to be destroyed -- except instead we'll do it
-		# when the event loop is about to be closed.
+		# when Parrot is about to be destroyed -- except slightly earlier, while
+		# the event loop is still up.
 		asyncio_atexit.register(self._async__del__, loop=self.loop)
 
 		self._autosave.start()
@@ -75,11 +73,12 @@ class Parrot(AbstractParrot):
 
 	async def _async__del__(self) -> None:
 		if self._destructor_called:
+			logging.debug("_async__del__ called twice")
 			return
 		self._destructor_called = True
 		logging.info("Parrot shutting down...")
 		self._autosave.cancel()
-		await self.close()
+		await self.close()  # Log out of Discord
 		await self._autosave()
 		logging.info("Closing HTTP session...")
 		await self.http_session.close()
@@ -87,15 +86,18 @@ class Parrot(AbstractParrot):
 
 	def __del__(self):
 		if self._destructor_called:
+			logging.debug("__del__ called twice")
 			return
-		self._db_session.close()
+		self.db_session.close()
 		self.loop.run_until_complete(self._async__del__())
 
 	async def load_extension_folder(self, path: str) -> None:
-		for entry in Path(path).iterdir():
+		for entry in (Path("parrot") / path).iterdir():
 			if not entry.is_file():
 				continue
-			fqn = f"{path}.{entry.stem}"
+			if entry.name == "__init__.py":
+				continue
+			fqn = f"parrot.{path}.{entry.stem}"
 			try:
 				logging.info(f"Loading {fqn}... ")
 				await self.load_extension(fqn)
@@ -106,9 +108,12 @@ class Parrot(AbstractParrot):
 
 	@tasks.loop(seconds=settings.autosave_interval_seconds)
 	async def _autosave(self) -> None:
+		"""Commit the database on a timer.
+		Far more performant than committing on every query."""
 		logging.info("Saving to database...")
-		self._db_session.commit()
+		self.db_session.commit()
 		logging.info("Save complete.")
 
-	def commence(self) -> None:
+	def go(self) -> None:
+		"""The next logical step after `start` and `run`"""
 		self.run(settings.discord_bot_token)

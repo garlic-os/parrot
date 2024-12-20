@@ -17,7 +17,7 @@ For now, if you want Parrot on your server, you'll have to run it yourself.
 3. Run [`poetry install`](https://python-poetry.org/docs/) in the project's directory.
 4. Copy `config.example.py` to `config.py` and follow the [config documentation](#configuration) to fill in the needed information.
 5. Change `privacy-policy.md` to fit your situation.
-6. `poetry run python main.py`.
+6. `$ python -m parrot.main`.
 
 
 ## Permissions
