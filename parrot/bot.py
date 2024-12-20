@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import cast
 
 import aiohttp
 import asyncio_atexit
@@ -9,7 +10,6 @@ from discord.ext import commands, tasks
 
 from parrot.config import settings
 from parrot.db.crud import CRUD
-from parrot.utils import tag
 
 
 class AbstractParrot(commands.AutoShardedBot):
@@ -24,7 +24,6 @@ class AbstractParrot(commands.AutoShardedBot):
 
 
 class Parrot(AbstractParrot):
-	_initialized: bool
 	_destructor_called: bool
 	_db_session: sqlmodel.Session
 
@@ -53,17 +52,6 @@ class Parrot(AbstractParrot):
 		self._db_session = sqlmodel.Session(engine)
 		self.crud = CRUD(self._db_session)
 
-	@commands.Cog.listener()
-	async def on_ready(self) -> None:
-		"""on_ready fires when the bot (re)gains connection."""
-		if self.user is None:
-			logging.error("Invalid `on_ready` state: `self.user` is None")
-			return
-		if not self._initialized:
-			logging.info(f"Logged in as {tag(self.user)}")
-			self._initialized = True
-			return
-		logging.info("Logged back in.")
 
 	async def setup_hook(self) -> None:
 		"""Constructor Part 2: Enter Async"""
