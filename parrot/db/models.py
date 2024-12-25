@@ -1,3 +1,15 @@
+"""
+Parrot's database models, using SQLModel.
+
+This is essentially a local cache of data from the Discord API that Parrot
+relies on, plus some of Parrot's own information.
+
+N.B. The primary keys on tables that are direct analogs to Discord entities
+(e.g., Channel, Message) are intentionally _not_ created automatically by the
+database, and are expected to be the same as their IDs from Discord.
+Primary keys of Parrot-proprietary tables are autoincremented.
+"""
+
 import datetime as dt
 from enum import Enum
 
@@ -41,7 +53,7 @@ class User(SQLModel, table=True):
 
 
 class Registration(SQLModel, table=True):
-	id: Snowflake = Field(primary_key=True)
+	id: Snowflake = Field(primary_key=True, default=None)  # sql autoincrement
 	guild_id: Snowflake = Field(foreign_key="Guild.id")
 	user_id: Snowflake = Field(foreign_key="User.id")
 	original_avatar_url: str | None = None
