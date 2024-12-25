@@ -1,17 +1,19 @@
 import discord
-import sqlmodel
+import sqlmodel as sm
 
 import parrot.db.models as p
 from parrot.config import settings
 from parrot.core.exceptions import NotRegisteredError
-from parrot.core.types import AnyUser, SubCRUD
+from parrot.core.types import AnyUser
+
+from .types import SubCRUD
 
 
 class CRUDUser(SubCRUD):
 	def _get_registration(
 		self, user: AnyUser, guild: discord.Guild
 	) -> p.Registration | None:
-		statement = sqlmodel.select(p.Registration).where(
+		statement = sm.select(p.Registration).where(
 			p.Registration.user_id == user.id and p.Guild.id == guild.id
 		)
 		return self.bot.db_session.exec(statement).first()

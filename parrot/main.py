@@ -1,11 +1,11 @@
 import logging
 
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 
 
 def main() -> None:
 	logging.info("Initializing bot...")
-	bot = AbstractParrot()
+	bot = Parrot()
 	bot.go()
 
 

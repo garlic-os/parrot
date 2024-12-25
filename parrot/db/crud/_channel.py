@@ -1,8 +1,10 @@
 import discord
-import sqlmodel
+import sqlmodel as sm
 
 import parrot.db.models as p
-from parrot.core.types import Permission, SubCRUD
+from parrot.core.types import Permission
+
+from .types import SubCRUD
 
 
 class CRUDChannel(SubCRUD):
@@ -33,7 +35,7 @@ class CRUDChannel(SubCRUD):
 	def has_permission(
 		self, channel: discord.TextChannel, permission: Permission
 	) -> bool:
-		statement = sqlmodel.select(p.Channel.id).where(
+		statement = sm.select(p.Channel.id).where(
 			p.Channel.id == channel.id and getattr(p.Channel, permission)
 		)
 		return self.bot.db_session.exec(statement).first() is not None

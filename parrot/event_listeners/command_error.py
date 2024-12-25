@@ -6,7 +6,7 @@ from discord.ext import commands
 from discord.ext.commands.errors import CommandError, CommandNotFound
 
 import parrot.assets
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 from parrot.utils.parrot_embed import ParrotEmbed
 
 
@@ -40,5 +40,5 @@ class CommandErrorEventHandler(commands.Cog):
 		await ctx.send(embed=embed, reference=ctx.message)
 
 
-async def setup(bot: AbstractParrot) -> None:
+async def setup(bot: Parrot) -> None:
 	await bot.add_cog(CommandErrorEventHandler())

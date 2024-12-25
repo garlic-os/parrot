@@ -3,11 +3,25 @@ import discord
 import parrot.db.models as p
 import parrot.utils.regex as patterns
 from parrot.config import settings
-from parrot.core.types import Snowflake, SubCRUD
+from parrot.core.pbwc import ParrotButWithoutCRUD
+from parrot.core.types import Snowflake
 from parrot.utils import cast_not_none
+
+from . import _channel, _user
+from .types import SubCRUD
 
 
 class CRUDMessage(SubCRUD):
+	def __init__(
+		self,
+		bot: ParrotButWithoutCRUD,
+		crud_channel: _channel.CRUDChannel,
+		crud_user: _user.CRUDUser,
+	):
+		super().__init__(bot)
+		self.crud_channel = crud_channel
+		self.crud_user = crud_user
+
 	@staticmethod
 	def _extract_text(message: discord.Message) -> str:
 		for embed in message.embeds:
@@ -28,7 +42,7 @@ class CRUDMessage(SubCRUD):
 			# Not a Parrot command.
 			not message.content.startswith(settings.command_prefix)
 			and
-			# Only learn in text channels, not DMs.
+			# Only learn in text channels, not DMs (or anywhere else).
 			isinstance(message.channel, discord.TextChannel)
 			and
 			# Most bots' commands start with non-alphanumeric characters, so if
@@ -48,9 +62,7 @@ class CRUDMessage(SubCRUD):
 			message.webhook_id is None
 			and
 			# Parrot must be allowed to learn in this channel.
-			self.bot.crud.channel.has_permission(
-				message.channel, "can_learn_here"
-			)
+			self.crud_channel.has_permission(message.channel, "can_learn_here")
 			and
 			# People will often say "v" or "z" on accident while spamming,
 			# and it doesn't really make for good learning material.
@@ -69,7 +81,7 @@ class CRUDMessage(SubCRUD):
 
 		user = messages[0].author
 		guild = messages[0].guild
-		if guild is None or self.bot.crud.user.is_registered(user, guild):
+		if guild is None or self.crud_user.is_registered(user, guild):
 			return
 
 		# Every message in the list must have the same author, because the

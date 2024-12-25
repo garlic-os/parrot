@@ -2,14 +2,14 @@ import logging
 
 from discord.ext import commands
 
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 from parrot.utils import tag
 
 
 class ReadyEventHandler(commands.Cog):
 	initialized: bool
 
-	def __init__(self, bot: AbstractParrot):
+	def __init__(self, bot: Parrot):
 		self.bot = bot
 		self.initialized = False
 
@@ -29,5 +29,5 @@ class ReadyEventHandler(commands.Cog):
 		self.initialized = True
 
 
-async def setup(bot: AbstractParrot) -> None:
+async def setup(bot: Parrot) -> None:
 	await bot.add_cog(ReadyEventHandler(bot))

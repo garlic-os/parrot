@@ -4,15 +4,16 @@ import logging
 import discord
 from discord.ext import commands
 
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 from parrot.config import settings
 from parrot.core.exceptions import NotRegisteredError
+
 # from parrot.utils import cast_not_none, tag, weasel
 from parrot.utils import cast_not_none, tag
 
 
 class MessageEventHandler(commands.Cog):
-	def __init__(self, bot: AbstractParrot):
+	def __init__(self, bot: Parrot):
 		self.bot = bot
 
 	@commands.Cog.listener()
@@ -80,5 +81,5 @@ class MessageEventHandler(commands.Cog):
 		#             pass
 
 
-async def setup(bot: AbstractParrot) -> None:
+async def setup(bot: Parrot) -> None:
 	await bot.add_cog(MessageEventHandler(bot))

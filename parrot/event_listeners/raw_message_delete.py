@@ -3,11 +3,11 @@ import logging
 import discord
 from discord.ext import commands
 
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 
 
 class RawMessageDeleteEventHandler(commands.Cog):
-	def __init__(self, bot: AbstractParrot):
+	def __init__(self, bot: Parrot):
 		self.bot = bot
 
 	# Update the database when a message is deleted.
@@ -24,5 +24,5 @@ class RawMessageDeleteEventHandler(commands.Cog):
 		)
 
 
-async def setup(bot: AbstractParrot) -> None:
+async def setup(bot: Parrot) -> None:
 	await bot.add_cog(RawMessageDeleteEventHandler(bot))

@@ -2,14 +2,16 @@ import discord
 from discord.ext import commands
 
 import parrot.db.models as p
-from parrot.bot import AbstractParrot
+from parrot.bot import Parrot
 from parrot.core.types import Permission
-from parrot.utils import Paginator, cast_not_none, checks, tag
+
+# from parrot.utils import Paginator, cast_not_none, checks, tag
+from parrot.utils import cast_not_none, checks, tag
 from parrot.utils.parrot_embed import ParrotEmbed
 
 
 class Admin(commands.Cog):
-	def __init__(self, bot: AbstractParrot):
+	def __init__(self, bot: Parrot):
 		self.bot = bot
 
 	@commands.command()
@@ -198,12 +200,17 @@ class Admin(commands.Cog):
 			await ctx.send(embed=embed)
 			return
 
-		paginator = Paginator.FromList(
-			ctx,
-			entries=channel_mentions,
-			template_embed=embed,
+		# TODO
+		raise NotImplementedError(
+			"This command is out of order while pagination still hasn't been "
+			"reimplemented"
 		)
-		await paginator.run()
+		# paginator = Paginator.FromList(
+		# 	ctx,
+		# 	entries=channel_mentions,
+		# 	template_embed=embed,
+		# )
+		# await paginator.run()
 
 	@view.command(name="learning")
 	async def view_learning(
@@ -344,5 +351,5 @@ class Admin(commands.Cog):
 		)
 
 
-async def setup(bot: AbstractParrot) -> None:
+async def setup(bot: Parrot) -> None:
 	await bot.add_cog(Admin(bot))
