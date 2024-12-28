@@ -2,7 +2,8 @@ import discord
 import sqlmodel as sm
 
 import parrot.db.models as p
-from parrot.core.types import Permission
+from parrot.core.types import Permission, Snowflake
+from parrot.utils import cast_not_none
 
 from .types import SubCRUD
 
@@ -39,3 +40,22 @@ class CRUDChannel(SubCRUD):
 			p.Channel.id == channel.id and getattr(p.Channel, permission)
 		)
 		return self.bot.db_session.exec(statement).first() is not None
+
+	def get_webhook_id(self, channel: discord.TextChannel) -> Snowflake | None:
+		statement = sm.select(p.Channel.webhook_id).where(
+			p.Channel.id == channel.id
+		)
+		return self.bot.db_session.exec(statement).first()
+
+	def set_webhook_id(
+		self, channel: discord.TextChannel, webhook: discord.Webhook
+	) -> None:
+		statement = sm.select(p.Channel).where(p.Channel.id == channel.id)
+		# not none: Parrot will only ever be making webhooks in channels where
+		# it has speaking permission, and so a row for this channel will always
+		# already exist in the database.
+		db_channel = cast_not_none(self.bot.db_session.exec(statement).first())
+		db_channel.webhook_id = webhook.id
+		self.bot.db_session.add(db_channel)
+		self.bot.db_session.commit()
+		self.bot.db_session.refresh(db_channel)

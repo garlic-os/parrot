@@ -7,7 +7,7 @@ from discord.ext.commands.errors import CommandError, CommandNotFound
 
 import parrot.assets
 from parrot.bot import Parrot
-from parrot.utils.parrot_embed import ParrotEmbed
+from parrot.utils import ParrotEmbed
 
 
 class CommandErrorEventHandler(commands.Cog):

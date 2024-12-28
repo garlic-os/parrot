@@ -1,6 +1,7 @@
 import logging
 
-from parrot.core.settings import Settings
+
+# from parrot.core.settings import ImageSettings, Settings
 
 
 # Python logging module configuration
@@ -23,14 +24,18 @@ logging.basicConfig(
 
 
 # settings = Settings(
-#     discord_bot_token=,
-#     command_prefix=,
-#     db_url=,
-#     autosave_interval_seconds=,
-#     admin_user_ids=,
-#     admin_role_ids=,
-#     avatar_store_channel_id=,
-#     random_weasel_chance=,
-#     enable_imitate_someone=,
-#     ayy_lmao=,
+# 	discord_bot_token=,
+# 	command_prefix=,
+# 	db_url=,
+# 	autosave_interval_seconds=,
+# 	admin_user_ids=,
+# 	admin_role_ids=,
+# 	avatar_store_channel_id=,
+# 	random_weasel_chance=,
+# 	enable_imitate_someone=,
+# 	ayy_lmao=,
+# 	image=ImageSettings(
+# 		max_filesize_bytes=,
+# 		max_frames=,
+# 	)
 # )

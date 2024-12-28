@@ -1,6 +1,6 @@
 import logging
-# import random
 
+# import random
 import discord
 from discord.ext import commands
 
@@ -29,15 +29,21 @@ class MessageEventHandler(commands.Cog):
 		if message.content == "ayy" and settings.ayy_lmao:
 			await message.channel.send("lmao")
 
+		if not isinstance(message.channel, discord.TextChannel):
+			return
+
 		# Ignore NotRegisteredErrors; Parrot shouldn't learn from non-registered
 		# users, anyway.
 		try:
-			learned_count = self.bot.crud.message.record(message)
-			if learned_count:
+			recorded = self.bot.crud.message.record(message)
+			if len(list(recorded)) > 0:
 				logging.info(
 					f"Collected a message (ID: {message.id}) from user "
 					f"{tag(message.author)} (ID: {message.author.id})"
 				)
+			# member = cast(discord.Member, message.author)
+			# corpus_update = (message.content for message in recorded)
+			# asyncio.create_task(self.bot.markov_models.update(member, corpus_update))
 		except NotRegisteredError:
 			pass
 

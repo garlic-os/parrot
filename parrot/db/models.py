@@ -10,6 +10,13 @@ database, and are expected to be the same as their IDs from Discord.
 Primary keys of Parrot-proprietary tables are autoincremented.
 """
 
+# TODO: with markovify.Text.combine(), is regenerating necessary anymore, except
+# for infrequent things like message edits and deletes? Can models instead be
+# kept (serialized or pickled) always and only in the database?
+
+# TODO: understand .commit() and .refresh()/see if there are any occurrences of
+# them that can be deleted
+
 import datetime as dt
 from enum import Enum
 
@@ -28,7 +35,10 @@ class Channel(SQLModel, table=True):
 
 class Message(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-	user_id: Snowflake = Field(foreign_key="User.id")
+
+	# TODO: migration user to member
+	member_id: Snowflake = Field(foreign_key="Member.id")
+
 	guild_id: Snowflake = Field(foreign_key="Guild.id")
 	timestamp: dt.datetime
 	content: str
@@ -47,15 +57,39 @@ class Guild(SQLModel, table=True):
 	imitation_suffix: str = GuildMeta.default_imitation_suffix.value
 
 
-class User(SQLModel, table=True):
+# TODO: renamed "User" → "Member" upon realizing they really always will be
+# members in guilds now
+class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	wants_random_devolve: bool = True
 
 
-class Registration(SQLModel, table=True):
-	id: Snowflake = Field(primary_key=True, default=None)  # sql autoincrement
+class AvatarInfoBase(SQLModel):
+	original_avatar_url: str
+	antiavatar_url: str
+	antiavatar_message_id: Snowflake
+
+
+# TODO: migration -- avatar related information moved to separate table to
+# group these three fields together into one non-nullable unit
+# TODO: SQLModel Relationships for on-delete actions
+class AvatarInfo(AvatarInfoBase, table=True):
+	# TODO: migration user to member
+	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
+
 	guild_id: Snowflake = Field(foreign_key="Guild.id")
-	user_id: Snowflake = Field(foreign_key="User.id")
-	original_avatar_url: str | None = None
-	modified_avatar_url: str | None = None
-	modified_avatar_message_id: Snowflake | None = None
+	original_avatar_url: str
+	antiavatar_url: str
+	antiavatar_message_id: Snowflake
+
+
+class AvatarInfoCreate(AvatarInfoBase):
+	pass
+
+
+# TODO: migration -- id removed; member_id made primary key
+class Registration(SQLModel, table=True):
+	# TODO: migration user to member
+	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
+
+	guild_id: Snowflake = Field(foreign_key="Guild.id")

@@ -54,3 +54,6 @@ unfixable = []
 [lint.isort]
 case-sensitive = true
 lines-after-imports = 2
+
+[lint.flake8-annotations]
+suppress-dummy-args = true

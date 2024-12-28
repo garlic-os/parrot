@@ -1,13 +1,76 @@
-from typing import TypeVar, cast
+import asyncio
+import functools
+import traceback
+from collections.abc import Awaitable, Callable
+from enum import Enum
+from typing import cast
 
+import discord
+
+from parrot.config import settings
 from parrot.core.types import AnyUser
 
 
-T = TypeVar("T")
+class ParrotEmbed(discord.Embed):
+	"""
+	Concepts stolen from crimsoBOT
+	MIT License
+	Copyright (c) 2019 crimso, williammck
+	https://github.com/crimsobot/crimsoBOT/285ebfd/master/crimsobot/utils/tools.py#L37-L123
+	"""
+
+	class Color(Enum):
+		Default = 0xA755B5  # Pale purple
+		Red = 0xB71C1C  # Deep, muted red
+		Orange = 0xF4511E  # Deep orange. Reserved for BIG trouble.
+		Green = 0x43A047  # Darkish muted green
+		Gray = 0x9E9E9E  # Dead gray
+
+	def __init__(
+		self, color_name: Color = Color.Default, *args: ..., **kwargs: ...
+	):
+		kwargs["color"] = kwargs.get("color", color_name.value)
+		super().__init__(*args, **kwargs)
 
 
-def cast_not_none(arg: T | None) -> T:
+def cast_not_none[T](arg: T | None) -> T:
 	return cast(T, arg)
+
+
+def error2traceback(error: Exception) -> str:
+	return "\n".join(
+		traceback.format_exception(None, error, error.__traceback__)
+	)
+
+
+def executor_function[**P, Ret](
+	sync_function: Callable[P, Ret],
+) -> Callable[P, Awaitable[Ret]]:
+	@functools.wraps(sync_function)
+	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
+		loop = asyncio.get_event_loop()
+		reconstructed_function = functools.partial(
+			sync_function, *args, **kwargs
+		)
+		return await loop.run_in_executor(None, reconstructed_function)
+
+	return decorated
+
+
+def find_text(message: discord.Message) -> str:
+	"""
+	Search for text within a message.
+	Return an empty string if no text is found.
+	"""
+	text = []
+	if len(message.content) > 0 and not message.content.startswith(
+		settings.command_prefix
+	):
+		text.append(message.content)
+	for embed in message.embeds:
+		if isinstance(embed.description, str) and len(embed.description) > 0:
+			text.append(embed.description)
+	return " ".join(text)
 
 
 def tag(user: AnyUser) -> str:

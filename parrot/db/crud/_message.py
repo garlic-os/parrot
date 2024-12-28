@@ -1,22 +1,24 @@
+from collections.abc import Iterable
+from typing import cast
+
 import discord
 
 import parrot.db.models as p
-import parrot.utils.regex as patterns
 from parrot.config import settings
-from parrot.core.pbwc import ParrotButWithoutCRUD
+from parrot.core.semiparrot.crudless import SemiparrotCrudless
 from parrot.core.types import Snowflake
-from parrot.utils import cast_not_none
+from parrot.utils import cast_not_none, regex
 
-from . import _channel, _user
+from . import _channel, _member
 from .types import SubCRUD
 
 
 class CRUDMessage(SubCRUD):
 	def __init__(
 		self,
-		bot: ParrotButWithoutCRUD,
+		bot: SemiparrotCrudless,
 		crud_channel: _channel.CRUDChannel,
-		crud_user: _user.CRUDUser,
+		crud_user: _member.CRUDMember,
 	):
 		super().__init__(bot)
 		self.crud_channel = crud_channel
@@ -51,8 +53,8 @@ class CRUDMessage(SubCRUD):
 			# it's probably a command.
 			(
 				message.content[0].isalnum()
-				or bool(patterns.discord_string_start.match(message.content[0]))
-				or bool(patterns.markdown.match(message.content[0]))
+				or bool(regex.discord_string_start.match(message.content[0]))
+				or bool(regex.markdown.match(message.content[0]))
 			)
 			and
 			# Don't learn from self.
@@ -69,48 +71,52 @@ class CRUDMessage(SubCRUD):
 			message.content not in ("v", "z")
 		)
 
-	def record(self, messages: discord.Message | list[discord.Message]) -> None:
+	def record(
+		self, messages: discord.Message | list[discord.Message]
+	) -> Iterable[discord.Message]:
 		"""
 		Add a Message or list of Messages to a user's corpus.
 		Every Message in the list must be from the same user.
+		:pre: message.author is a discord.Member
 		"""
 		# Ensure that messages is a list.
 		# If it's not, just make it a list with one value.
 		if not isinstance(messages, list):
 			messages = [messages]
 
-		user = messages[0].author
-		guild = messages[0].guild
-		if guild is None or self.crud_user.is_registered(user, guild):
-			return
+		member = cast(discord.Member, messages[0].author)
+		if not self.crud_user.is_registered(member):
+			return []
 
 		# Every message in the list must have the same author, because the
 		# Corpus Manager adds every message passed to it to the same user.
 		for message in messages:
-			if message.author != user:
+			if message.author != member:
 				raise ValueError(
 					"Too many authors; every message passed in one call to"
 					"record() must have the same author."
 				)
 
 		# Filter out any messages that don't pass all of validate_message()'s
-		# checks and convert them to the database's format.
+		# checks.
+		messages_filtered = filter(self.validate_message, messages)
+
+		# Convert the messages to the database's format and add them to this
+		# user's corpus.
 		db_messages = (
 			p.Message(
 				id=m.id,
-				user_id=user.id,
-				guild_id=guild.id,
+				member_id=member.id,
+				guild_id=member.guild.id,
 				timestamp=m.created_at,
 				content=CRUDMessage._extract_text(m),
 			)
-			for m in messages
-			if self.validate_message(m)
+			for m in messages_filtered
 		)
-
-		# Add these messages to this user's corpus and return the number of
-		# messages that were added.
 		self.bot.db_session.add_all(db_messages)
 		self.bot.db_session.commit()
+
+		return messages_filtered
 
 		# for message in messages:
 		# 	self.bot.db_session.refresh(message)
@@ -125,7 +131,8 @@ class CRUDMessage(SubCRUD):
 		self.bot.db_session.commit()
 
 	def edit(self, message_id: Snowflake, new_content: str) -> bool:
-		"""Edit the text content of a message in the database.
+		"""
+		Edit the text content of a message in the database.
 		:returns: Success (will fail if message does not exist in database)
 		"""
 		db_message = self.bot.db_session.get(p.Message, message_id)

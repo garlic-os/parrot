@@ -1,8 +1,16 @@
 from parrot.core.types import Snowflake
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
 
+class ImageSettings(BaseModel):
+	max_filesize_bytes: int = 10 * 1024 * 1024  # 10 MB; Discord free tier size
+	max_frames: int = 300
+
+
 class Settings(BaseSettings):
+	image: ImageSettings = ImageSettings()
+
 	discord_bot_token: str
 
 	# Put either this or "@parrot " before a command
@@ -13,13 +21,17 @@ class Settings(BaseSettings):
 	# Seconds between database commits
 	autosave_interval_seconds: int = 3600
 
+	# Allow the cache of generated models to take up to this much space in
+	# memory
+	markov_cache_size_bytes: int = 1 * 1024 * 1024 * 1024  # 1 GB
+
 	admin_user_ids: set[Snowflake] = {
 		206235904644349953,  # garlicOS®
 	}
 
 	admin_role_ids: set[Snowflake] = set()
 
-	# Discord channel where Parrot caches modified avatars
+	# Discord channel where Parrot caches antiavatars
 	avatar_store_channel_id: Snowflake
 
 	# Random probability on [0, 1] to reply to a message with its content

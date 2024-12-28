@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import aiohttp
 import asyncio_atexit
 import discord
 import sqlmodel as sm
@@ -9,13 +8,23 @@ from discord.ext import commands, tasks
 from parrot.config import settings
 
 
-class ParrotButWithoutCRUD(commands.AutoShardedBot):
-	http_session: aiohttp.ClientSession
+class SemiparrotCrudless(commands.AutoShardedBot):
+	"""
+	An awful solution to circular imports where I make ten different partial
+	versions of Parrot
+
+	Parrot class init stage 1/3
+	CRUD: uninitialized
+	Managers: uninitialized
+
+	Establishes anything the Parrot class needs to do that doesn't require CRUD
+	or any data manager.
+	This stage exists so CRUD can interface with a version of Parrot that
+	doesn't already have itself, preventing a circular import.
+	"""
 	db_session: sm.Session
-	_destructor_called: bool
 
 	def __init__(self):
-		self._destructor_called = False
 		logging.info(f"discord.py {discord.__version__}")
 
 		intents = discord.Intents.default()
@@ -40,8 +49,6 @@ class ParrotButWithoutCRUD(commands.AutoShardedBot):
 
 	async def setup_hook(self) -> None:
 		"""Constructor Part 2: Enter Async"""
-		self.http_session = aiohttp.ClientSession(loop=self.loop)
-
 		# Parrot has to do async stuff as part of its destructor, so it can't
 		# actually use __del__, a method strictly synchronous. So we have to
 		# reinvent a little bit of the wheel and manually set a function to run
@@ -55,24 +62,11 @@ class ParrotButWithoutCRUD(commands.AutoShardedBot):
 		await self.load_extension_folder("commands")
 
 	async def _async__del__(self) -> None:
-		if self._destructor_called:
-			logging.debug("_async__del__ called twice")
-			return
-		self._destructor_called = True
 		logging.info("Parrot shutting down...")
+		self.db_session.close()
 		self._autosave.cancel()
 		await self.close()  # Log out of Discord
 		await self._autosave()
-		logging.info("Closing HTTP session...")
-		await self.http_session.close()
-		logging.info("HTTP session closed.")
-
-	def __del__(self):
-		if self._destructor_called:
-			logging.debug("__del__ called twice")
-			return
-		self.db_session.close()
-		self.loop.run_until_complete(self._async__del__())
 
 	async def load_extension_folder(self, path: str) -> None:
 		for entry in (Path("parrot") / path).iterdir():

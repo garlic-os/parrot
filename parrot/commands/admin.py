@@ -5,9 +5,8 @@ import parrot.db.models as p
 from parrot.bot import Parrot
 from parrot.core.types import Permission
 
-# from parrot.utils import Paginator, cast_not_none, checks, tag
-from parrot.utils import cast_not_none, checks, tag
-from parrot.utils.parrot_embed import ParrotEmbed
+# from parrot.utils import Paginator, ParrotEmbed, cast_not_none, checks, tag
+from parrot.utils import ParrotEmbed, cast_not_none, checks, tag
 
 
 class Admin(commands.Cog):
@@ -179,6 +178,10 @@ class Admin(commands.Cog):
 		message: str,
 		failure_message: str,
 	) -> None:
+		raise NotImplementedError(
+			"This command is out of order while pagination still hasn't been "
+			"reimplemented"
+		)
 		if guild_id is None:
 			if ctx.guild is None:
 				await ctx.send(failure_message)
@@ -201,10 +204,6 @@ class Admin(commands.Cog):
 			return
 
 		# TODO
-		raise NotImplementedError(
-			"This command is out of order while pagination still hasn't been "
-			"reimplemented"
-		)
 		# paginator = Paginator.FromList(
 		# 	ctx,
 		# 	entries=channel_mentions,
