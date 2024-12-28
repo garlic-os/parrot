@@ -1,9 +1,9 @@
 from parrot.config import settings
 from parrot.core.semiparrot.managerless import SemiparrotManagerless
-from parrot.db.antiavatar_manager import AntiavatarManager
 from parrot.db.crud import CRUD
-from parrot.db.markov_model_manager import MarkovModelManager
-from parrot.db.webhook_manager import WebhookManager
+from parrot.db.manager.antiavatar import AntiavatarManager
+from parrot.db.manager.markov_model import MarkovModelManager
+from parrot.db.manager.webhook import WebhookManager
 
 
 class Parrot(SemiparrotManagerless):
