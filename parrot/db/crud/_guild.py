@@ -16,7 +16,7 @@ class CRUDGuild(SubCRUD):
 		self, guild: discord.Guild, permission: Permission
 	) -> ScalarResult[Snowflake]:
 		statement = sm.select(p.Channel.id).where(
-			p.Channel.guild_id == guild.id and getattr(p.Channel, permission)
+			p.Channel.guild_id == guild.id, getattr(p.Channel, permission) == True
 		)
 		return self.bot.db_session.exec(statement)
 

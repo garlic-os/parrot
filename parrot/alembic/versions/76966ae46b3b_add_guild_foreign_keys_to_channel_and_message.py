@@ -39,6 +39,9 @@ def upgrade() -> None:
 				nullable=False,
 			),
 		)
+		# Probably a bug in alembic: this forgets the names of other constraints
+		# and you have to add them back manually
+		# batch_op.create_foreign_key("fk_Message_user_id_User", "User", ["user_id"], ["id"])
 
 
 def downgrade() -> None:

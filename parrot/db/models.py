@@ -35,10 +35,7 @@ class Channel(SQLModel, table=True):
 
 class Message(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-
-	# TODO: migration user to member
 	member_id: Snowflake = Field(foreign_key="Member.id")
-
 	guild_id: Snowflake = Field(foreign_key="Guild.id")
 	timestamp: dt.datetime
 	content: str
@@ -57,8 +54,6 @@ class Guild(SQLModel, table=True):
 	imitation_suffix: str = GuildMeta.default_imitation_suffix.value
 
 
-# TODO: renamed "User" → "Member" upon realizing they really always will be
-# members in guilds now
 class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	wants_random_devolve: bool = True
@@ -70,26 +65,18 @@ class AvatarInfoBase(SQLModel):
 	antiavatar_message_id: Snowflake
 
 
-# TODO: migration -- avatar related information moved to separate table to
-# group these three fields together into one non-nullable unit
 # TODO: SQLModel Relationships for on-delete actions
 class AvatarInfo(AvatarInfoBase, table=True):
-	# TODO: migration user to member
+	id: int | None = Field(primary_key=True, default=None)
 	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-
 	guild_id: Snowflake = Field(foreign_key="Guild.id")
-	original_avatar_url: str
-	antiavatar_url: str
-	antiavatar_message_id: Snowflake
 
 
 class AvatarInfoCreate(AvatarInfoBase):
 	pass
 
 
-# TODO: migration -- id removed; member_id made primary key
 class Registration(SQLModel, table=True):
-	# TODO: migration user to member
+	id: int | None = Field(primary_key=True, default=None)
 	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-
 	guild_id: Snowflake = Field(foreign_key="Guild.id")

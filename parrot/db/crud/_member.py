@@ -14,8 +14,8 @@ class CRUDMember(SubCRUD):
 		self, member: discord.Member
 	) -> p.Registration | None:
 		statement = sm.select(p.Registration).where(
-			p.Registration.member_id == member.id
-			and p.Guild.id == member.guild.id
+			p.Registration.member_id == member.id,
+			p.Guild.id == member.guild.id
 		)
 		return self.bot.db_session.exec(statement).first()
 
@@ -39,8 +39,8 @@ class CRUDMember(SubCRUD):
 		if member.bot:  # Bots are always counted as registered
 			return True
 		statement = sm.select(p.Registration.member_id).where(
-			p.Registration.member_id == member.id
-			and p.Guild.id == member.guild.id
+			p.Registration.member_id == member.id,
+			p.Guild.id == member.guild.id
 		)
 		return self.bot.db_session.exec(statement).first() is not None
 
@@ -56,16 +56,16 @@ class CRUDMember(SubCRUD):
 		Get the text content of every message this user has said in this guild.
 		"""
 		statement = sm.select(p.Message.content).where(
-			p.Message.member_id == member.id
-			and p.Message.guild_id == member.guild.id
+			p.Message.member_id == member.id,
+			p.Message.guild_id == member.guild.id
 		)
 		return self.bot.db_session.exec(statement).all()
 
 	def get_avatar_info(self, member: discord.Member) -> p.AvatarInfo | None:
 		self.assert_registered(member)
 		statement = sm.select(p.AvatarInfo).where(
-			p.AvatarInfo.member_id == member.id
-			and p.AvatarInfo.guild_id == member.guild.id
+			p.AvatarInfo.member_id == member.id,
+			p.AvatarInfo.guild_id == member.guild.id
 		)
 		return self.bot.db_session.exec(statement).first()
 

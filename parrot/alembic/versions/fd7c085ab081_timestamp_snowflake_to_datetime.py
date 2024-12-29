@@ -1,7 +1,7 @@
 """timestamp snowflake to datetime
 
 Revision ID: fd7c085ab081
-Revises: 14654391b9fb
+Revises: bf04f79d517c
 Create Date: 2024-12-20 15:52:45.701284
 
 """

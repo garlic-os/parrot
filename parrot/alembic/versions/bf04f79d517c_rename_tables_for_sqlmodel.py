@@ -23,7 +23,7 @@ def upgrade() -> None:
 	op.rename_table("channels", "Channel")
 	op.rename_table("messages", "Message")
 	with op.batch_alter_table("Message") as batch_op:
-		batch_op.drop_constraint("fk_messages_user_id_users")
+		batch_op.drop_constraint("fk_messages_user_id_users", type_="foreignkey")
 		batch_op.create_foreign_key("fk_Message_user_id_User", "User", ["user_id"], ["id"])
 	op.rename_table("guilds", "Guild")
 
@@ -31,7 +31,7 @@ def upgrade() -> None:
 def downgrade() -> None:
 	op.rename_table("Guild", "guilds")
 	with op.batch_alter_table("Message") as batch_op:
-		batch_op.drop_constraint("fk_Message_user_id_User")
+		batch_op.drop_constraint("fk_Message_user_id_User", type_="foreignkey")
 		batch_op.create_foreign_key("fk_messages_user_id_users", "User", ["user_id"], ["id"])
 	op.rename_table("Message", "messages")
 	op.rename_table("Channel", "channels")

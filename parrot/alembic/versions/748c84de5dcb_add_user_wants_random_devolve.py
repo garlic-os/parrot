@@ -22,7 +22,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
 	op.add_column(
-		"user",
+		"User",
 		sa.Column(
 			"wants_random_devolve",
 			sa.Boolean,
@@ -33,4 +33,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-	op.drop_column("user", "wants_random_devolve")
+	op.drop_column("User", "wants_random_devolve")

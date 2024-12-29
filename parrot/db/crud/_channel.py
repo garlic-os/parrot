@@ -37,7 +37,7 @@ class CRUDChannel(SubCRUD):
 		self, channel: discord.TextChannel, permission: Permission
 	) -> bool:
 		statement = sm.select(p.Channel.id).where(
-			p.Channel.id == channel.id and getattr(p.Channel, permission)
+			p.Channel.id == channel.id, getattr(p.Channel, permission) == True
 		)
 		return self.bot.db_session.exec(statement).first() is not None
 
