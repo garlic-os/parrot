@@ -55,7 +55,7 @@ class BaseMemberlike(commands.Converter):
 
 class Memberlike(BaseMemberlike):
 	"""
-	A string that can resolve to a User.
+	A string that can resolve to a Member.
 	Works with:
 		- Mentions, like <@394750023975409309> and <@!394750023975409309>
 		- User IDs, like 394750023975409309
@@ -77,9 +77,9 @@ class Memberlike(BaseMemberlike):
 
 class FuzzyMemberlike(Memberlike):
 	"""
-	A string that can resolve to a User -- plus novelty options!
+	A string that can resolve to a Member -- plus novelty options!
 	Works with:
-		- Everything Userlike does
+		- Everything Memberlike does
 		- The string "you", "yourself", or "previous" which resolves to the last
 			person who spoke in the channel
 		- "someone", "anyone", whatever, the rest of them, read the code, that
