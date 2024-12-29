@@ -24,37 +24,37 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
 	op.create_table(
 		"users",
-		sa.Column("id", sa.Integer, primary_key=True),
+		sa.Column("id", sa.BigInteger, primary_key=True),
 		sa.Column(
 			"is_registered", sa.Boolean, nullable=False, server_default="0"
 		),
 		sa.Column("original_avatar_url", sa.Text),
 		sa.Column("modified_avatar_url", sa.Text),
-		sa.Column("modified_avatar_message_id", sa.Integer),
+		sa.Column("modified_avatar_message_id", sa.BigInteger),
 	)
 	op.create_table(
 		"channels",
-		sa.Column("id", sa.Integer, primary_key=True),
+		sa.Column("id", sa.BigInteger, primary_key=True),
 		sa.Column(
 			"can_speak_here", sa.Boolean, nullable=False, server_default="0"
 		),
 		sa.Column(
 			"can_learn_here", sa.Boolean, nullable=False, server_default="0"
 		),
-		sa.Column("webhook_id", sa.Integer),
+		sa.Column("webhook_id", sa.BigInteger),
 	)
 	op.create_table(
 		"messages",
-		sa.Column("id", sa.Integer, primary_key=True),
+		sa.Column("id", sa.BigInteger, primary_key=True),
 		sa.Column(
-			"user_id", sa.Integer, sa.ForeignKey("users.id"), nullable=False
+			"user_id", sa.BigInteger, sa.ForeignKey("users.id"), nullable=False
 		),
-		sa.Column("timestamp", sa.Integer, nullable=False),
+		sa.Column("timestamp", sa.BigInteger, nullable=False),
 		sa.Column("content", sa.Text, nullable=False),
 	)
 	op.create_table(
 		"guilds",
-		sa.Column("id", sa.Integer, primary_key=True),
+		sa.Column("id", sa.BigInteger, primary_key=True),
 		sa.Column(
 			"imitation_prefix", sa.Text, nullable=False, server_default="Not "
 		),
