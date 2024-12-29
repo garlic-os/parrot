@@ -21,36 +21,36 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	op.drop_column("user", "original_avatar_url")
-	op.drop_column("user", "modified_avatar_url")
-	op.drop_column("user", "modified_avatar_message_id")
+	op.drop_column("User", "original_avatar_url")
+	op.drop_column("User", "modified_avatar_url")
+	op.drop_column("User", "modified_avatar_message_id")
 
 	op.add_column(
-		"registration",
+		"Registration",
 		sa.Column("original_avatar_url", sa.String, nullable=True),
 	)
 	op.add_column(
-		"registration",
+		"Registration",
 		sa.Column("modified_avatar_url", sa.String, nullable=True),
 	)
 	op.add_column(
-		"registration",
+		"Registration",
 		sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=True),
 	)
 
 
 def downgrade() -> None:
-	op.drop_column("registration", "original_avatar_url")
-	op.drop_column("registration", "modified_avatar_url")
-	op.drop_column("registration", "modified_avatar_message_id")
+	op.drop_column("Registration", "original_avatar_url")
+	op.drop_column("Registration", "modified_avatar_url")
+	op.drop_column("Registration", "modified_avatar_message_id")
 
 	op.add_column(
-		"user", sa.Column("original_avatar_url", sa.String, nullable=True)
+		"User", sa.Column("original_avatar_url", sa.String, nullable=True)
 	)
 	op.add_column(
-		"user", sa.Column("modified_avatar_url", sa.String, nullable=True)
+		"User", sa.Column("modified_avatar_url", sa.String, nullable=True)
 	)
 	op.add_column(
-		"user",
+		"User",
 		sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=True),
 	)

@@ -1,6 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import MetaData, engine_from_config, pool
 
 from alembic import context
 
@@ -18,7 +18,14 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+convention = {
+	"ix": 'ix_%(column_0_label)s',
+	"uq": "uq_%(table_name)s_%(column_0_name)s",
+	"ck": "ck_%(table_name)s_%(constraint_name)s",
+	"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+	"pk": "pk_%(table_name)s"
+}
+target_metadata = MetaData(naming_convention=convention)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -22,19 +22,19 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
 	# Drop old column on the User table
-	op.drop_column("user", "is_registered")
+	op.drop_column("User", "is_registered")
 
 	# Create the new table
 	op.create_table(
-		"registration",
+		"Registration",
 		sa.Column("id", sa.BigInteger, primary_key=True),
-		sa.Column("guild_id", sa.BigInteger, sa.ForeignKey("guild.id")),
-		sa.Column("user_id", sa.BigInteger, sa.ForeignKey("user.id")),
+		sa.Column("guild_id", sa.BigInteger, sa.ForeignKey("Guild.id")),
+		sa.Column("user_id", sa.BigInteger, sa.ForeignKey("User.id")),
 	)
 
 
 def downgrade() -> None:
-	op.drop_table("registration")
+	op.drop_table("Registration")
 	op.add_column(
-		"user", sa.Column("is_registered", sa.Boolean, server_default="false")
+		"User", sa.Column("is_registered", sa.Boolean, server_default="false")
 	)
