@@ -5,6 +5,7 @@ from typing import cast
 import discord
 import markovify
 
+from parrot.config import settings
 from parrot.core.types import Snowflake
 from parrot.db.crud import CRUD
 from parrot.utils import markov
@@ -14,10 +15,10 @@ from parrot.utils.cache import LastUpdatedOrderedDict
 class MarkovModelManager:
 	# A user-id, guild-id pair to uniquely identify a Member
 	type Key = tuple[Snowflake, Snowflake]
+	MAX_MEM_SIZE = settings.markov_cache_size_bytes
 
-	def __init__(self, crud: CRUD, *, max_mem_size: int):
+	def __init__(self, crud: CRUD):
 		self.crud = crud
-		self.max_mem_size = max_mem_size
 		self.space_used = 0
 		self.cache = LastUpdatedOrderedDict[
 			MarkovModelManager.Key, markov.ParrotText
@@ -32,10 +33,10 @@ class MarkovModelManager:
 		logging.debug(f"Cache miss: {member.id}")
 		corpus = self.crud.member.get_messages_content(member)
 		result = await markov.ParrotText.new(corpus)
-		while self.space_used + len(result) > self.max_mem_size:
+		while self.space_used + len(result) > MarkovModelManager.MAX_MEM_SIZE:
 			_, evicted = self.cache.popitem(last=False)
 			logging.debug(
-				f" ** Full ({self.space_used}/{self.max_mem_size}); "
+				f" ** Full ({self.space_used}/{MarkovModelManager.MAX_MEM_SIZE}); "
 				f"evicting: {evicted} (-{len(evicted)})"
 			)
 			self.space_used -= len(evicted)

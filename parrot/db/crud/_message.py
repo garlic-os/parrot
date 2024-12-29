@@ -1,11 +1,10 @@
 from collections.abc import Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import discord
 
 import parrot.db.models as p
 from parrot.config import settings
-from parrot.core.semiparrot.crudless import SemiparrotCrudless
 from parrot.core.types import Snowflake
 from parrot.utils import cast_not_none, regex
 
@@ -13,10 +12,13 @@ from . import _channel, _member
 from .types import SubCRUD
 
 
+if TYPE_CHECKING:
+	from parrot.bot import Parrot
+
 class CRUDMessage(SubCRUD):
 	def __init__(
 		self,
-		bot: SemiparrotCrudless,
+		bot: Parrot,
 		crud_channel: _channel.CRUDChannel,
 		crud_user: _member.CRUDMember,
 	):

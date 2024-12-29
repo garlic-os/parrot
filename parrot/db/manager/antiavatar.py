@@ -2,16 +2,18 @@ import asyncio
 import logging
 import urllib.parse
 from pathlib import Path
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 import discord
 
 import parrot.db.models as p
 from parrot.config import settings
-from parrot.core.semiparrot.managerless import SemiparrotManagerless
 from parrot.core.types import Snowflake
 from parrot.utils import image
 
+
+if TYPE_CHECKING:
+	from parrot.bot import Parrot
 
 class AntiavatarManager:
 	"""
@@ -26,12 +28,12 @@ class AntiavatarManager:
 
 	avatar_channel: discord.TextChannel
 
-	def __init__(self, bot: SemiparrotManagerless):
+	def __init__(self, bot: Parrot):
 		"""dont run this directly please use .new() instead"""
 		self.bot = bot
 
 	@classmethod
-	async def new(cls, bot: SemiparrotManagerless) -> Self:
+	async def new(cls, bot: Parrot) -> Self:
 		self = cls(bot)
 		avatar_channel = await self.bot.fetch_channel(
 			settings.avatar_store_channel_id

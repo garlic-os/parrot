@@ -1,8 +1,11 @@
-from parrot.core.semiparrot.crudless import SemiparrotCrudless
+from typing import TYPE_CHECKING
 
+
+if TYPE_CHECKING:
+	from parrot.bot import Parrot
 
 class SubCRUD:
-	bot: SemiparrotCrudless
+	bot: Parrot
 
-	def __init__(self, bot: SemiparrotCrudless):
+	def __init__(self, bot: Parrot):
 		self.bot = bot

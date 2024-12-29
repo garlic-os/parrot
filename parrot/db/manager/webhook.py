@@ -1,12 +1,16 @@
+from typing import TYPE_CHECKING
+
 import discord
 from discord import Forbidden, HTTPException, NotFound
 
-from parrot.core.semiparrot.managerless import SemiparrotManagerless
 from parrot.utils import cast_not_none
 
 
+if TYPE_CHECKING:
+	from parrot.bot import Parrot
+
 class WebhookManager:
-	def __init__(self, bot: SemiparrotManagerless):
+	def __init__(self, bot: Parrot):
 		self.bot = bot
 
 	async def fetch(
