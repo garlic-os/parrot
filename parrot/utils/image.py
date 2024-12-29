@@ -16,7 +16,7 @@ from PIL import Image, ImageOps, ImageSequence
 
 from parrot.config import settings
 from parrot.core.types import AnyUser
-from parrot import utils
+from parrot.utils import executor_function, tag
 
 
 P = ParamSpec("P")
@@ -115,7 +115,7 @@ def resize_img(img: Image.Image, scale: float) -> Image.Image:
 	)
 
 
-@utils.executor_function
+@executor_function
 def process_lower_level(
 	img: Image.Image,
 	effect: ImageProcessingFunction[P],
@@ -160,7 +160,7 @@ async def create_antiavatar(user: AnyUser) -> Antiavatar:
 			)
 		else:
 			logging.info(
-				f"Processing GIF avatar for {utils.tag(user)}... ",
+				f"Processing GIF avatar for {tag(user)}... ",
 				f"{img.width} \u2a09 {img.height} pixels · {n_frames} frames",
 			)
 
@@ -178,7 +178,7 @@ async def create_antiavatar(user: AnyUser) -> Antiavatar:
 		buffer = await process_lower_level(img, resize_img, scale)
 		n_bytes = buffer.getbuffer().nbytes
 
-	logging.info(f"Processed new avatar for {utils.tag(user)}")
+	logging.info(f"Processed new avatar for {tag(user)}")
 	return Antiavatar(
 		buffer=buffer, file_ext=img.format if img.format is not None else "png"
 	)
