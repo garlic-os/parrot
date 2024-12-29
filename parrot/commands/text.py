@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from parrot import utils
 from parrot.bot import Parrot
-from parrot.core.exceptions import FriendlyError
+from parrot.core.exceptions import TextNotFoundError
 from parrot.utils import ParrotEmbed, cast_not_none, markov, regex
 from parrot.utils.converters import FuzzyMemberlike
 
@@ -57,7 +57,7 @@ class Text(commands.Cog):
 			if len(input_text) == 0:
 				# Author didn't include any text of their own, and the message
 				# they're trying to get text from doesn't have any text.
-				raise FriendlyError("😕 That message doesn't have any text!")
+				raise TextNotFoundError("😕 That message doesn't have any text!")
 
 		# If there is no text and no reference message, try to get the text from
 		# the last (usable) message sent in this channel.
@@ -67,7 +67,7 @@ class Text(commands.Cog):
 				try:
 					input_text += utils.find_text(await history.__anext__())
 				except StopAsyncIteration:
-					raise FriendlyError(
+					raise TextNotFoundError(
 						"😕 Couldn't find a gibberizeable message"
 					)
 
