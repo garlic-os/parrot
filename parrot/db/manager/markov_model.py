@@ -5,7 +5,7 @@ from typing import cast
 import discord
 import markovify
 
-from parrot.config import settings
+from parrot import config
 from parrot.core.types import Snowflake
 from parrot.db.crud import CRUD
 from parrot.utils import markov
@@ -15,7 +15,7 @@ from parrot.utils.cache import LastUpdatedOrderedDict
 class MarkovModelManager:
 	# A user-id, guild-id pair to uniquely identify a Member
 	type Key = tuple[Snowflake, Snowflake]
-	MAX_MEM_SIZE = settings.markov_cache_size_bytes
+	MAX_MEM_SIZE = config.markov_cache_size_bytes
 
 	def __init__(self, crud: CRUD):
 		self.crud = crud

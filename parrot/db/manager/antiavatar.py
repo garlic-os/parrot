@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Self
 import discord
 
 import parrot.db.models as p
-from parrot.config import settings
+from parrot import config
 from parrot.core.types import Snowflake
 from parrot.utils import image
 
@@ -36,7 +36,7 @@ class AntiavatarManager:
 	async def new(cls, bot: "Parrot") -> Self:
 		self = cls(bot)
 		avatar_channel = await self.bot.fetch_channel(
-			settings.avatar_store_channel_id
+			config.avatar_store_channel_id
 		)
 		if not isinstance(avatar_channel, discord.TextChannel):
 			raise TypeError(

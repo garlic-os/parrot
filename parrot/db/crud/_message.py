@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, cast
 import discord
 
 import parrot.db.models as p
-from parrot.config import settings
 from parrot.core.types import Snowflake
+from parrot import config
 from parrot.utils import cast_not_none, regex
 
 from . import _channel, _member
@@ -14,6 +14,7 @@ from .types import SubCRUD
 
 if TYPE_CHECKING:
 	from parrot.bot import Parrot
+
 
 class CRUDMessage(SubCRUD):
 	def __init__(
@@ -44,7 +45,7 @@ class CRUDMessage(SubCRUD):
 			len(message.content) > 0
 			and
 			# Not a Parrot command.
-			not message.content.startswith(settings.command_prefix)
+			not message.content.startswith(config.command_prefix)
 			and
 			# Only learn in text channels, not DMs (or anywhere else).
 			isinstance(message.channel, discord.TextChannel)

@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 from parrot.bot import Parrot
-from parrot.config import settings
+from parrot import config
 from parrot.core.exceptions import NotRegisteredError
 
 # from parrot.utils import cast_not_none, tag, weasel
@@ -26,7 +26,7 @@ class MessageEventHandler(commands.Cog):
 			return
 
 		# I am a mature person making a competent Discord bot.
-		if message.content == "ayy" and settings.ayy_lmao:
+		if message.content == "ayy" and config.ayy_lmao:
 			await message.channel.send("lmao")
 
 		if not isinstance(message.channel, discord.TextChannel):

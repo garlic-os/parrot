@@ -14,7 +14,7 @@ from typing import Concatenate, ParamSpec, TypeAlias, cast
 import aiohttp
 from PIL import Image, ImageOps, ImageSequence
 
-from parrot.config import settings
+from parrot import config
 from parrot.core.types import AnyUser
 from parrot.utils import executor_function, tag
 
@@ -154,7 +154,7 @@ async def create_antiavatar(user: AnyUser) -> Antiavatar:
 
 	if is_gif:
 		n_frames = cast(int, getattr(img, "n_frames"))
-		if n_frames > settings.image.max_frames:
+		if n_frames > config.image.max_frames:
 			raise NotImplementedError(
 				"GIF too long; need to process only first frame"
 			)
@@ -169,11 +169,11 @@ async def create_antiavatar(user: AnyUser) -> Antiavatar:
 	n_bytes = buffer.getbuffer().nbytes
 
 	# if file too large to send via Discord, then resize
-	while n_bytes > settings.image.max_filesize_bytes:
+	while n_bytes > config.image.max_filesize_bytes:
 		# recursively resize image until it meets Discord filesize limit
 		img = Image.open(buffer)
 		scale = (
-			0.9 * settings.image.max_filesize_bytes / n_bytes
+			0.9 * config.image.max_filesize_bytes / n_bytes
 		)  # 0.9x bias to help ensure it comes in under max size
 		buffer = await process_lower_level(img, resize_img, scale)
 		n_bytes = buffer.getbuffer().nbytes

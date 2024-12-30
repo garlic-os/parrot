@@ -7,7 +7,7 @@ from discord.errors import NotFound
 from discord.ext import commands
 
 from parrot.bot import Parrot
-from parrot.config import settings
+from parrot import config
 from parrot.core.exceptions import (
 	ChannelTypeError,
 	FeatureDisabledError,
@@ -85,7 +85,7 @@ class FuzzyMemberlike(Memberlike):
 		- "someone", "anyone", whatever, the rest of them, read the code, that
 			randomly picks a valid user in the provided Context. Requires
 			Members Intent on the Discord developer dashboard and must be
-			enabled in Parrot's settings.
+			enabled in Parrot's config.
 	"""
 
 	def __init__(self):
@@ -102,7 +102,7 @@ class FuzzyMemberlike(Memberlike):
 			return
 		if ctx.guild is None:
 			raise ChannelTypeError(
-				f'"{settings.command_prefix}imitate you" is only available '
+				f'"{config.command_prefix}imitate you" is only available '
 				"in regular server text channels."
 			)
 		async for message in ctx.channel.history(before=ctx.message, limit=50):
@@ -121,14 +121,14 @@ class FuzzyMemberlike(Memberlike):
 		"""Choose a random registered user in this channel."""
 		if text not in ("someone", "somebody", "anyone", "anybody"):
 			return
-		if not settings.enable_imitate_someone:
+		if not config.enable_imitate_someone:
 			raise FeatureDisabledError(
-				f'The "{settings.command_prefix}imitate someone" feature is '
+				f'The "{config.command_prefix}imitate someone" feature is '
 				"disabled."
 			)
 		if ctx.guild is None:
 			raise ChannelTypeError(
-				f'"{settings.command_prefix}imitate someone" is only available '
+				f'"{config.command_prefix}imitate someone" is only available '
 				"in regular server text channels."
 			)
 		# list of users who are both in this channel and registered

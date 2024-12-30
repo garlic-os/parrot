@@ -1,4 +1,4 @@
-from parrot.config import settings
+from parrot import config
 from parrot.core.types import AnyUser
 
 
@@ -18,7 +18,7 @@ class NotRegisteredError(_FriendlyError):
 	def __init__(self, user: AnyUser):
 		super().__init__(
 			f"User {user.mention} is not opted in to Parrot in this server. "
-			f"To opt in, do the `{settings.command_prefix}register` command."
+			f"To opt in, do the `{config.command_prefix}register` command."
 		)
 
 

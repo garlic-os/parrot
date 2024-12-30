@@ -7,7 +7,7 @@ from typing import cast
 
 import discord
 
-from parrot.config import settings
+from parrot import config
 from parrot.core.types import AnyUser
 
 
@@ -64,7 +64,7 @@ def find_text(message: discord.Message) -> str:
 	"""
 	text = []
 	if len(message.content) > 0 and not message.content.startswith(
-		settings.command_prefix
+		config.command_prefix
 	):
 		text.append(message.content)
 	for embed in message.embeds:

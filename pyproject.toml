@@ -13,7 +13,6 @@ dependencies = [
     "jishaku>=2.6.0",
     "markovify>=0.9.4",
     "pillow>=11.0.0",
-    "pydantic-settings>=2.7.0",
     "sqlmodel>=0.0.22",
 ]
 

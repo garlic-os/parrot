@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-from parrot.config import settings
+from parrot import config
 
 
 def is_owner(ctx: commands.Context) -> bool:
@@ -16,6 +16,6 @@ def is_admin(ctx: commands.Context) -> bool:
 	if not isinstance(ctx.author, discord.Member):
 		return False
 	for role in ctx.author.roles:
-		if role.id in settings.admin_role_ids:
+		if role.id in config.admin_role_ids:
 			return True
 	return False

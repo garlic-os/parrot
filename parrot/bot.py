@@ -6,7 +6,7 @@ import discord
 import sqlmodel as sm
 from discord.ext import commands, tasks
 
-from parrot.config import settings
+from parrot import config
 from parrot.db.crud import CRUD
 from parrot.db.manager.antiavatar import AntiavatarManager
 from parrot.db.manager.markov_model import MarkovModelManager
@@ -25,20 +25,20 @@ class Parrot(commands.AutoShardedBot):
 
 		intents = discord.Intents.default()
 		intents.message_content = True
-		intents.members = settings.enable_imitate_someone
+		intents.members = config.enable_imitate_someone
 
 		super().__init__(
-			command_prefix=settings.command_prefix,
+			command_prefix=config.command_prefix,
 			intents=intents,
-			owner_ids=settings.admin_user_ids,
+			owner_ids=config.admin_user_ids,
 			allowed_mentions=discord.AllowedMentions.none(),
 			activity=discord.Activity(
 				type=discord.ActivityType.listening,
-				name=f"everyone ({settings.command_prefix}help)",
+				name=f"everyone ({config.command_prefix}help)",
 			),
 			case_insensitive=True,
 		)
-		engine = sm.create_engine(settings.db_url).execution_options(
+		engine = sm.create_engine(config.db_url).execution_options(
 			autocommit=False
 		)
 		self.db_session = sm.Session(engine)
@@ -84,7 +84,7 @@ class Parrot(commands.AutoShardedBot):
 				logging.info("❌")
 				logging.error(f"{error}\n")
 
-	@tasks.loop(seconds=settings.autosave_interval_seconds)
+	@tasks.loop(seconds=config.autosave_interval_seconds)
 	async def _autosave(self) -> None:
 		"""Commit the database on a timer.
 		Far more performant than committing on every query."""
@@ -94,4 +94,4 @@ class Parrot(commands.AutoShardedBot):
 
 	def go(self) -> None:
 		"""The next logical step after `start` and `run`"""
-		self.run(settings.discord_bot_token)
+		self.run(config.discord_bot_token)

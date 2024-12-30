@@ -1,41 +1,49 @@
 import logging
 
+from parrot.core.types import Snowflake
 
-# from parrot.core.settings import ImageSettings, Settings
+
+discord_bot_token: str
+
+# Put either this or "@parrot " before a command
+command_prefix: str = "|"
+
+db_url: str = "sqlite:////var/lib/parrot/db.sqlite3"
+
+# Seconds between database commits
+autosave_interval_seconds: int = 3600
+
+# Allow the cache of generated models to take up to this much space in
+# memory
+markov_cache_size_bytes: int = 1 * 1024 * 1024 * 1024  # 1 GB
+
+admin_user_ids: set[Snowflake] = set()
+# admin_user_ids: set[Snowflake] = {
+# 	206235904644349953,  # @garlic_os
+# }
+
+admin_role_ids: set[Snowflake] = set()
+
+# Discord channel where Parrot caches antiavatars
+avatar_store_channel_id: Snowflake
+
+# Random probability on [0, 1] to reply to a message with its content
+# filtered through `weasel.devolve`
+random_weasel_chance: float = 0.005
+
+# Enable the `|imitate someone` feature.
+# Requires Server Members intent
+enable_imitate_someone: bool = True
+
+ayy_lmao: bool = True
 
 
-# Python logging module configuration
-# Example: log to console
+class image:
+	max_filesize_bytes: int = 10 * 1024 * 1024  # 10 MB; Discord free tier size
+	max_frames: int = 300
+
+
 logging.basicConfig(
 	level=logging.INFO,
 	format="%(levelname)-4s %(message)s",
 )
-# Example: log to a file at the project root
-# import sys
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s %(levelname)-4s %(message)s",
-#     datefmt="[%Y-%m-%d %H:%M:%S]",
-#     handlers=[
-#         logging.FileHandler("parrot.log", "a", "utf-8"),
-#         logging.StreamHandler(sys.stdout),
-#     ],
-# )
-
-
-# settings = Settings(
-# 	discord_bot_token=,
-# 	command_prefix=,
-# 	db_url=,
-# 	autosave_interval_seconds=,
-# 	admin_user_ids=,
-# 	admin_role_ids=,
-# 	avatar_store_channel_id=,
-# 	random_weasel_chance=,
-# 	enable_imitate_someone=,
-# 	ayy_lmao=,
-# 	image=ImageSettings(
-# 		max_filesize_bytes=,
-# 		max_frames=,
-# 	)
-# )
