@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, cast
 import discord
 
 import parrot.db.models as p
-from parrot.core.types import Snowflake
 from parrot import config
+from parrot.core.types import Snowflake
 from parrot.utils import cast_not_none, regex
 
 from . import _channel, _member

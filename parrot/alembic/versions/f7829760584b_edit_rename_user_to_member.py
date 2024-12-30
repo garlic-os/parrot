@@ -27,7 +27,9 @@ def upgrade() -> None:
 	# Change foreign key constraint to Member.id
 	try:
 		with op.batch_alter_table("Message") as batch_op:
-			batch_op.drop_constraint("fk_Message_user_id_User", type_="foreignkey")
+			batch_op.drop_constraint(
+				"fk_Message_user_id_User", type_="foreignkey"
+			)
 	except ValueError as e:
 		# fk_Message_user_id_User is supposed to be there but it's not???
 		logging.warning(e)
@@ -41,7 +43,9 @@ def upgrade() -> None:
 	# Change foreign key constraint to Member.id
 	try:
 		with op.batch_alter_table("Registration") as batch_op:
-			batch_op.drop_constraint("fk_Registration_user_id_User", type_="foreignkey")
+			batch_op.drop_constraint(
+				"fk_Registration_user_id_User", type_="foreignkey"
+			)
 	except ValueError as e:
 		logging.warning(e)
 	with op.batch_alter_table("Registration") as batch_op:
@@ -50,11 +54,16 @@ def upgrade() -> None:
 			"fk_Registration_member_id_Member", "member", ["member_id"], ["id"]
 		)
 
+
 def downgrade() -> None:
 	with op.batch_alter_table("Message") as batch_op:
-		batch_op.drop_constraint("fk_Message_member_id_Member", type_="foreignkey")
+		batch_op.drop_constraint(
+			"fk_Message_member_id_Member", type_="foreignkey"
+		)
 		batch_op.alter_column("member_id", new_column_name="user_id")
 	with op.batch_alter_table("Registration") as batch_op:
-		batch_op.drop_constraint("fk_Registration_member_id_Member", type_="foreignkey")
+		batch_op.drop_constraint(
+			"fk_Registration_member_id_Member", type_="foreignkey"
+		)
 		batch_op.alter_column("member_id", new_column_name="user_id")
 	op.rename_table("Member", "User")

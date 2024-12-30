@@ -57,7 +57,9 @@ class Text(commands.Cog):
 			if len(input_text) == 0:
 				# Author didn't include any text of their own, and the message
 				# they're trying to get text from doesn't have any text.
-				raise TextNotFoundError("😕 That message doesn't have any text!")
+				raise TextNotFoundError(
+					"😕 That message doesn't have any text!"
+				)
 
 		# If there is no text and no reference message, try to get the text from
 		# the last (usable) message sent in this channel.

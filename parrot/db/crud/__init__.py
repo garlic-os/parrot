@@ -6,6 +6,7 @@ from . import _channel, _guild, _member, _message, _user
 if TYPE_CHECKING:
 	from parrot.bot import Parrot
 
+
 class CRUD:
 	"""A pile of Create-Read-Update-Delete functions for Parrot's database"""
 

@@ -13,15 +13,16 @@ class Registration(commands.Cog):
 	def __init__(self, bot: Parrot):
 		self.bot = bot
 
-
 	@commands.command(
 		aliases=["agree", "accept", "initiate", "initate"],
-		brief="Register with Parrot."
+		brief="Register with Parrot.",
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
-	async def register(self, ctx: commands.Context, who: Memberlike | None=None) -> None:
-		""" Register to let Parrot imitate you. """
+	async def register(
+		self, ctx: commands.Context, who: Memberlike | None = None
+	) -> None:
+		"""Register to let Parrot imitate you."""
 		# Pylance doesn't get along with `commands.Converter`s
 		who_ = cast(discord.Member | None, who)
 		if who_ is None:
@@ -38,7 +39,7 @@ class Registration(commands.Cog):
 			description=(
 				"Now Parrot can start learning your speech patterns and "
 				"imitate you."
-			)
+			),
 		)
 		embed.add_field(
 			name="Tip:",
@@ -47,21 +48,19 @@ class Registration(commands.Cog):
 				"immediately give Parrot a dataset to imitate you from! It "
 				"will scan your past messages to create a model of how you "
 				"speak so you can start using Parrot right away."
-			)
+			),
 		)
 
 		await ctx.send(embed=embed)
 
 	@commands.command(
 		aliases=["disagree", "unaccept", "uninitiate", "uninitate"],
-		brief="Unregister with Parrot."
+		brief="Unregister with Parrot.",
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
 	async def unregister(
-		self,
-		ctx: commands.Context,
-		who: Memberlike | None=None
+		self, ctx: commands.Context, who: Memberlike | None = None
 	) -> None:
 		"""
 		Remove your registration from Parrot.
@@ -86,7 +85,7 @@ class Registration(commands.Cog):
 				"you just want a fresh start, you can do "
 				f"`{self.bot.command_prefix}forget me` and your existing data "
 				"will be permanently deleted from Parrot._"
-			)
+			),
 		)
 
 		await ctx.send(embed=embed)
@@ -103,7 +102,9 @@ class Registration(commands.Cog):
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
-	async def status(self, ctx: commands.Context, who: Memberlike | None=None) -> None:
+	async def status(
+		self, ctx: commands.Context, who: Memberlike | None = None
+	) -> None:
 		"""
 		Check if you're registered with Parrot.
 		You need to be registered for Parrot to be able to analyze your messages
@@ -112,14 +113,20 @@ class Registration(commands.Cog):
 		who_ = cast(discord.Member | None, who)
 		if who_ is None:
 			who_ = cast(discord.Member, ctx.author)
-		subject_verb = "You are" if who_.id == ctx.author.id else f"{who_.mention} is"
+		subject_verb = (
+			"You are" if who_.id == ctx.author.id else f"{who_.mention} is"
+		)
 		if who_.bot:
 			await ctx.send("✅ Bots do not need to be registered.")
 			return
 		if self.bot.crud.member.is_registered(who_):
-			await ctx.send(f"✅ {subject_verb} currently registered with Parrot.")
+			await ctx.send(
+				f"✅ {subject_verb} currently registered with Parrot."
+			)
 		else:
-			await ctx.send(f"❌ {subject_verb} not currently registered with Parrot.")
+			await ctx.send(
+				f"❌ {subject_verb} not currently registered with Parrot."
+			)
 
 
 async def setup(bot: Parrot) -> None:

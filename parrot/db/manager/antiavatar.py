@@ -15,6 +15,7 @@ from parrot.utils import image
 if TYPE_CHECKING:
 	from parrot.bot import Parrot
 
+
 class AntiavatarManager:
 	"""
 	A cache layer over Parrot's "antiavatars" that it uses when it imitates.

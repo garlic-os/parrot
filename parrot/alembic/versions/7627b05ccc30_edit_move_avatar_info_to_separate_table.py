@@ -30,6 +30,7 @@ class AvatarInfo(sm.SQLModel, table=True):
 	antiavatar_url: str
 	antiavatar_message_id: Snowflake
 
+
 class Registration(sm.SQLModel, table=True):
 	id: int | None = sm.Field(primary_key=True, default=None)
 	member_id: Snowflake = sm.Field(foreign_key="Member.id")
@@ -37,6 +38,7 @@ class Registration(sm.SQLModel, table=True):
 	original_avatar_url: str
 	modified_avatar_url: str
 	modified_avatar_message_id: Snowflake
+
 
 # Configure SQLModel with all currently defined models (which should just be
 # the ones above)
@@ -47,8 +49,15 @@ session = sm.Session(bind=op.get_bind())
 def upgrade() -> None:
 	op.create_table(
 		"AvatarInfo",
-		sa.Column("member_id", sa.BigInteger, sa.ForeignKey("Member.id"), primary_key=True),
-		sa.Column("guild_id", sa.BigInteger, sa.ForeignKey("Guild.id"), nullable=False),
+		sa.Column(
+			"member_id",
+			sa.BigInteger,
+			sa.ForeignKey("Member.id"),
+			primary_key=True,
+		),
+		sa.Column(
+			"guild_id", sa.BigInteger, sa.ForeignKey("Guild.id"), nullable=False
+		),
 		sa.Column("original_avatar_url", sa.String, nullable=False),
 		sa.Column("antiavatar_url", sa.String, nullable=False),
 		sa.Column("antiavatar_message_id", sa.BigInteger, nullable=False),
@@ -56,8 +65,9 @@ def upgrade() -> None:
 
 	# Copy all Registrations that have non-null avatar info to the new
 	# AvatarInfo table
-	statement = sm.select(Registration) \
-		.where(Registration.original_avatar_url != None)
+	statement = sm.select(Registration).where(
+		Registration.original_avatar_url != None
+	)
 	db_registrations = session.exec(statement).all()
 	json_registrations = (reg.model_dump() for reg in db_registrations)
 	db_avatar_infos = (
@@ -81,19 +91,27 @@ def upgrade() -> None:
 
 def downgrade() -> None:
 	# Add the old avatar info fields back to the Registration table
-	op.add_column("Registration", sa.Column("original_avatar_url", sa.String, nullable=False))
-	op.add_column("Registration", sa.Column("modified_avatar_url", sa.String, nullable=False))
-	op.add_column("Registration", sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=False))
+	op.add_column(
+		"Registration",
+		sa.Column("original_avatar_url", sa.String, nullable=False),
+	)
+	op.add_column(
+		"Registration",
+		sa.Column("modified_avatar_url", sa.String, nullable=False),
+	)
+	op.add_column(
+		"Registration",
+		sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=False),
+	)
 
-	statement = sm \
-		.select(AvatarInfo) \
-		.where(
-			# type: ignore -- SQLalchemy properties are magic and this actually does have .in_ on it
-			AvatarInfo.member_id.in_(  # type: ignore
-				sm.select(Registration.member_id) \
-				.where(Registration.member_id == AvatarInfo.member_id)
+	statement = sm.select(AvatarInfo).where(
+		# type: ignore -- SQLalchemy properties are magic and this actually does have .in_ on it
+		AvatarInfo.member_id.in_(  # type: ignore
+			sm.select(Registration.member_id).where(
+				Registration.member_id == AvatarInfo.member_id
 			)
 		)
+	)
 	db_registered_avatar_infos = session.exec(statement).all()
 	json_infos = (info.model_dump() for info in db_registered_avatar_infos)
 	db_registrations = (

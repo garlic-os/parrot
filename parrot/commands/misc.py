@@ -11,7 +11,7 @@ class Miscellaneous(commands.Cog):
 	@commands.command()
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	async def ping(self, ctx: commands.Context) -> None:
-		""" Get the bot's reponse time. """
+		"""Get the bot's reponse time."""
 		await ctx.send(
 			f"NEED PING??? Took **{round(self.bot.latency * 1000, 2)}** ms"
 		)
@@ -21,7 +21,7 @@ class Miscellaneous(commands.Cog):
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	async def info(self, ctx: commands.Context) -> None:
-		""" Get info about Parrot. """
+		"""Get info about Parrot."""
 		garlic_os = await self.bot.fetch_user(206235904644349953)
 
 		bio = (

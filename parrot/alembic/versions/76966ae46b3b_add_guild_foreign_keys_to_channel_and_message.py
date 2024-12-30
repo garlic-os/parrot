@@ -49,7 +49,11 @@ def downgrade() -> None:
 	op.drop_column("Channel", "guild_id")
 
 	with op.batch_alter_table("Message") as batch_op:
-		batch_op.drop_constraint("fk_Message_guild_id_Guild", type_="foreignkey")
-	
+		batch_op.drop_constraint(
+			"fk_Message_guild_id_Guild", type_="foreignkey"
+		)
+
 	with op.batch_alter_table("Channel") as batch_op:
-		batch_op.drop_constraint("fk_Channel_guild_id_Channel", type_="foreignkey")
+		batch_op.drop_constraint(
+			"fk_Channel_guild_id_Channel", type_="foreignkey"
+		)
