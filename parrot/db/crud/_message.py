@@ -8,7 +8,6 @@ from parrot import config
 from parrot.core.types import Snowflake
 from parrot.utils import cast_not_none, regex
 
-from . import _channel, _member
 from .types import SubCRUD
 
 
@@ -19,13 +18,9 @@ if TYPE_CHECKING:
 class CRUDMessage(SubCRUD):
 	def __init__(
 		self,
-		bot: "Parrot",
-		crud_channel: _channel.CRUDChannel,
-		crud_member: _member.CRUDMember,
+		bot: "Parrot"
 	):
 		super().__init__(bot)
-		self.crud_channel = crud_channel
-		self.crud_member = crud_member
 
 	@staticmethod
 	def _extract_text(message: discord.Message) -> str:
@@ -67,7 +62,7 @@ class CRUDMessage(SubCRUD):
 			message.webhook_id is None
 			and
 			# Parrot must be allowed to learn in this channel.
-			self.crud_channel.has_permission(message.channel, "can_learn_here")
+			self.bot.crud.channel.has_permission(message.channel, "can_learn_here")
 			and
 			# People will often say "v" or "z" on accident while spamming,
 			# and it doesn't really make for good learning material.
@@ -88,7 +83,7 @@ class CRUDMessage(SubCRUD):
 			messages = [messages]
 
 		member = cast(discord.Member, messages[0].author)
-		if not self.crud_member.is_registered(member):
+		if not self.bot.crud.member.is_registered(member):
 			return []
 
 		# Every message in the list must have the same author, because the
