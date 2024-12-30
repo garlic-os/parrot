@@ -3,7 +3,7 @@ from typing import cast
 import discord
 from discord.ext import commands
 
-from bot import Parrot
+from parrot.bot import Parrot
 from parrot.core.exceptions import UserPermissionError
 from parrot.utils import ParrotEmbed
 from parrot.utils.converters import Memberlike

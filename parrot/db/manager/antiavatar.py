@@ -28,12 +28,12 @@ class AntiavatarManager:
 
 	avatar_channel: discord.TextChannel
 
-	def __init__(self, bot: Parrot):
+	def __init__(self, bot: "Parrot"):
 		"""dont run this directly please use .new() instead"""
 		self.bot = bot
 
 	@classmethod
-	async def new(cls, bot: Parrot) -> Self:
+	async def new(cls, bot: "Parrot") -> Self:
 		self = cls(bot)
 		avatar_channel = await self.bot.fetch_channel(
 			settings.avatar_store_channel_id

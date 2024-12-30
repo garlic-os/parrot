@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class CRUD:
 	"""A pile of Create-Read-Update-Delete functions for Parrot's database"""
 
-	def __init__(self, bot: Parrot):
+	def __init__(self, bot: "Parrot"):
 		self.channel = _channel.CRUDChannel(bot)
 		self.guild = _guild.CRUDGuild(bot)
 		self.member = _member.CRUDMember(bot)

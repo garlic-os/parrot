@@ -1,6 +1,6 @@
 from discord.ext import commands
 
-from bot import Parrot
+from parrot.bot import Parrot
 from parrot.utils import ParrotEmbed, cast_not_none, tag
 
 

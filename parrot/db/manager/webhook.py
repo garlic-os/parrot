@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 	from parrot.bot import Parrot
 
 class WebhookManager:
-	def __init__(self, bot: Parrot):
+	def __init__(self, bot: "Parrot"):
 		self.bot = bot
 
 	async def fetch(

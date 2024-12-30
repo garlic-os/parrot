@@ -51,6 +51,5 @@ class MarkovModelManager:
 		partial = markov.ParrotText(corpus_update)
 		current = await self.fetch(member)
 		updated = cast(markov.ParrotText, markovify.combine(current, partial))
-		self.set_local(member, updated)
 		key: MarkovModelManager.Key = (member.id, member.guild.id)
 		self.cache[key] = updated

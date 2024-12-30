@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class CRUDMessage(SubCRUD):
 	def __init__(
 		self,
-		bot: Parrot,
+		bot: "Parrot",
 		crud_channel: _channel.CRUDChannel,
 		crud_user: _member.CRUDMember,
 	):
