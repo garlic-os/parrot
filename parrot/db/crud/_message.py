@@ -21,11 +21,11 @@ class CRUDMessage(SubCRUD):
 		self,
 		bot: "Parrot",
 		crud_channel: _channel.CRUDChannel,
-		crud_user: _member.CRUDMember,
+		crud_member: _member.CRUDMember,
 	):
 		super().__init__(bot)
 		self.crud_channel = crud_channel
-		self.crud_user = crud_user
+		self.crud_member = crud_member
 
 	@staticmethod
 	def _extract_text(message: discord.Message) -> str:
@@ -88,7 +88,7 @@ class CRUDMessage(SubCRUD):
 			messages = [messages]
 
 		member = cast(discord.Member, messages[0].author)
-		if not self.crud_user.is_registered(member):
+		if not self.crud_member.is_registered(member):
 			return []
 
 		# Every message in the list must have the same author, because the
@@ -109,7 +109,7 @@ class CRUDMessage(SubCRUD):
 		db_messages = (
 			p.Message(
 				id=m.id,
-				member_id=member.id,
+				author_id=member.id,
 				guild_id=member.guild.id,
 				timestamp=m.created_at,
 				content=CRUDMessage._extract_text(m),
