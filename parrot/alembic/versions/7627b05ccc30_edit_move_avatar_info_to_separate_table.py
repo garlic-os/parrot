@@ -7,6 +7,7 @@ Create Date: 2024-12-28 19:06:10.371272
 """
 
 from collections.abc import Sequence
+from typing import cast
 
 import sqlalchemy as sa
 import sqlmodel as sm
@@ -65,9 +66,14 @@ def upgrade() -> None:
 
 	# Copy all Registrations that have non-null avatar info to the new
 	# AvatarInfo table
-	statement = sm.select(Registration).where(
-		Registration.original_avatar_url != None
-	)
+	statement = \
+		sm.select(Registration) \
+		.where(
+			# ~~Disillusion~~ Remind the type checker what type SQLModel properties
+			# really are
+			cast(sa.sql.ColumnElement, Registration.original_avatar_url) \
+			.is_not(None)
+		)
 	db_registrations = session.exec(statement).all()
 	json_registrations = (reg.model_dump() for reg in db_registrations)
 	db_avatar_infos = (
@@ -104,13 +110,13 @@ def downgrade() -> None:
 		sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=False),
 	)
 
-	statement = sm.select(AvatarInfo).where(
-		# type: ignore -- SQLalchemy properties are magic and this actually does have .in_ on it
-		AvatarInfo.member_id.in_(  # type: ignore
-			sm.select(Registration.member_id).where(
-				Registration.member_id == AvatarInfo.member_id
+	statement = \
+		sm.select(AvatarInfo) \
+		.where(
+			cast(sa.sql.ColumnElement, AvatarInfo.member_id).in_(
+				sm.select(Registration.member_id) \
+				.where(Registration.member_id == AvatarInfo.member_id)
 			)
-		)
 	)
 	db_registered_avatar_infos = session.exec(statement).all()
 	json_infos = (info.model_dump() for info in db_registered_avatar_infos)
