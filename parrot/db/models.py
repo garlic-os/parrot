@@ -7,7 +7,6 @@ relies on, plus some of Parrot's own information.
 N.B. The primary keys on tables that are direct analogs to Discord entities
 (e.g., Channel, Message) are intentionally _not_ created automatically by the
 database, and are expected to be the same as their IDs from Discord.
-Primary keys of Parrot-proprietary tables are autoincremented.
 """
 
 # TODO: with markovify.Text.combine(), is regenerating necessary anymore, except
@@ -17,28 +16,60 @@ Primary keys of Parrot-proprietary tables are autoincremented.
 # TODO: understand .commit() and .refresh()/see if there are any occurrences of
 # them that can be deleted
 
+# TODO: prune unused Relationships and back-populations
+
 import datetime as dt
 from enum import Enum
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 from parrot.core.types import Snowflake
 
 
 class Channel(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="Guild.id")
 	can_speak_here: bool = False
 	can_learn_here: bool = False
 	webhook_id: Snowflake | None = None
+	guild_id: Snowflake = Field(foreign_key="Guild.id")
+
+	guild: "Guild" = Relationship(back_populates="channels")
 
 
 class Message(SQLModel, table=True):
-	id: Snowflake = Field(primary_key=True)
-	member_id: Snowflake = Field(foreign_key="Member.id")
-	guild_id: Snowflake = Field(foreign_key="Guild.id")
+	id: Snowflake  # not the primary key; Parrot should really get Messages through Member-Guild associations
 	timestamp: dt.datetime
 	content: str
+
+	# TODO: migration -- member_id → author_id
+	# TODO: migration -- author_id and guild_id made primary keys
+	author_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
+
+	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+
+	author: "Member" = Relationship(back_populates="messages")
+	guild: "Guild" = Relationship(back_populates="messages")
+
+
+# TODO: SQLModel Relationships for on-delete actions
+class MemberGuildLink(SQLModel, table=True):
+	# TODO: migration - remove id, make both member_id and guild_id primary
+	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
+	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+	is_registered: bool = False
+
+	member: "Member" = Relationship(back_populates="guild_links")
+	guild: "Guild" = Relationship(back_populates="member_links")
+	avatar_info: "AvatarInfo" = Relationship()
+
+
+class Member(SQLModel, table=True):
+	id: Snowflake = Field(primary_key=True)
+	wants_random_devolve: bool = True
+
+	guild_links: list[MemberGuildLink] = Relationship(back_populates="member")
+	messages: list[Message] = Relationship(back_populates="author")
+	avatars: list["AvatarInfo"] = Relationship(back_populates="member")
 
 
 class GuildMeta(Enum):
@@ -53,30 +84,27 @@ class Guild(SQLModel, table=True):
 	imitation_prefix: str = GuildMeta.default_imitation_prefix.value
 	imitation_suffix: str = GuildMeta.default_imitation_suffix.value
 
+	member_links: list[MemberGuildLink] = Relationship(back_populates="guild")
+	channels: list[Channel] = Relationship(back_populates="guild")
+	avatars: list["AvatarInfo"] = Relationship(back_populates="guild")
 
-class Member(SQLModel, table=True):
-	id: Snowflake = Field(primary_key=True)
-	wants_random_devolve: bool = True
 
-
+# A separate table from MemberGuildLink to group them as one
+# None-or-not-None unit
 class AvatarInfoBase(SQLModel):
 	original_avatar_url: str
 	antiavatar_url: str
 	antiavatar_message_id: Snowflake
 
 
-# TODO: SQLModel Relationships for on-delete actions
 class AvatarInfo(AvatarInfoBase, table=True):
-	id: int | None = Field(primary_key=True, default=None)
+	# TODO: migration - remove id, make both member_id and guild_id primary
 	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="Guild.id")
+	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+
+	member: Member = Relationship(back_populates="avatars")
+	guild: Guild = Relationship(back_populates="avatars")
 
 
 class AvatarInfoCreate(AvatarInfoBase):
 	pass
-
-
-class Registration(SQLModel, table=True):
-	id: int | None = Field(primary_key=True, default=None)
-	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="Guild.id")

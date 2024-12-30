@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import aiohttp
 import asyncio_atexit
 import discord
 import sqlmodel as sm
@@ -14,6 +15,7 @@ from parrot.db.manager.webhook import WebhookManager
 
 
 class Parrot(commands.AutoShardedBot):
+	http_session: aiohttp.ClientSession
 	db_session: sm.Session
 	crud: CRUD
 	markov_models: MarkovModelManager
@@ -41,6 +43,7 @@ class Parrot(commands.AutoShardedBot):
 		engine = sm.create_engine(config.db_url).execution_options(
 			autocommit=False
 		)
+		self.http_session = self.http.__session  # >:3c
 		self.db_session = sm.Session(engine)
 		self.crud = CRUD(self)
 		self.markov_models = MarkovModelManager(self.crud)

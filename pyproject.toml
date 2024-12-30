@@ -14,6 +14,7 @@ dependencies = [
     "markovify>=0.9.4",
     "pillow>=11.0.0",
     "sqlmodel>=0.0.22",
+    "ujson>=5.10.0",
 ]
 
 [dependency-groups]

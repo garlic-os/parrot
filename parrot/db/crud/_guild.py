@@ -16,7 +16,8 @@ class CRUDGuild(SubCRUD):
 		self, guild: discord.Guild, permission: Permission
 	) -> ScalarResult[Snowflake]:
 		statement = sm.select(p.Channel.id).where(
-			p.Channel.guild_id == guild.id, getattr(p.Channel, permission) == True
+			p.Channel.guild_id == guild.id,
+			getattr(p.Channel, permission) == True,
 		)
 		return self.bot.db_session.exec(statement)
 
@@ -62,8 +63,8 @@ class CRUDGuild(SubCRUD):
 	def get_registered_member_ids(
 		self, guild: discord.Guild
 	) -> Sequence[Snowflake]:
-		statement = sm.select(p.Registration.member_id).where(
-			p.Registration.guild_id == guild.id
+		statement = sm.select(p.MemberGuildLink.member_id).where(
+			p.MemberGuildLink.guild_id == guild.id
 		)
 		return self.bot.db_session.exec(statement).all()
 

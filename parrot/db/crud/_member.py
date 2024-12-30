@@ -12,16 +12,16 @@ from .types import SubCRUD
 class CRUDMember(SubCRUD):
 	def _get_registration(
 		self, member: discord.Member
-	) -> p.Registration | None:
-		statement = sm.select(p.Registration).where(
-			p.Registration.member_id == member.id,
-			p.Guild.id == member.guild.id
+	) -> p.MemberGuildLink | None:
+		statement = sm.select(p.MemberGuildLink).where(
+			p.MemberGuildLink.member_id == member.id,
+			p.Guild.id == member.guild.id,
 		)
 		return self.bot.db_session.exec(statement).first()
 
 	def set_registered(self, member: discord.Member, value: bool) -> None:
 		if value:
-			registration = p.Registration(
+			registration = p.MemberGuildLink(
 				member_id=member.id, guild_id=member.guild.id
 			)
 			self.bot.db_session.add(registration)
@@ -38,9 +38,9 @@ class CRUDMember(SubCRUD):
 	def is_registered(self, member: discord.Member) -> bool:
 		if member.bot:  # Bots are always counted as registered
 			return True
-		statement = sm.select(p.Registration.member_id).where(
-			p.Registration.member_id == member.id,
-			p.Guild.id == member.guild.id
+		statement = sm.select(p.MemberGuildLink.member_id).where(
+			p.MemberGuildLink.member_id == member.id,
+			p.Guild.id == member.guild.id,
 		)
 		return self.bot.db_session.exec(statement).first() is not None
 
@@ -56,8 +56,8 @@ class CRUDMember(SubCRUD):
 		Get the text content of every message this user has said in this guild.
 		"""
 		statement = sm.select(p.Message.content).where(
-			p.Message.member_id == member.id,
-			p.Message.guild_id == member.guild.id
+			p.Message.author_id == member.id,
+			p.Message.guild_id == member.guild.id,
 		)
 		return self.bot.db_session.exec(statement).all()
 
@@ -65,7 +65,7 @@ class CRUDMember(SubCRUD):
 		self.assert_registered(member)
 		statement = sm.select(p.AvatarInfo).where(
 			p.AvatarInfo.member_id == member.id,
-			p.AvatarInfo.guild_id == member.guild.id
+			p.AvatarInfo.guild_id == member.guild.id,
 		)
 		return self.bot.db_session.exec(statement).first()
 
