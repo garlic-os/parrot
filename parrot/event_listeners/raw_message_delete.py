@@ -11,13 +11,22 @@ class RawMessageDeleteEventHandler(commands.Cog):
 		self.bot = bot
 
 	# Update the database when a message is deleted.
-	# Must use the raw event because the main event doesn't catches edit events
-	# for messages that happen to be in its cache.
+	# Must use the raw event because the regular version doesn't work for
+	# messages that don't happen to be in its cache.
 	@commands.Cog.listener()
 	async def on_raw_message_delete(
 		self, event: discord.RawMessageDeleteEvent
 	) -> None:
-		self.bot.crud.message.delete(event.message_id)
+		deleted = self.bot.crud.message.delete(event.message_id)
+		if deleted is None:
+			return
+		# Invalidate cached model
+		try:
+			del self.bot.markov_models.cache[
+				(deleted.author_id, deleted.guild_id)
+			]
+		except KeyError:
+			pass
 		logging.info(
 			f"Forgot message with ID {event.message_id} because it was deleted "
 			"from Discord."

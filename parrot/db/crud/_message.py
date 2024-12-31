@@ -122,21 +122,11 @@ class CRUDMessage(SubCRUD):
 		# 	return self.corpora.add(user, messages)
 		# return 0
 
-	def delete(self, message_id: Snowflake) -> None:
+	def delete(self, message_id: Snowflake) -> p.Message | None:
 		"""Delete a message from the database."""
 		db_message = self.bot.db_session.get(p.Message, message_id)
+		if db_message is None:
+			return None
 		self.bot.db_session.delete(db_message)
 		self.bot.db_session.commit()
-
-	def edit(self, message_id: Snowflake, new_content: str) -> bool:
-		"""
-		Edit the text content of a message in the database.
-		:returns: Success (will fail if message does not exist in database)
-		"""
-		db_message = self.bot.db_session.get(p.Message, message_id)
-		if db_message is None:
-			return False
-		db_message.content = new_content
-		self.bot.db_session.add(db_message)
-		self.bot.db_session.commit()
-		return True
+		return db_message
