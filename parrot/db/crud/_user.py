@@ -44,7 +44,7 @@ class CRUDUser(SubCRUD):
 			return False
 
 		# Delete their avatars
-		asyncio.gather(
+		await asyncio.gather(
 			*(
 				self.bot.antiavatars.delete_antiavatar(avatar_info)
 				for avatar_info in db_member.avatars
