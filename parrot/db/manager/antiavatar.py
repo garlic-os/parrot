@@ -8,7 +8,6 @@ import discord
 
 import parrot.db.models as p
 from parrot import config
-from parrot.core.types import Snowflake
 from parrot.utils import image
 
 
@@ -67,9 +66,7 @@ class AntiavatarManager:
 			# Else, user has changed their avatar here; respect the user's
 			# privacy by deleting the message with their old avatar.
 			# (This operation doesn't need to complete before continuing)
-			asyncio.create_task(
-				self._delete_message(info.antiavatar_message_id)
-			)
+			asyncio.create_task(self.delete_antiavatar(info))
 
 		# User has changed their avatar in this guild since last time they did
 		# |imitate, and/or Parrot has never made the antiavatar for this avatar,
@@ -94,7 +91,8 @@ class AntiavatarManager:
 		)
 		return message.attachments[0].url
 
-	async def _delete_message(self, message_id: Snowflake) -> None:
+	async def delete_antiavatar(self, avatar_info: p.AvatarInfo) -> None:
+		message_id = avatar_info.antiavatar_message_id
 		try:
 			message = await self.avatar_channel.fetch_message(message_id)
 		except discord.NotFound:

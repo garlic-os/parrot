@@ -37,7 +37,9 @@ class Channel(SQLModel, table=True):
 
 
 class Message(SQLModel, table=True):
-	id: Snowflake  # not the primary key; Parrot should really get Messages through Member-Guild associations
+	# not the primary key; Parrot should really get Messages through
+	# Member-Guild associations. Still good to have though.
+	id: Snowflake
 	timestamp: dt.datetime
 	content: str
 
@@ -51,7 +53,6 @@ class Message(SQLModel, table=True):
 	guild: "Guild" = Relationship(back_populates="messages")
 
 
-# TODO: SQLModel Relationships for on-delete actions
 class MemberGuildLink(SQLModel, table=True):
 	# TODO: migration - remove id, make both member_id and guild_id primary
 	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
@@ -67,9 +68,10 @@ class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	wants_random_devolve: bool = True
 
-	guild_links: list[MemberGuildLink] = Relationship(back_populates="member")
-	messages: list[Message] = Relationship(back_populates="author")
-	avatars: list["AvatarInfo"] = Relationship(back_populates="member")
+	# TODO: migration -- add ON DELETE rules
+	guild_links: list[MemberGuildLink] = Relationship(back_populates="member", cascade_delete=True)
+	messages: list[Message] = Relationship(back_populates="author", cascade_delete=True)
+	avatars: list["AvatarInfo"] = Relationship(back_populates="member", cascade_delete=True)
 
 
 class GuildMeta(Enum):

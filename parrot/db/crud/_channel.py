@@ -25,18 +25,21 @@ class CRUDChannel(SubCRUD):
 			if getattr(db_channel, permission) == value:
 				# Flag already had this value
 				return False
-			setattr(db_channel, permission, value)
 		else:
-			db_channel = p.Channel(id=channel.id, **{permission: value})
+			db_channel = p.Channel(id=channel.id, guild_id=channel.guild.id)
+		setattr(db_channel, permission, value)
 		self.bot.db_session.add(db_channel)
 		self.bot.db_session.commit()
 		self.bot.db_session.refresh(db_channel)
+		# Flag's value is different now because of this call
+		# (including if you create a new row just to set the flag to False)
 		return True
 
 	def has_permission(
 		self, channel: discord.TextChannel, permission: Permission
 	) -> bool:
 		statement = sm.select(p.Channel.id).where(
+			# TODO: works without the `== True`?
 			p.Channel.id == channel.id, getattr(p.Channel, permission) == True
 		)
 		return self.bot.db_session.exec(statement).first() is not None
