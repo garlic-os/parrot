@@ -44,7 +44,6 @@ class Registration(sm.SQLModel, table=True):
 # Configure SQLModel with all currently defined models (which should just be
 # the ones above)
 target_metadata = sm.SQLModel.metadata
-session = sm.Session(bind=op.get_bind())
 
 
 def upgrade() -> None:
@@ -63,6 +62,8 @@ def upgrade() -> None:
 		sa.Column("antiavatar_url", sa.String, nullable=False),
 		sa.Column("antiavatar_message_id", sa.BigInteger, nullable=False),
 	)
+
+	session = sm.Session(bind=op.get_bind())
 
 	# Copy all Registrations that have non-null avatar info to the new
 	# AvatarInfo table
@@ -109,6 +110,8 @@ def downgrade() -> None:
 		"Registration",
 		sa.Column("modified_avatar_message_id", sa.BigInteger, nullable=False),
 	)
+	
+	session = sm.Session(bind=op.get_bind())
 
 	statement = \
 		sm.select(AvatarInfo) \
