@@ -134,7 +134,7 @@ def process_lower_level(
 		if image_loop:
 			duration: int = img.info["duration"]
 			durations.append(duration)
-		img_out = effect(img.convert("RGBA"), *args, **kwargs)
+		img_out = effect(cast(Image.Image, img).convert("RGBA"), *args, **kwargs)
 		frames.append(img_out)
 
 	buffer = image_to_buffer(frames, tuple(durations), image_loop)
