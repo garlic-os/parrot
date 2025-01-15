@@ -1,11 +1,21 @@
 # Parrot
 _Imitate everyone individually._
 
-Parrot is a polymorphic Markov Chain generator for Discord that trains a unique model for each user. With a single bot, you can imitate a theoretically unlimited number of users. Once a user is registered, Parrot automatically learns how to speak like them through the messages they send. You can have Parrot imitate any registered user with the `|imitate` command.
+Parrot is a polymorphic Markov Chain generator for Discord that trains a unique 
+model for each user. With a single bot, you can imitate a theoretically 
+unlimited number of users. Once a user is registered, Parrot automatically 
+learns how to speak like them through the messages they send. You can have 
+Parrot imitate any registered user with the `|imitate` command.
 
-Parrot uses Webhooks to take on the name and avatar of the person it's currently imitating. If you'd rather Parrot speak in a given channel without a Webhook, just take away its `manage_webhooks` permission there, and it will talk through an embed instead of a Webhook.
+Parrot uses Webhooks to take on the name and avatar of the person it's 
+currently imitating. If you'd rather Parrot speak in a given channel without a 
+Webhook, just take away its `manage_webhooks` permission there, and it will 
+talk through an embed instead of a Webhook.
 
-Parrot has to collect users' messages to work, so to ensure that no one's messages are collected without their consent, each user who wants Parrot to be able to imitate them must first register with Parrot through the `|register` command. After that though, it's simple to get started.
+Parrot has to collect users' messages to work, so to ensure that no one's 
+messages are collected without their consent, each user who wants Parrot to be 
+able to imitate them must first register with Parrot through the `|register` 
+command. After that though, it's simple to get started.
 
 ## Setup
 For now, if you want Parrot on your server, you'll have to run it yourself.
