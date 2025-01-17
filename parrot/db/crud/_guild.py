@@ -28,7 +28,7 @@ class CRUDGuild(SubCRUD):
 		)
 		return (
 			self.bot.db_session.exec(statement).first()
-			or p.GuildMeta.default_imitation_prefix.value
+			or p.GuildMeta.default_imitation_prefix
 		)
 
 	def set_prefix(self, guild: discord.Guild, new_prefix: str) -> None:
@@ -47,7 +47,7 @@ class CRUDGuild(SubCRUD):
 		)
 		return (
 			self.bot.db_session.exec(statement).first()
-			or p.GuildMeta.default_imitation_suffix.value
+			or p.GuildMeta.default_imitation_suffix
 		)
 
 	def set_suffix(self, guild: discord.Guild, new_suffix: str) -> None:

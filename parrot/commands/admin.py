@@ -307,7 +307,7 @@ class Admin(commands.Cog):
 	@prefix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
 	async def prefix_clear(self, ctx: commands.Context) -> None:
-		new_prefix = p.GuildMeta.default_imitation_prefix.value
+		new_prefix = p.GuildMeta.default_imitation_prefix
 		self.bot.crud.guild.set_prefix(cast_not_none(ctx.guild), new_prefix)
 		await ctx.send(
 			f"✅ Parrot's imitation prefix has been reset to: `{new_prefix}`"
@@ -343,7 +343,7 @@ class Admin(commands.Cog):
 	@suffix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
 	async def suffix_clear(self, ctx: commands.Context) -> None:
-		new_suffix = p.GuildMeta.default_imitation_suffix.value
+		new_suffix = p.GuildMeta.default_imitation_suffix
 		self.bot.crud.guild.set_suffix(cast_not_none(ctx.guild), new_suffix)
 		await ctx.send(
 			f"✅ Parrot's imitation suffix has been reset to: `{new_suffix}`"

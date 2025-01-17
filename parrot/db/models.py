@@ -19,7 +19,6 @@ database, and are expected to be the same as their IDs from Discord.
 # TODO: prune unused Relationships and back-populations
 
 import datetime as dt
-from enum import Enum
 
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -74,7 +73,7 @@ class Member(SQLModel, table=True):
 	avatars: list["AvatarInfo"] = Relationship(back_populates="member", cascade_delete=True)
 
 
-class GuildMeta(Enum):
+class GuildMeta:
 	"""Extracted out so these can be used on their own elsewhere"""
 
 	default_imitation_prefix = "Not "
@@ -83,8 +82,8 @@ class GuildMeta(Enum):
 
 class Guild(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-	imitation_prefix: str = GuildMeta.default_imitation_prefix.value
-	imitation_suffix: str = GuildMeta.default_imitation_suffix.value
+	imitation_prefix: str = GuildMeta.default_imitation_prefix
+	imitation_suffix: str = GuildMeta.default_imitation_suffix
 
 	member_links: list[MemberGuildLink] = Relationship(back_populates="guild")
 	channels: list[Channel] = Relationship(back_populates="guild")
