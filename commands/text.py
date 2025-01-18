@@ -189,10 +189,12 @@ class Text(commands.Cog):
     @commands.cooldown(2, 2, commands.BucketType.user)
     async def wawa(self, ctx: commands.Context, *, text: str="") -> None:
         """
-        Enter some text and have it be repeated back to you by the stowaway.
+        Enter some text and have it be repeated back to you by the Stowaway.
         If you don't enter any text, Parrot wawas the last message sent in
         this channel. You can also reply to a message and Parrot will wawa
         that.
+        Modeled after the Stowaway from corru.observer
+        https://corru.wiki/wiki/Stowaway
         """
         await self._modify_text(ctx, input_text=text, modifier=weasel.wawa)
 
