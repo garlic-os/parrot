@@ -30,7 +30,7 @@ class Channel(SQLModel, table=True):
 	can_speak_here: bool = False
 	can_learn_here: bool = False
 	webhook_id: Snowflake | None = None
-	guild_id: Snowflake = Field(foreign_key="Guild.id")
+	guild_id: Snowflake = Field(foreign_key="guild.id")
 
 	guild: "Guild" = Relationship(back_populates="channels")
 
@@ -44,9 +44,9 @@ class Message(SQLModel, table=True):
 
 	# TODO: migration -- member_id → author_id
 	# TODO: migration -- author_id and guild_id made primary keys
-	author_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
+	author_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
 
-	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 
 	author: "Member" = Relationship(back_populates="messages")
 	guild: "Guild" = Relationship(back_populates="messages")
@@ -54,8 +54,8 @@ class Message(SQLModel, table=True):
 
 class MemberGuildLink(SQLModel, table=True):
 	# TODO: migration - remove id, make both member_id and guild_id primary
-	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+	member_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
+	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 	is_registered: bool = False
 
 	member: "Member" = Relationship(back_populates="guild_links")
@@ -100,8 +100,8 @@ class AvatarInfoBase(SQLModel):
 
 class AvatarInfo(AvatarInfoBase, table=True):
 	# TODO: migration - remove id, make both member_id and guild_id primary
-	member_id: Snowflake = Field(foreign_key="Member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="Guild.id", primary_key=True)
+	member_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
+	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 
 	member: Member = Relationship(back_populates="avatars")
 	guild: Guild = Relationship(back_populates="avatars")
