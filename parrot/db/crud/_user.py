@@ -1,7 +1,10 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
+import sqlmodel as sm
+
 import parrot.db.models as p
+from parrot.utils import cast_not_none
 from parrot.utils.types import AnyUser
 
 from .types import SubCRUD
@@ -16,6 +19,23 @@ class CRUDUser(SubCRUD):
 
 	def __init__(self, bot: "Parrot"):
 		super().__init__(bot)
+
+	def wants_wawa(self, user: AnyUser) -> bool:
+		statement = sm.select(p.Member.wants_random_wawa).where(
+			p.Member.id == user.id
+		)
+		return self.bot.db_session.exec(statement).first() or False
+
+	def toggle_random_wawa(self, user: AnyUser) -> bool:
+		"""
+		Toggle your "wants random wawa" setting globally.
+		Returns new state.
+		"""
+		db_member = cast_not_none(self.bot.db_session.get(p.Member, user.id))
+		db_member.wants_random_wawa = not db_member.wants_random_wawa
+		self.bot.db_session.add(db_member)
+		self.bot.db_session.commit()
+		return db_member.wants_random_wawa
 
 	def get_raw(self, user: AnyUser) -> dict[str, Any] | None:
 		db_member = self.bot.db_session.get(p.Member, user.id)

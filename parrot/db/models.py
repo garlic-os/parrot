@@ -64,7 +64,7 @@ class MemberGuildLink(SQLModel, table=True):
 
 class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-	wants_random_devolve: bool = True
+	wants_random_wawa: bool = True
 
 	# TODO: migration -- add ON DELETE rules
 	guild_links: list[MemberGuildLink] = Relationship(back_populates="member", cascade_delete=True)

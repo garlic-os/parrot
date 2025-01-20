@@ -132,6 +132,17 @@ class Registration(commands.Cog):
 				f"❌ {subject_verb} not currently registered with Parrot."
 			)
 
+	@commands.command(
+		name="togglerandomwawa",
+		brief="Check if you're registered with Parrot."
+	)
+	@commands.cooldown(2, 4, commands.BucketType.user)
+	@commands.guild_only()
+	@trace
+	async def toggle_random_wawa(self, ctx: commands.Context) -> None:
+		wants = self.bot.crud.user.toggle_random_wawa(ctx.author)
+		await ctx.send(f"✅ Random wawa {'en' if wants else 'dis'}abled")
+
 
 async def setup(bot: Parrot) -> None:
 	await bot.add_cog(Registration(bot))
