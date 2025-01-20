@@ -1,13 +1,13 @@
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from enum import Enum
-from typing import cast
+from typing import Any, cast
 
 import discord
 from discord.ext import commands
 
-from parrot import utils
+from parrot import config, utils
 from parrot.bot import Parrot
 from parrot.utils import (
 	ParrotEmbed,
@@ -26,6 +26,7 @@ class Text(commands.Cog):
 		I have plans that I cannot share with you right now because the haters
 		will sabotage me
 		"""
+
 		STANDARD = 0
 		INTIMIDATE = 1
 
@@ -37,7 +38,7 @@ class Text(commands.Cog):
 		ctx: commands.Context,
 		*,
 		input_text: str = "",
-		modifier: Callable[[str], Awaitable[str]],
+		modifier: Callable[[str], Coroutine[Any, Any, str]],
 	) -> None:
 		"""Generic function for commands that just modify text.
 
@@ -70,8 +71,12 @@ class Text(commands.Cog):
 						"😕 Couldn't find a gibberizeable message"
 					)
 
-		async with asyncio.timeout(5):
-			text = await modifier(input_text)
+		try:
+			async with asyncio.timeout(config.modify_text_timeout_seconds):
+				# TODO: timeout actually cancels this, right?
+				text = await modifier(input_text)
+		except TimeoutError:
+			text = ""
 		await ctx.send(text[:2000])
 
 	async def _imitate_impl(
@@ -181,10 +186,7 @@ class Text(commands.Cog):
 		Parrot gibberizes the last message sent in this channel.
 		You can also reply to a message and Parrot will gibberize that.
 		"""
-		await Text._modify_text(
-			ctx, input_text=text, modifier=weasel.gibberish
-		)
-
+		await Text._modify_text(ctx, input_text=text, modifier=weasel.gibberish)
 
 
 async def setup(bot: Parrot) -> None:

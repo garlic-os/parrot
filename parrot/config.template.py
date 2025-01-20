@@ -35,6 +35,10 @@ random_weasel_chance: float = 0.005
 # Requires Server Members intent
 enable_imitate_someone: bool = True
 
+# Time to allow a text modification command (which is liable to run forever) to
+# run before canceling it
+modify_text_timeout_seconds: int = 5
+
 ayy_lmao: bool = True
 
 
