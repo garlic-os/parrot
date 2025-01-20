@@ -31,9 +31,9 @@ class CRUDMember(SubCRUD):
 	def is_registered(self, member: discord.Member) -> bool:
 		if member.bot:  # Bots are always counted as registered
 			return True
-		statement = sm.select(p.MemberGuildLink.member_id).where(
+		statement = sm.select(p.MemberGuildLink).where(
 			p.MemberGuildLink.member_id == member.id,
-			p.Guild.id == member.guild.id,
+			p.MemberGuildLink.guild_id == member.guild.id,
 		)
 		return self.bot.db_session.exec(statement).first() is not None
 
