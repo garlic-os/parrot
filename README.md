@@ -55,3 +55,11 @@ Parrot needs a little information from you for it to start working.
 - `DB_PATH` - Path to a sqlite3 database file to keep Parrot's data. If it doesn't exist, it will be created.
 - `AUTOSAVE_INTERVAL_SECONDS` - How often to commit the database to disc. Parrot also saves before shutting down. Default is one hour—`3600`.
 - `AYY_LMAO` - (((extremely important feature))) Set to `True` to make Parrot say "lmao" every time someone else says "ayy". Default is `False`.
+
+## Attributions
+Outside of libraries, some code in here was lifted from other sources on the
+internet. Anywhere this is the case, credit is given.
+Code copied from:
+[crimsobot/crimsoBOT](https://github.com/crimsobot/crimsoBOT)
+© 2019 crimso, williammck - MIT  
+[@redgoldlace](https://github.com/redgoldlace)
