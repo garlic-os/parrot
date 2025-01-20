@@ -182,8 +182,6 @@ class Text(commands.Cog):
 	@trace
 	async def gibberish(self, ctx: commands.Context, *, text: str = "") -> None:
 		"""Turn text into gibberish."""
-		# Python port of https://thinkzone.wlonk.com/Gibber/GibGen.htm
-		# © 2003-2016 Keith Enevoldsen - CC BY-SA 4.0
 		await Text._modify_text(ctx, input_text=text, modifier=weasel.gibberish)
 
 	@commands.command(brief="Devolve a sentence.")
