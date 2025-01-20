@@ -181,12 +181,24 @@ class Text(commands.Cog):
 	@commands.cooldown(2, 2, commands.BucketType.user)
 	@trace
 	async def gibberish(self, ctx: commands.Context, *, text: str = "") -> None:
-		"""
-		Enter some text and turn it into gibberish. If you don't enter any text,
-		Parrot gibberizes the last message sent in this channel.
-		You can also reply to a message and Parrot will gibberize that.
-		"""
+		"""Turn text into gibberish."""
+		# Python port of https://thinkzone.wlonk.com/Gibber/GibGen.htm
+		# © 2003-2016 Keith Enevoldsen - CC BY-SA 4.0
 		await Text._modify_text(ctx, input_text=text, modifier=weasel.gibberish)
+
+	@commands.command(brief="Devolve a sentence.")
+	@commands.cooldown(2, 2, commands.BucketType.user)
+	async def devolve(self, ctx: commands.Context, *, text: str="") -> None:
+		"""Devolve text back toward primordial ooze."""
+		await Text._modify_text(ctx, input_text=text, modifier=weasel.devolve)
+
+
+	@commands.command(brief="Wawa a sentence.", aliases=["stowaway"])
+	@commands.cooldown(2, 2, commands.BucketType.user)
+	async def wawa(self, ctx: commands.Context, *, text: str="") -> None:
+		"""See what the Stowaway says
+		https://corru.wiki/wiki/Stowaway"""
+		await Text._modify_text(ctx, input_text=text, modifier=weasel.wawa)
 
 
 async def setup(bot: Parrot) -> None:

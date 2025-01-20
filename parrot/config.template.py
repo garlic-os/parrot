@@ -28,8 +28,8 @@ admin_role_ids: set[Snowflake] = set()
 avatar_store_channel_id: Snowflake
 
 # Random probability on [0, 1] to reply to a message with its content
-# filtered through `weasel.devolve`
-random_weasel_chance: float = 0.005
+# filtered through `weasel.wawa`
+random_wawa_chance: float = 0.005
 
 # Enable the `|imitate someone` feature.
 # Requires Server Members intent

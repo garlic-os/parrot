@@ -1,11 +1,10 @@
 import asyncio
 import functools
-import inspect
 import logging
 import traceback
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from enum import Enum
-from typing import cast
+from typing import Any, cast
 
 import discord
 from discord.ext import commands
@@ -49,7 +48,7 @@ def error2traceback(error: Exception) -> str:
 
 def executor_function[**P, Ret](
 	sync_function: Callable[P, Ret],
-) -> Callable[P, Awaitable[Ret]]:
+) -> Callable[P, Coroutine[Any, Any, Ret]]:
 	@functools.wraps(sync_function)
 	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
 		loop = asyncio.get_event_loop()
