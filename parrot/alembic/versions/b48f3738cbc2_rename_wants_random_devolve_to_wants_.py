@@ -8,8 +8,6 @@ Create Date: 2025-01-20 04:54:31.069211
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
-
 from alembic import op
 
 
@@ -22,15 +20,13 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
 	with op.batch_alter_table("member") as batch_op:
-		batch_op.add_column(
-			sa.Column("wants_random_wawa", sa.Boolean(), nullable=False)
+		batch_op.alter_column(
+			"wants_random_wawa", new_column_name="wants_random_devolve"
 		)
-		batch_op.drop_column("wants_random_devolve")
 
 
 def downgrade() -> None:
 	with op.batch_alter_table("member") as batch_op:
-		batch_op.drop_column("wants_random_wawa")
-		batch_op.add_column(
-			sa.Column("wants_random_devolve", sa.Boolean(), nullable=False),
+		batch_op.alter_column(
+			"wants_random_devolve", new_column_name="wants_random_wawa"
 		)
