@@ -8,12 +8,21 @@ from parrot.utils import cast_not_none, executor_function
 
 
 class ParrotText(markovify.Text):
-	def __init__(self, corpus: Iterable[str]):
+	def __init__(
+		self,
+		corpus: Iterable[str],
+		# Unused in Parrot except to retain compatibility with markovify.combine
+		parsed_sentences: list[list[str]] | None = None,
+		state_size: int = 2,
+		chain: markovify.Chain | None = None,
+	):
 		super().__init__(
 			input_text=corpus,
 			state_size=random.randint(1, 2),
 			retain_original=False,
 			well_formed=False,
+			parsed_sentences=parsed_sentences,
+			chain=chain,
 		)
 
 	@classmethod
