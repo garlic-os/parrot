@@ -60,7 +60,6 @@ class MemberGuildLink(SQLModel, table=True):
 
 	member: "Member" = Relationship(back_populates="guild_links")
 	guild: "Guild" = Relationship(back_populates="member_links")
-	avatar_info: "AvatarInfo" = Relationship()
 
 
 class Member(SQLModel, table=True):
