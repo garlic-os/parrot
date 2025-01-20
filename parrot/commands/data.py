@@ -157,7 +157,7 @@ class Data(commands.Cog):
 			user = confirmation.subject_user
 
 			# Delete this user's data.
-			self.bot.crud.user.delete_all_data(user)
+			await self.bot.crud.user.delete_all_data(user)
 
 			# Invalidate this confirmation code.
 			del self.pending_confirmations[confirm_code]
