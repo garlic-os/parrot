@@ -1,11 +1,14 @@
 import asyncio
 import functools
+import inspect
+import logging
 import traceback
 from collections.abc import Awaitable, Callable
 from enum import Enum
 from typing import cast
 
 import discord
+from discord.ext import commands
 
 from parrot import config
 from parrot.utils import regex
@@ -50,9 +53,7 @@ def executor_function[**P, Ret](
 	@functools.wraps(sync_function)
 	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
 		loop = asyncio.get_event_loop()
-		function_curried = functools.partial(
-			sync_function, *args, **kwargs
-		)
+		function_curried = functools.partial(sync_function, *args, **kwargs)
 		return await loop.run_in_executor(None, function_curried)
 
 	return decorated
@@ -91,3 +92,32 @@ def tag(user: AnyUser) -> str:
 	if user.discriminator != "0":
 		return f"@{user.name}#{user.discriminator}"
 	return f"@{user.name}"
+
+
+def trace_format_command_origin(ctx: commands.Context) -> str:
+	result = ""
+	if ctx.guild is not None:
+		result += f"{ctx.guild.name} - "
+	if isinstance(ctx.channel, discord.TextChannel):
+		result += f"#{ctx.channel.name} - "
+	result += tag(ctx.author)
+	return result
+
+
+# TODO: type annotate this finelier without Pylance exploding
+def trace[**P, Ret](
+	fn: Callable,  # Callable[P, Awaitable[Ret]],
+) -> Callable:  # Callable[P, Awaitable[Ret]]:
+	@functools.wraps(fn)
+	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
+		if len(args) >= 2 and isinstance(args[0], commands.Cog):
+			ctx = cast(commands.Context, args[1])
+			logging.info(
+				f"{trace_format_command_origin(ctx)}: "
+				f"{args[0].__cog_name__}.{fn.__name__} {kwargs}"
+			)
+		else:
+			logging.info(fn.__name__, *args, **kwargs)
+		return await fn(*args, **kwargs)
+
+	return decorated

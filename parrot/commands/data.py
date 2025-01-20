@@ -8,14 +8,14 @@ import ujson
 from discord.ext import commands
 
 from parrot.bot import Parrot
-from parrot.utils import ParrotEmbed, tag
+from parrot.utils import ParrotEmbed, tag, trace
 from parrot.utils.converters import Memberlike
 from parrot.utils.exceptions import (
 	NoDataError,
 	UserNotFoundError,
 	UserPermissionError,
 )
-from parrot.utils.types import AnyUser
+from parrot.utils.types import AnyUser, Snowflake
 
 
 class Data(commands.Cog):
@@ -28,11 +28,12 @@ class Data(commands.Cog):
 
 	def __init__(self, bot: Parrot):
 		# Key: Message ID of a forget command
-		self.pending_confirmations: dict[int, Data.Confirmation] = {}
+		self.pending_confirmations: dict[Snowflake, Data.Confirmation] = {}
 		self.bot = bot
 
 	@commands.command(aliases=["checkout", "data"])
 	@commands.cooldown(2, 3600, commands.BucketType.user)
+	@trace
 	async def download(self, ctx: commands.Context) -> None:
 		"""Download a copy of your data."""
 		user = ctx.author
@@ -69,6 +70,7 @@ class Data(commands.Cog):
 
 	@commands.command(aliases=["pfp", "profilepic", "profilepicture"])
 	@commands.cooldown(2, 4, commands.BucketType.user)
+	@trace
 	async def avatar(
 		self, ctx: commands.Context, who: Memberlike | None = None
 	) -> None:
@@ -81,6 +83,7 @@ class Data(commands.Cog):
 
 	@commands.group()
 	@commands.cooldown(2, 4, commands.BucketType.user)
+	@trace
 	async def forget(
 		self,
 		ctx: commands.Context,
@@ -144,6 +147,7 @@ class Data(commands.Cog):
 			pass
 
 	@forget.command(name="confirm", hidden=True)
+	@trace
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	async def forget_confirm(
 		self, ctx: commands.Context, confirm_code: int

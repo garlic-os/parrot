@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from parrot.bot import Parrot
-from parrot.utils import ParrotEmbed
+from parrot.utils import ParrotEmbed, trace
 from parrot.utils.converters import Memberlike
 from parrot.utils.exceptions import UserPermissionError
 
@@ -19,6 +19,7 @@ class Registration(commands.Cog):
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
+	@trace
 	async def register(
 		self, ctx: commands.Context, who: Memberlike | None = None
 	) -> None:
@@ -59,6 +60,7 @@ class Registration(commands.Cog):
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
+	@trace
 	async def unregister(
 		self, ctx: commands.Context, who: Memberlike | None = None
 	) -> None:
@@ -103,6 +105,7 @@ class Registration(commands.Cog):
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()
+	@trace
 	async def status(
 		self, ctx: commands.Context, who: Memberlike | None = None
 	) -> None:

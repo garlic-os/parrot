@@ -5,7 +5,7 @@ import parrot.db.models as p
 from parrot.bot import Parrot
 
 # from parrot.utils import Paginator, ParrotEmbed, cast_not_none, checks, tag
-from parrot.utils import ParrotEmbed, cast_not_none, checks, tag
+from parrot.utils import ParrotEmbed, cast_not_none, checks, tag, trace
 from parrot.utils.types import Permission
 
 
@@ -16,6 +16,7 @@ class Admin(commands.Cog):
 	@commands.command()
 	@commands.check(checks.is_admin)
 	@commands.cooldown(2, 4, commands.BucketType.user)
+	@trace
 	async def delete(self, ctx: commands.Context, message_id: int) -> None:
 		"""Delete a message that Parrot sent (including imitation messages)."""
 		message = await ctx.fetch_message(message_id)
@@ -75,6 +76,7 @@ class Admin(commands.Cog):
 			await self.send_help(ctx)
 
 	@add.command(name="learning", brief="Let Parrot learn in a new channel.")
+	@trace
 	async def add_learning(
 		self, ctx: commands.Context, channel: discord.TextChannel
 	) -> None:
@@ -92,6 +94,7 @@ class Admin(commands.Cog):
 			await ctx.send(f"⚠️️ Already learning in {channel.mention}!")
 
 	@add.command(name="speaking", brief="Let Parrot speak in a new channel.")
+	@trace
 	async def add_speaking(
 		self, ctx: commands.Context, channel: discord.TextChannel
 	) -> None:
@@ -127,6 +130,7 @@ class Admin(commands.Cog):
 		name="learning",
 		brief="Remove Parrot's learning permission in a channel.",
 	)
+	@trace
 	async def remove_learning(
 		self, ctx: commands.Context, channel: discord.TextChannel
 	) -> None:
@@ -146,6 +150,7 @@ class Admin(commands.Cog):
 		name="speaking",
 		brief="Remove Parrot's speaking permission in a channel.",
 	)
+	@trace
 	async def remove_speaking(
 		self, ctx: commands.Context, channel: discord.TextChannel
 	) -> None:
@@ -162,6 +167,7 @@ class Admin(commands.Cog):
 			await ctx.send(f"⚠️️ Already not able to speak in {channel.mention}!")
 
 	@channel.group(invoke_without_command=True)
+	@trace
 	async def view(
 		self, ctx: commands.Context, channel_type: str | None = None
 	) -> None:
@@ -212,6 +218,7 @@ class Admin(commands.Cog):
 		# await paginator.run()
 
 	@view.command(name="learning")
+	@trace
 	async def view_learning(
 		self, ctx: commands.Context, guild_id: int | None = None
 	) -> None:
@@ -225,6 +232,7 @@ class Admin(commands.Cog):
 		)
 
 	@view.command(name="speaking")
+	@trace
 	async def view_speaking(
 		self, ctx: commands.Context, guild_id: int | None = None
 	) -> None:
@@ -240,6 +248,7 @@ class Admin(commands.Cog):
 	@commands.group(invoke_without_command=True)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.check(checks.is_admin)
+	@trace
 	async def nickname(
 		self, ctx: commands.Context, action: str | None = None
 	) -> None:
@@ -248,6 +257,7 @@ class Admin(commands.Cog):
 			await self.send_help(ctx)
 
 	@nickname.command(name="set")
+	@trace
 	async def nickname_set(
 		self, ctx: commands.Context, *, new_nick: str | None = None
 	) -> None:
@@ -266,6 +276,7 @@ class Admin(commands.Cog):
 		await ctx.send(f"✅ Parrot's nickname is now: {ctx.guild.me.nick}")
 
 	@nickname.command(name="remove", aliases=["delete"])
+	@trace
 	async def nickname_remove(self, ctx: commands.Context) -> None:
 		"""Get rid of Parrot's nickname."""
 		if ctx.guild is None:
@@ -293,6 +304,7 @@ class Admin(commands.Cog):
 		await self.prefix_get(ctx)
 
 	@prefix.command()
+	@trace
 	async def prefix_get(self, ctx: commands.Context) -> None:
 		# ctx.guild guaranteed not None because this command group is guild-only
 		prefix = self.bot.crud.guild.get_prefix(cast_not_none(ctx.guild))
@@ -300,12 +312,14 @@ class Admin(commands.Cog):
 
 	@prefix.command()
 	@commands.check(checks.is_admin)
+	@trace
 	async def prefix_set(self, ctx: commands.Context, new_prefix: str) -> None:
 		self.bot.crud.guild.set_prefix(cast_not_none(ctx.guild), new_prefix)
 		await ctx.send(f"✅ Parrot's imitation prefix is now: `{new_prefix}`")
 
 	@prefix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
+	@trace
 	async def prefix_clear(self, ctx: commands.Context) -> None:
 		new_prefix = p.GuildMeta.default_imitation_prefix
 		self.bot.crud.guild.set_prefix(cast_not_none(ctx.guild), new_prefix)
@@ -329,6 +343,7 @@ class Admin(commands.Cog):
 		await self.suffix_get(ctx)
 
 	@suffix.command()
+	@trace
 	async def suffix_get(self, ctx: commands.Context) -> None:
 		# ctx.guild guaranteed not None because this command group is guild-only
 		suffix = self.bot.crud.guild.get_suffix(cast_not_none(ctx.guild))
@@ -336,12 +351,14 @@ class Admin(commands.Cog):
 
 	@suffix.command()
 	@commands.check(checks.is_admin)
+	@trace
 	async def suffix_set(self, ctx: commands.Context, new_suffix: str) -> None:
 		self.bot.crud.guild.set_suffix(cast_not_none(ctx.guild), new_suffix)
 		await ctx.send(f"✅ Parrot's imitation suffix is now: `{new_suffix}`")
 
 	@suffix.command(aliases=["reset", "default"])
 	@commands.check(checks.is_admin)
+	@trace
 	async def suffix_clear(self, ctx: commands.Context) -> None:
 		new_suffix = p.GuildMeta.default_imitation_suffix
 		self.bot.crud.guild.set_suffix(cast_not_none(ctx.guild), new_suffix)

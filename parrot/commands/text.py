@@ -10,6 +10,13 @@ from discord.ext import commands
 from parrot import utils
 from parrot.bot import Parrot
 from parrot.utils import ParrotEmbed, cast_not_none, discord_caps, markov
+from parrot.utils import (
+	ParrotEmbed,
+	cast_not_none,
+	discord_caps,
+	trace,
+	weasel,
+)
 from parrot.utils.converters import FuzzyMemberlike
 from parrot.utils.exceptions import TextNotFoundError
 
@@ -143,6 +150,7 @@ class Text(commands.Cog):
 
 	@commands.command(aliases=["be"], brief="Imitate someone.")
 	@commands.cooldown(2, 2, commands.BucketType.user)
+	@trace
 	async def imitate(
 		self, ctx: commands.Context, user: FuzzyMemberlike
 	) -> None:
@@ -152,6 +160,7 @@ class Text(commands.Cog):
 
 	@commands.command(brief="IMITATE SOMEONE.")
 	@commands.cooldown(2, 2, commands.BucketType.user)
+	@trace
 	async def intimidate(
 		self, ctx: commands.Context, user: FuzzyMemberlike
 	) -> None:
@@ -166,6 +175,7 @@ class Text(commands.Cog):
 		brief="Gibberize a sentence.",
 	)
 	@commands.cooldown(2, 2, commands.BucketType.user)
+	@trace
 	async def gibberish(self, ctx: commands.Context, *, text: str = "") -> None:
 		"""
 		Enter some text and turn it into gibberish. If you don't enter any text,
@@ -173,7 +183,7 @@ class Text(commands.Cog):
 		You can also reply to a message and Parrot will gibberize that.
 		"""
 		await Text._modify_text(
-			ctx, input_text=text, modifier=Text._gibberish_impl
+			ctx, input_text=text, modifier=weasel.gibberish
 		)
 
 	@staticmethod
