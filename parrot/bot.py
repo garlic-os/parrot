@@ -43,7 +43,6 @@ class Parrot(commands.AutoShardedBot):
 		engine = sm.create_engine(config.db_url).execution_options(
 			autocommit=False
 		)
-		self.http_session = self.http.__session  # >:3c
 		self.db_session = sm.Session(engine)
 		self.crud = CRUD(self)
 		self.markov_models = MarkovModelManager(self.crud)
@@ -58,6 +57,7 @@ class Parrot(commands.AutoShardedBot):
 		# the event loop is still up.
 		asyncio_atexit.register(self._async__del__, loop=self.loop)
 
+		self.http_session = aiohttp.ClientSession(loop=self.loop)
 		self._autosave.start()
 		await self.load_extension("jishaku")
 		await self.load_extension_folder("event_listeners")
@@ -70,6 +70,7 @@ class Parrot(commands.AutoShardedBot):
 		self.db_session.close()
 		self._autosave.cancel()
 		await self.close()  # Log out of Discord
+		await self.http_session.close()
 		await self._autosave()
 
 	async def load_extension_folder(self, path: str) -> None:
