@@ -150,7 +150,7 @@ class Text(commands.Cog):
 		logging.info(f"Imitating {user}")
 		await self._imitate_impl(ctx, cast(discord.Member, user))
 
-	@commands.command(brief="IMITATE SOMEONE.", hidden=True)
+	@commands.command(brief="IMITATE SOMEONE.")
 	@commands.cooldown(2, 2, commands.BucketType.user)
 	async def intimidate(
 		self, ctx: commands.Context, user: FuzzyMemberlike
