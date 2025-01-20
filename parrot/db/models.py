@@ -41,11 +41,7 @@ class Message(SQLModel, table=True):
 	id: Snowflake
 	timestamp: dt.datetime
 	content: str
-
-	# TODO: migration -- member_id → author_id
-	# TODO: migration -- author_id and guild_id made primary keys
 	author_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
-
 	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 
 	author: "Member" = Relationship(back_populates="messages")
@@ -53,7 +49,6 @@ class Message(SQLModel, table=True):
 
 
 class MemberGuildLink(SQLModel, table=True):
-	# TODO: migration - remove id, make both member_id and guild_id primary
 	member_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
 	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 	is_registered: bool = False
@@ -66,7 +61,6 @@ class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	wants_random_wawa: bool = True
 
-	# TODO: migration -- add ON DELETE rules
 	guild_links: list[MemberGuildLink] = Relationship(back_populates="member", cascade_delete=True)
 	messages: list[Message] = Relationship(back_populates="author", cascade_delete=True)
 	avatars: list["AvatarInfo"] = Relationship(back_populates="member", cascade_delete=True)
@@ -90,7 +84,7 @@ class Guild(SQLModel, table=True):
 	messages: list[Message] = Relationship(back_populates="guild")
 
 
-# A separate table from MemberGuildLink to group them as one
+# A separate table from MemberGuildLink to group this as one
 # None-or-not-None unit
 class AvatarInfoBase(SQLModel):
 	original_avatar_url: str
@@ -99,7 +93,6 @@ class AvatarInfoBase(SQLModel):
 
 
 class AvatarInfo(AvatarInfoBase, table=True):
-	# TODO: migration - remove id, make both member_id and guild_id primary
 	member_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
 	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
 
