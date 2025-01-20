@@ -88,6 +88,7 @@ class Guild(SQLModel, table=True):
 	member_links: list[MemberGuildLink] = Relationship(back_populates="guild")
 	channels: list[Channel] = Relationship(back_populates="guild")
 	avatars: list["AvatarInfo"] = Relationship(back_populates="guild")
+	messages: list[Message] = Relationship(back_populates="guild")
 
 
 # A separate table from MemberGuildLink to group them as one
