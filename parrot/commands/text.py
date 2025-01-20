@@ -9,7 +9,6 @@ from discord.ext import commands
 
 from parrot import utils
 from parrot.bot import Parrot
-from parrot.utils import ParrotEmbed, cast_not_none, discord_caps, markov
 from parrot.utils import (
 	ParrotEmbed,
 	cast_not_none,
@@ -186,17 +185,6 @@ class Text(commands.Cog):
 			ctx, input_text=text, modifier=weasel.gibberish
 		)
 
-	@staticmethod
-	async def _gibberish_impl(text: str) -> str:
-		model = await markov.Gibberish.new(text)
-		# Generate gibberish;
-		# try up to 10 times to make it not the same as the source text.
-		old_text = text
-		for _ in range(10):
-			text = model.make_sentence()
-			if text != old_text:
-				break
-		return text
 
 
 async def setup(bot: Parrot) -> None:
