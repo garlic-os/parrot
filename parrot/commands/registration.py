@@ -92,11 +92,12 @@ class Registration(commands.Cog):
 
 	@commands.command(
 		aliases=[
-			"registration_status",
 			"registrationstatus",
 			"registration",
 			"checkregistration",
-			"check_registration",
+			"checkregistered",
+			"registered",
+			"amiregistered"
 		],
 		brief="Check if you're registered with Parrot.",
 	)
