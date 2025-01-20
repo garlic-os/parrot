@@ -8,14 +8,14 @@ import ujson
 from discord.ext import commands
 
 from parrot.bot import Parrot
-from parrot.core.exceptions import (
+from parrot.utils import ParrotEmbed, tag
+from parrot.utils.converters import Memberlike
+from parrot.utils.exceptions import (
 	NoDataError,
 	UserNotFoundError,
 	UserPermissionError,
 )
-from parrot.core.types import AnyUser
-from parrot.utils import ParrotEmbed, tag
-from parrot.utils.converters import Memberlike
+from parrot.utils.types import AnyUser
 
 
 class Data(commands.Cog):
@@ -85,10 +85,10 @@ class Data(commands.Cog):
 		self,
 		ctx: commands.Context,
 		who: str | None = None,
-		*args,  # noqa: ANN002  im begging you dont make me type annotate
+		*args,  # noqa: ANN002  im begging you please dont make me type annotate
 		**kwargs,  # noqa: ANN003  another var arg
 	) -> None:
-		"""Make Parrot delete all the data it has about you."""
+		"""Delete all the data Parrot has about you."""
 		if who is not None:
 			try:
 				who_ = await Memberlike().convert(ctx, who)
@@ -167,8 +167,8 @@ class Data(commands.Cog):
 					title=f"Parrot has forgotten {tag(user)}.",
 					color_name=ParrotEmbed.Color.Gray,
 					description=(
-						"All of the data that Parrot has collected from this user "
-						"has been deleted."
+						"All of the data that Parrot has collected from this "
+						"user has been deleted."
 					),
 				),
 				reference=ctx.message,

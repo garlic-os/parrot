@@ -12,7 +12,7 @@ from collections.abc import Sequence
 import pytz
 import sqlalchemy as sa
 import sqlmodel as sm
-from parrot.core.types import Snowflake
+from parrot.utils.types import Snowflake
 
 from alembic import op
 

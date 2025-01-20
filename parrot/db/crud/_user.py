@@ -1,10 +1,8 @@
 import asyncio
 from typing import TYPE_CHECKING, Any
 
-import sqlmodel as sm
-
 import parrot.db.models as p
-from parrot.core.types import AnyUser
+from parrot.utils.types import AnyUser
 
 from .types import SubCRUD
 
@@ -20,8 +18,7 @@ class CRUDUser(SubCRUD):
 		super().__init__(bot)
 
 	def get_raw(self, user: AnyUser) -> dict[str, Any] | None:
-		statement = sm.select(p.Member).where(p.Member.id == user.id)
-		db_member = self.bot.db_session.exec(statement).first()
+		db_member = self.bot.db_session.get(p.Member, user.id)
 		if db_member is None:
 			return None
 		# TODO: this dumps the relationships too, right?
@@ -30,16 +27,14 @@ class CRUDUser(SubCRUD):
 
 	def exists(self, user: AnyUser) -> bool:
 		"""Search Parrot's database for any trace of this user."""
-		statement = sm.select(p.Member.id).where(p.Member.id == user.id)
-		return self.bot.db_session.exec(statement).first() is not None
+		return self.bot.db_session.get(p.Member, user.id) is not None
 
 	async def delete_all_data(self, user: AnyUser) -> bool:
 		"""
 		Delete ALL the data associated with a Member.
 		You better be sure calling this method!
 		"""
-		statement = sm.select(p.Member).where(p.Member.id == user.id)
-		db_member = self.bot.db_session.exec(statement).first()
+		db_member = self.bot.db_session.get(p.Member, user.id)
 		if db_member is None:
 			return False
 

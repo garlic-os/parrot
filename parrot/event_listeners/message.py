@@ -1,15 +1,12 @@
 import logging
 
-# import random
 import discord
 from discord.ext import commands
 
-from parrot.bot import Parrot
 from parrot import config
-from parrot.core.exceptions import NotRegisteredError
-
-# from parrot.utils import cast_not_none, tag, weasel
+from parrot.bot import Parrot
 from parrot.utils import cast_not_none, tag
+from parrot.utils.exceptions import NotRegisteredError
 
 
 class MessageEventHandler(commands.Cog):

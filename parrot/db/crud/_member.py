@@ -4,7 +4,7 @@ import discord
 import sqlmodel as sm
 
 import parrot.db.models as p
-from parrot.core.exceptions import NotRegisteredError
+from parrot.utils.exceptions import NotRegisteredError
 
 from .types import SubCRUD
 

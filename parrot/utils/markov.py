@@ -19,6 +19,10 @@ class ParrotText(markovify.Text):
 	@classmethod
 	@executor_function
 	def new(cls, corpus: Iterable[str]) -> Self:
+		"""
+		Construct the Markov chain generator in a new thread/process to remain
+		non-blocking.
+		"""
 		return cls(corpus)
 
 	def __len__(self):

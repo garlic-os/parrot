@@ -5,7 +5,7 @@ import discord
 
 import parrot.db.models as p
 from parrot import config
-from parrot.core.types import Snowflake
+from parrot.utils.types import Snowflake
 from parrot.utils import cast_not_none, regex
 
 from .types import SubCRUD

@@ -3,10 +3,10 @@ from discord.ext import commands
 
 import parrot.db.models as p
 from parrot.bot import Parrot
-from parrot.core.types import Permission
 
 # from parrot.utils import Paginator, ParrotEmbed, cast_not_none, checks, tag
 from parrot.utils import ParrotEmbed, cast_not_none, checks, tag
+from parrot.utils.types import Permission
 
 
 class Admin(commands.Cog):
@@ -54,7 +54,7 @@ class Admin(commands.Cog):
 		channel_type: str | None = None,
 		channel: discord.TextChannel | None = None,
 	) -> None:
-		"""Manage Parrot's channel permissions."""
+		"""Manage Parrot's channel permissions for this server."""
 		if action is None:
 			await self.send_help(ctx)
 
@@ -243,7 +243,7 @@ class Admin(commands.Cog):
 	async def nickname(
 		self, ctx: commands.Context, action: str | None = None
 	) -> None:
-		"""Manage Parrot's nickname."""
+		"""Manage Parrot's nickname for this server."""
 		if action is None:
 			await self.send_help(ctx)
 

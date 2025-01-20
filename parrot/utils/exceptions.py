@@ -1,5 +1,5 @@
 from parrot import config
-from parrot.core.types import AnyUser
+from parrot.utils.types import AnyUser
 
 
 class _FriendlyError(Exception):

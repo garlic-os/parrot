@@ -6,7 +6,7 @@ import sqlmodel as sm
 from sqlalchemy import ScalarResult
 
 import parrot.db.models as p
-from parrot.core.types import Permission, Snowflake
+from parrot.utils.types import Permission, Snowflake
 
 from .types import SubCRUD
 
@@ -18,10 +18,11 @@ class CRUDGuild(SubCRUD):
 		statement = sm.select(p.Channel.id).where(
 			p.Channel.guild_id == guild.id,
 			getattr(p.Channel, permission) == True,
+			# TODO: does this work?
+			# getattr(p.Channel, permission),
 		)
 		return self.bot.db_session.exec(statement)
 
-	# Resisting the urge not to consolidate this into "get_affix/set_affix"
 	def get_prefix(self, guild: discord.Guild) -> str:
 		statement = sm.select(p.Guild.imitation_prefix).where(
 			p.Guild.id == guild.id

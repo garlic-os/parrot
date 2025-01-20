@@ -15,8 +15,8 @@ import aiohttp
 from PIL import Image, ImageOps, ImageSequence
 
 from parrot import config
-from parrot.core.types import AnyUser
 from parrot.utils import executor_function, tag
+from parrot.utils.types import AnyUser
 
 
 P = ParamSpec("P")

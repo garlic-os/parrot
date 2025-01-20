@@ -8,7 +8,8 @@ from typing import cast
 import discord
 
 from parrot import config
-from parrot.core.types import AnyUser
+from parrot.utils import regex
+from parrot.utils.types import AnyUser
 
 
 class ParrotEmbed(discord.Embed):
@@ -49,12 +50,25 @@ def executor_function[**P, Ret](
 	@functools.wraps(sync_function)
 	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
 		loop = asyncio.get_event_loop()
-		reconstructed_function = functools.partial(
+		function_curried = functools.partial(
 			sync_function, *args, **kwargs
 		)
-		return await loop.run_in_executor(None, reconstructed_function)
+		return await loop.run_in_executor(None, function_curried)
 
 	return decorated
+
+
+def discord_caps(text: str) -> str:
+	"""
+	Capitalize a string in a way that remains friendly to URLs, emojis, and
+	mentions.
+	Credit to https://github.com/redgoldlace
+	"""
+	words = text.replace("*", "").split(" ")
+	for i, word in enumerate(words):
+		if regex.do_not_capitalize.match(word) is None:
+			words[i] = word.upper()
+	return " ".join(words)
 
 
 def find_text(message: discord.Message) -> str:

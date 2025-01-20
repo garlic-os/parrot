@@ -6,14 +6,14 @@ import discord
 from discord.errors import NotFound
 from discord.ext import commands
 
-from parrot.bot import Parrot
 from parrot import config
-from parrot.core.exceptions import (
+from parrot.bot import Parrot
+from parrot.utils import regex
+from parrot.utils.exceptions import (
 	ChannelTypeError,
 	FeatureDisabledError,
 	UserNotFoundError,
 )
-from parrot.utils import regex
 
 
 type Check = Callable[

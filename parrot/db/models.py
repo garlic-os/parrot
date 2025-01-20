@@ -22,7 +22,7 @@ import datetime as dt
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from parrot.core.types import Snowflake
+from parrot.utils.types import Snowflake
 
 
 class Channel(SQLModel, table=True):

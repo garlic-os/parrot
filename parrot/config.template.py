@@ -1,6 +1,6 @@
 import logging
 
-from parrot.core.types import Snowflake
+from parrot.utils.types import Snowflake
 
 
 discord_bot_token: str

@@ -2,8 +2,8 @@ import discord
 import sqlmodel as sm
 
 import parrot.db.models as p
-from parrot.core.types import Permission, Snowflake
 from parrot.utils import cast_not_none
+from parrot.utils.types import Permission, Snowflake
 
 from .types import SubCRUD
 

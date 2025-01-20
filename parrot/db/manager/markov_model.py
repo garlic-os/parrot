@@ -6,10 +6,10 @@ import discord
 import markovify
 
 from parrot import config
-from parrot.core.types import Snowflake
 from parrot.db.crud import CRUD
 from parrot.utils import markov
 from parrot.utils.cache import LastUpdatedOrderedDict
+from parrot.utils.types import Snowflake
 
 
 class MarkovModelManager:
@@ -50,6 +50,7 @@ class MarkovModelManager:
 		"""Update a local model in the cache. Does not affect the database."""
 		partial = markov.ParrotText(corpus_update)
 		current = await self.fetch(member)
-		updated = cast(markov.ParrotText, markovify.combine(current, partial))
+		# Returns same type as first element of first argument
+		updated = cast(markov.ParrotText, markovify.combine((current, partial)))
 		key: MarkovModelManager.Key = (member.id, member.guild.id)
 		self.cache[key] = updated

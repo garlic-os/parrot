@@ -9,31 +9,22 @@ from discord.ext import commands
 
 from parrot import utils
 from parrot.bot import Parrot
-from parrot.core.exceptions import TextNotFoundError
-from parrot.utils import ParrotEmbed, cast_not_none, markov, regex
+from parrot.utils import ParrotEmbed, cast_not_none, discord_caps, markov
 from parrot.utils.converters import FuzzyMemberlike
+from parrot.utils.exceptions import TextNotFoundError
 
 
 class Text(commands.Cog):
 	class ImitateMode(Enum):
+		"""
+		I have plans that I cannot share with you right now because the haters
+		will sabotage me
+		"""
 		STANDARD = 0
 		INTIMIDATE = 1
 
 	def __init__(self, bot: Parrot):
 		self.bot = bot
-
-	@staticmethod
-	def discord_caps(text: str) -> str:
-		"""
-		Capitalize a string in a way that remains friendly to URLs, emojis, and
-		mentions.
-		Credit to https://github.com/redgoldlace
-		"""
-		words = text.replace("*", "").split(" ")
-		for i, word in enumerate(words):
-			if regex.do_not_capitalize.match(word) is None:
-				words[i] = word.upper()
-		return " ".join(words)
 
 	@staticmethod
 	async def _modify_text(
@@ -99,8 +90,6 @@ class Text(commands.Cog):
 			return
 
 		# Fetch this user's model.
-		# May throw a NotRegistered or NoData error, which we'll just let the
-		# error handler deal with.
 		model = await self.bot.markov_models.fetch(member)
 		sentence = model.make_short_sentence(500) or "Error"
 
@@ -118,7 +107,7 @@ class Text(commands.Cog):
 
 		match mode:
 			case Text.ImitateMode.INTIMIDATE:
-				sentence = "**" + self.discord_caps(sentence) + "**"
+				sentence = "**" + discord_caps(sentence) + "**"
 				name = name.upper()
 
 		# Prepare to send this sentence through a webhook.
@@ -137,8 +126,7 @@ class Text(commands.Cog):
 			else None
 		)
 		if webhook is None:
-			# Fall back to using an embed if Parrot doesn't have an webhook and
-			# couldn't make one.
+			# Fall back to using an embed if Parrot couldn't get a webhook.
 			await ctx.send(
 				embed=ParrotEmbed(
 					description=sentence,
