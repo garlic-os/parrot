@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -59,9 +60,10 @@ class Parrot(commands.AutoShardedBot):
 
 		self.http_session = aiohttp.ClientSession(loop=self.loop)
 		self._autosave.start()
-		await self.load_extension("jishaku")
-		await self.load_extension_folder("event_listeners")
-		await self.load_extension_folder("commands")
+		async with asyncio.TaskGroup() as tg:
+			tg.create_task(self.load_extension("jishaku"))
+			tg.create_task(self.load_extension_folder("event_listeners"))
+			tg.create_task(self.load_extension_folder("commands"))
 
 		self.antiavatars = await AntiavatarManager.new(self)
 
@@ -74,19 +76,20 @@ class Parrot(commands.AutoShardedBot):
 		await self._autosave()
 
 	async def load_extension_folder(self, path: str) -> None:
-		for entry in (Path("parrot") / path).iterdir():
-			if not entry.is_file():
-				continue
-			if entry.name == "__init__.py":
-				continue
-			fqn = f"parrot.{path}.{entry.stem}"
-			try:
-				logging.info(f"Loading {fqn}... ")
-				await self.load_extension(fqn)
-				logging.info("✅")
-			except Exception as error:
-				logging.info("❌")
-				logging.error(f"{error}\n")
+		async with asyncio.TaskGroup() as tg:
+			for entry in (Path("parrot") / path).iterdir():
+				if not entry.is_file():
+					continue
+				if entry.name == "__init__.py":
+					continue
+				fqn = f"parrot.{path}.{entry.stem}"
+				try:
+					logging.info(f"Loading {fqn}... ")
+					tg.create_task(self.load_extension(fqn))
+					logging.info("✅")
+				except Exception as error:
+					logging.info("❌")
+					logging.error(f"{error}\n")
 
 	@tasks.loop(seconds=config.autosave_interval_seconds)
 	async def _autosave(self) -> None:
