@@ -22,7 +22,11 @@ import datetime as dt
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from parrot.db import NAMING_CONVENTION
 from parrot.utils.types import Snowflake
+
+
+SQLModel.metadata.naming_convention = NAMING_CONVENTION
 
 
 class Channel(SQLModel, table=True):

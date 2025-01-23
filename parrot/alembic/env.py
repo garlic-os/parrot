@@ -1,6 +1,8 @@
 import sys
 from logging.config import fileConfig
 
+from parrot import config as parrot_cfg
+from parrot.db import NAMING_CONVENTION
 from sqlalchemy import MetaData, engine_from_config, pool
 
 from alembic import context
@@ -8,12 +10,12 @@ from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-config = context.config
+alembic_cfg = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
-	fileConfig(config.config_file_name)
+if alembic_cfg.config_file_name is not None:
+	fileConfig(alembic_cfg.config_file_name)
 
 
 # Use current SQLModel MetaData for autogenerating, but not while upgrading.
@@ -21,17 +23,12 @@ if config.config_file_name is not None:
 if "--autogenerate" in sys.argv:
 	import sqlmodel as sm
 	from parrot.db import models  # noqa: F401
+
 	target_metadata = sm.SQLModel.metadata
 else:
-	target_metadata = MetaData()
+	target_metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
-target_metadata.naming_convention = {
-	"ix": "ix_%(column_0_label)s",
-	"uq": "uq_%(table_name)s_%(column_0_name)s",
-	"ck": "ck_%(table_name)s_%(constraint_name)s",
-	"fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-	"pk": "pk_%(table_name)s",
-}
+target_metadata.naming_convention = NAMING_CONVENTION
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -51,9 +48,8 @@ def run_migrations_offline() -> None:
 	script output.
 
 	"""
-	url = config.get_main_option("sqlalchemy.url")
 	context.configure(
-		url=url,
+		url=parrot_cfg.db_url,
 		target_metadata=target_metadata,
 		literal_binds=True,
 		dialect_opts={"paramstyle": "named"},
@@ -70,9 +66,12 @@ def run_migrations_online() -> None:
 	and associate a connection with the context.
 
 	"""
+	PREFIX = "sqlalchemy."
+	config = alembic_cfg.get_section(alembic_cfg.config_ini_section, {})
+	config[PREFIX + "url"] = parrot_cfg.db_url
 	connectable = engine_from_config(
-		config.get_section(config.config_ini_section, {}),
-		prefix="sqlalchemy.",
+		config,
+		prefix=PREFIX,
 		poolclass=pool.NullPool,
 	)
 
@@ -80,7 +79,6 @@ def run_migrations_online() -> None:
 		context.configure(
 			connection=connection, target_metadata=target_metadata
 		)
-
 		with context.begin_transaction():
 			context.run_migrations()
 
