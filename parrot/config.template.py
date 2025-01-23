@@ -1,5 +1,7 @@
 import logging
 
+import discord
+
 from parrot.utils.types import Snowflake
 
 
@@ -43,7 +45,7 @@ ayy_lmao: bool = True
 
 
 class image:
-	max_filesize_bytes: int = 10 * 1024 * 1024  # 10 MB; Discord free tier size
+	max_filesize_bytes: int = discord.utils.DEFAULT_FILE_SIZE_LIMIT_BYTES
 	max_frames: int = 300
 
 
