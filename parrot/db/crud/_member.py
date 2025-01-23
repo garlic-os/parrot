@@ -15,10 +15,16 @@ class CRUDMember(SubCRUD):
 			p.MemberGuildLink.member_id == member.id,
 			p.MemberGuildLink.guild_id == member.guild.id,
 		)
-		guild_link = (
-			self.bot.db_session.exec(statement).first()
-			or p.MemberGuildLink(member_id=member.id, guild_id=member.guild.id)
-		)
+		guild_link = self.bot.db_session.exec(statement).first()
+		if guild_link is None:
+			guild_link = p.MemberGuildLink(
+				member_id=member.id, guild_id=member.guild.id
+			)
+			# If a member-guild link does not exist in the database, then that
+			# may mean this guild doesn't exist in the database either, in which
+			# case, now is the time to insert it.
+			if self.bot.db_session.get(p.Guild, member.guild.id) is None:
+				self.bot.db_session.add(p.Guild(id=member.guild.id))
 		guild_link.is_registered = value
 		self.bot.db_session.add(guild_link)
 		self.bot.db_session.commit()
