@@ -186,14 +186,13 @@ class Text(commands.Cog):
 
 	@commands.command(brief="Devolve a sentence.")
 	@commands.cooldown(2, 2, commands.BucketType.user)
-	async def devolve(self, ctx: commands.Context, *, text: str="") -> None:
+	async def devolve(self, ctx: commands.Context, *, text: str = "") -> None:
 		"""Devolve text back toward primordial ooze."""
 		await Text._modify_text(ctx, input_text=text, modifier=weasel.devolve)
 
-
 	@commands.command(brief="Wawa a sentence.", aliases=["stowaway"])
 	@commands.cooldown(2, 2, commands.BucketType.user)
-	async def wawa(self, ctx: commands.Context, *, text: str="") -> None:
+	async def wawa(self, ctx: commands.Context, *, text: str = "") -> None:
 		"""See what the Stowaway says
 		https://corru.wiki/wiki/Stowaway"""
 		await Text._modify_text(ctx, input_text=text, modifier=weasel.wawa)

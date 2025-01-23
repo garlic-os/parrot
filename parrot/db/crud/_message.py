@@ -5,8 +5,8 @@ import discord
 
 import parrot.db.models as p
 from parrot import config
-from parrot.utils.types import Snowflake
 from parrot.utils import cast_not_none, regex
+from parrot.utils.types import Snowflake
 
 from .types import SubCRUD
 
@@ -16,10 +16,7 @@ if TYPE_CHECKING:
 
 
 class CRUDMessage(SubCRUD):
-	def __init__(
-		self,
-		bot: "Parrot"
-	):
+	def __init__(self, bot: "Parrot"):
 		super().__init__(bot)
 
 	@staticmethod
@@ -62,7 +59,9 @@ class CRUDMessage(SubCRUD):
 			message.webhook_id is None
 			and
 			# Parrot must be allowed to learn in this channel.
-			self.bot.crud.channel.has_permission(message.channel, "can_learn_here")
+			self.bot.crud.channel.has_permission(
+				message.channel, "can_learn_here"
+			)
 			and
 			# People will often say "v" or "z" on accident while spamming,
 			# and it doesn't really make for good learning material.

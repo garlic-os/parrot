@@ -99,7 +99,7 @@ class Registration(commands.Cog):
 			"checkregistration",
 			"checkregistered",
 			"registered",
-			"amiregistered"
+			"amiregistered",
 		],
 		brief="Check if you're registered with Parrot.",
 	)
@@ -133,8 +133,7 @@ class Registration(commands.Cog):
 			)
 
 	@commands.command(
-		name="togglerandomwawa",
-		brief="Check if you're registered with Parrot."
+		name="togglerandomwawa", brief="Check if you're registered with Parrot."
 	)
 	@commands.cooldown(2, 4, commands.BucketType.user)
 	@commands.guild_only()

@@ -40,7 +40,8 @@ class CRUDChannel(SubCRUD):
 	) -> bool:
 		statement = sm.select(p.Channel.id).where(
 			# TODO: works without the `== True`?
-			p.Channel.id == channel.id, getattr(p.Channel, permission) == True
+			p.Channel.id == channel.id,
+			getattr(p.Channel, permission) == True,
 		)
 		return self.bot.db_session.exec(statement).first() is not None
 

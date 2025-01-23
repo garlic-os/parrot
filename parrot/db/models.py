@@ -65,9 +65,15 @@ class Member(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	wants_random_wawa: bool = True
 
-	guild_links: list[MemberGuildLink] = Relationship(back_populates="member", cascade_delete=True)
-	messages: list[Message] = Relationship(back_populates="author", cascade_delete=True)
-	avatars: list["AvatarInfo"] = Relationship(back_populates="member", cascade_delete=True)
+	guild_links: list[MemberGuildLink] = Relationship(
+		back_populates="member", cascade_delete=True
+	)
+	messages: list[Message] = Relationship(
+		back_populates="author", cascade_delete=True
+	)
+	avatars: list["AvatarInfo"] = Relationship(
+		back_populates="member", cascade_delete=True
+	)
 
 
 class GuildMeta:
