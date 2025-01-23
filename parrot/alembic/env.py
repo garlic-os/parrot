@@ -17,7 +17,6 @@ alembic_cfg = context.config
 if alembic_cfg.config_file_name is not None:
 	fileConfig(alembic_cfg.config_file_name)
 
-
 # Use current SQLModel MetaData for autogenerating, but not while upgrading.
 # Upgrades don't need SQLModel, and in fact get confused when it's there.
 if "--autogenerate" in sys.argv:
@@ -25,15 +24,9 @@ if "--autogenerate" in sys.argv:
 	from parrot.db import models  # noqa: F401
 
 	target_metadata = sm.SQLModel.metadata
+	target_metadata.naming_convention = NAMING_CONVENTION
 else:
 	target_metadata = MetaData(naming_convention=NAMING_CONVENTION)
-
-target_metadata.naming_convention = NAMING_CONVENTION
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
 
 
 def run_migrations_offline() -> None:
