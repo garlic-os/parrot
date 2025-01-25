@@ -9,7 +9,6 @@ Create Date: 2025-01-14 22:41:54.853953
 from collections.abc import Sequence
 
 import sqlmodel as sm
-from parrot import config
 from parrot.alembic import v1_schema  # noqa: F401 -- for SQLModel
 
 from alembic import op
@@ -23,8 +22,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	engine = sm.create_engine(config.db_url)
-	sm.SQLModel.metadata.create_all(engine)
+	sm.SQLModel.metadata.create_all(op.get_bind())
 
 
 def downgrade() -> None:
