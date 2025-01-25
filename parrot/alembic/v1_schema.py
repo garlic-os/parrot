@@ -32,11 +32,12 @@ class Messages(SQLModel, table=True):
 	user_id: Snowflake = Field(foreign_key="users.id")
 	# This col's type is defined as int (timestamp snowflake), but apparently
 	# Parrot v1 was actually putting ISO 8601 date strings in it already.
-	# Didn't know that lol. sqlite never complained
-	# But there are still many rows that are ints too.
-	# But But! I can't actually type annotate this because Cannot Have A Union
+	# Didn't know that lol. sqlite never complained.
+	# So the type is actually str. But there are actually some messages with
+	# timestamp 0. So the type is really str | Literal[0].
+	# But But! I can't actually type annotate that because Cannot Have A Union
 	# As A SQLAlchemy Field. Say that to this columns face SQLAlchemy.
-	timestamp: Snowflake  # | ISODateString
+	timestamp: ISODateString  # | Literal[0]
 	content: str
 
 

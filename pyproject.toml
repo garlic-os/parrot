@@ -22,6 +22,3 @@ dependencies = [
 dev = [
     "ruff>=0.8.3",
 ]
-migrations = [
-    "pytz>=2024.2",
-]
