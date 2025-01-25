@@ -2,7 +2,7 @@ import asyncio
 import functools
 import logging
 import traceback
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
 from enum import Enum
 from typing import Any, cast
 
@@ -12,6 +12,45 @@ from discord.ext import commands
 from parrot import config
 from parrot.utils import regex
 from parrot.utils.types import AnyUser
+
+
+class HistoryCrawler:
+	def __init__(
+		self,
+		histories: AsyncIterator | list[AsyncIterator],
+		action: Callable[[discord.Message], bool],
+		limit: int = 100_000,
+		filter: Callable[[discord.Message], bool] = lambda _: True,
+	):
+		self.num_collected = 0
+		self.running = True
+		self._action = action
+		self._limit = limit
+		self._filter = filter
+		if isinstance(histories, list):
+			self._histories = histories
+		else:
+			self._histories = [histories]
+
+	async def crawl(self) -> None:
+		"""
+		Iterate over up to [limit] messages in the channel in
+		reverse-chronological order.
+		"""
+		for history in self._histories:
+			async for message in history:
+				if not self.running:
+					break
+				if not self._filter(message):
+					continue
+				if self._action(message):
+					self.num_collected += 1
+				if self.num_collected >= self._limit:
+					break
+		self.running = False
+
+	def stop(self) -> None:
+		self.running = False
 
 
 class ParrotEmbed(discord.Embed):
