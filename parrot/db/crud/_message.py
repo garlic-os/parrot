@@ -66,6 +66,10 @@ class CRUDMessage(SubCRUD):
 			# People will often say "v" or "z" on accident while spamming,
 			# and it doesn't really make for good learning material.
 			message.content not in ("v", "z")
+			and
+			# I think this can happen sometimes, as evidenced by a number of
+			# messages with author ID 0 that I found in the database
+			message.author.id != 0
 		)
 
 	def record(
