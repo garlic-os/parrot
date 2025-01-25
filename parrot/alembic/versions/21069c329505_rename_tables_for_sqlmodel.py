@@ -1,7 +1,7 @@
 """rename tables for sqlmodel
 
 Revision ID: 21069c329505
-Revises: fe3138aef0bd
+Revises: cd11f5396395
 Create Date: 2025-01-14 22:50:32.078877
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "21069c329505"
-down_revision: str | None = "fe3138aef0bd"
+down_revision: str | None = "cd11f5396395"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
