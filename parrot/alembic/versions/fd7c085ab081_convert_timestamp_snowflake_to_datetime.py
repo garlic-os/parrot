@@ -1,5 +1,11 @@
 """convert timestamp snowflake to datetime
 
+Technically destructive but whatever. Doesn't preserve whether timestamp was an
+int or a str, so the downgrade function will always convert columns to ints,
+even if the column was originally a str. Really should be an int anyway, though,
+and at the end of the day it doesn't really matter because this column isn't
+even used by Parrot directly, it's for record-keeping. I need to go to bed
+
 Revision ID: fd7c085ab081
 Revises: 1c781052e721
 Create Date: 2024-12-20 15:52:45.701284
@@ -8,10 +14,12 @@ Create Date: 2024-12-20 15:52:45.701284
 
 import datetime as dt
 from collections.abc import Sequence
+from typing import cast
 
 import pytz
 import sqlalchemy as sa
 import sqlmodel as sm
+from parrot.alembic.typess import ISODateString
 from parrot.utils.types import Snowflake
 
 from alembic import op
@@ -48,11 +56,17 @@ def snowflake2datetime(snowflake: Snowflake) -> dt.datetime:
 	return dt.datetime.fromtimestamp(timestamp, tz=dt.UTC)
 
 
+def to_datetime(column: Snowflake | ISODateString) -> dt.datetime:
+	if isinstance(column, str):
+		return dt.datetime.fromisoformat(column)
+	return snowflake2datetime(column)
+
+
 def upgrade() -> None:
 	class Message(sm.SQLModel, table=True):
 		id: Snowflake = sm.Field(primary_key=True)
 		...
-		timestamp: Snowflake
+		timestamp: Snowflake  # | ISODateString  # see v1_schema.py
 		up_timestamp: dt.datetime
 
 	# Create a new timestamp column with the upgrade type (dt.datetime)
@@ -77,7 +91,9 @@ def upgrade() -> None:
 	# Convert the current timestamp to the upgrade type
 	db_messages = session.exec(sm.select(Message)).all()
 	for message in db_messages:
-		message.up_timestamp = snowflake2datetime(message.timestamp)
+		message.up_timestamp = to_datetime(
+			cast(Snowflake | ISODateString, message.timestamp)
+		)
 	session.add_all(db_messages)
 
 	# Drop the old column and rename the new one
