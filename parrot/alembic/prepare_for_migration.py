@@ -14,7 +14,7 @@ V1_REVISION = "fe3138aef0bd"
 
 def main() -> None:
 	class alembic_version(sm.SQLModel, table=True):
-		version_num: str
+		version_num: str = sm.Field(primary_key=True)
 
 	engine = sm.create_engine(config.db_url)
 	sm.SQLModel.metadata.create_all(engine)
