@@ -100,7 +100,7 @@ class CRUDMessage(SubCRUD):
 
 		# Convert the messages to the database's format and add them to this
 		# user's corpus.
-		db_messages = (
+		self.bot.db_session.add_all(
 			p.Message(
 				id=m.id,
 				author_id=member.id,
@@ -110,9 +110,9 @@ class CRUDMessage(SubCRUD):
 			)
 			for m in messages_filtered
 		)
-		self.bot.db_session.add_all(db_messages)
 		self.bot.db_session.commit()
 
+		# TODO: is this actually exhausted now?
 		return messages_filtered
 
 		# for message in messages:
