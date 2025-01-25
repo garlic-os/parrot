@@ -23,7 +23,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	engine = sm.create_engine(config.db_url).execution_options(autocommit=False)
+	engine = sm.create_engine(config.db_url)
 	sm.SQLModel.metadata.create_all(engine)
 
 

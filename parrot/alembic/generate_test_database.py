@@ -64,7 +64,7 @@ def main() -> None:
 	os.chdir("parrot")
 	subprocess.run(["alembic", "upgrade", V1_REVISION])
 
-	engine = sm.create_engine(config.db_url).execution_options(autocommit=False)
+	engine = sm.create_engine(config.db_url)
 	sm.SQLModel.metadata.create_all(engine)
 	session = sm.Session(engine)
 

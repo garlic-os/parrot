@@ -16,7 +16,7 @@ def main() -> None:
 	class alembic_version(sm.SQLModel, table=True):
 		version_num: str
 
-	engine = sm.create_engine(config.db_url).execution_options(autocommit=False)
+	engine = sm.create_engine(config.db_url)
 	sm.SQLModel.metadata.create_all(engine)
 	session = sm.Session(engine)
 	session.add(alembic_version(version_num=V1_REVISION))

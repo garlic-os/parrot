@@ -43,8 +43,8 @@ def upgrade() -> None:
 			default=None, foreign_key="guild.id", primary_key=True
 		)
 		is_registered: bool = False
-		member: "Member" = sm.Relationship(back_populates="guild_links")
-		guild: "Guild" = sm.Relationship(back_populates="member_links")
+		member: "Member" = sm.Relationship(back_populates="guild_links")  # noqa: F821
+		guild: "Guild" = sm.Relationship(back_populates="member_links")  # noqa: F821
 
 	class Guild(sm.SQLModel, table=True):
 		id: Snowflake = sm.Field(primary_key=True)
@@ -85,7 +85,7 @@ def upgrade() -> None:
 	@client.event
 	async def on_ready() -> None:
 		logging.info("Scraping Discord to populate guild IDs...")
-		db_members = session.exec(sm.select(Member)).all()
+		db_members = session.exec(sm.select(Member)).all()  # noqa: F821
 		members_found: set[Snowflake] = set()
 		for guild in client.guilds:
 			member_ids = (member.id for member in guild.members)
@@ -95,9 +95,9 @@ def upgrade() -> None:
 				logging.debug(
 					f"User {db_member.id} is a member of guild {guild.id}"
 				)
-				db_guild = session.get(Guild, guild.id) or Guild(id=guild.id)
+				db_guild = session.get(Guild, guild.id) or Guild(id=guild.id)  # noqa: F821
 				session.add(
-					MemberGuildLink(
+					MemberGuildLink(  # noqa: F821
 						member=db_member,
 						guild=db_guild,
 					)

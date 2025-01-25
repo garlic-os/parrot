@@ -41,10 +41,7 @@ class Parrot(commands.AutoShardedBot):
 			),
 			case_insensitive=True,
 		)
-		engine = sm.create_engine(config.db_url).execution_options(
-			autocommit=False
-		)
-		self.db_session = sm.Session(engine)
+		self.db_session = sm.Session(sm.create_engine(config.db_url))
 		self.crud = CRUD(self)
 		self.markov_models = MarkovModelManager(self.crud)
 		self.webhooks = WebhookManager(self)
