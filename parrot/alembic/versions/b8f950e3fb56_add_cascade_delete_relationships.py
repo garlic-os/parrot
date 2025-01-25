@@ -1,21 +1,19 @@
-"""add memberguildlink on delete rules
+"""add cascade delete relationships
 
-Revision ID: a8ec7d2a4935
-Revises: b48f3738cbc2
-Create Date: 2025-01-20 05:10:57.765651
+Revision ID: b8f950e3fb56
+Revises: 79a4371fbc92
+Create Date: 2025-01-21 14:46:13.725138
 
 """
 
 from collections.abc import Sequence
 
-import sqlalchemy as sa
-
 from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision: str = "a8ec7d2a4935"
-down_revision: str | None = "b48f3738cbc2"
+revision: str = "b8f950e3fb56"
+down_revision: str | None = "79a4371fbc92"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -30,7 +28,7 @@ def upgrade() -> None:
 		)
 	with op.batch_alter_table("message") as batch_op:
 		batch_op.drop_constraint(
-			op.f("fk_message_author_id_member"), type_="foreignkey"
+			op.f("fk_messages_user_id_users"), type_="foreignkey"
 		)
 		batch_op.create_foreign_key(
 			None, "member", ["author_id"], ["id"], ondelete="CASCADE"
@@ -57,7 +55,11 @@ def downgrade() -> None:
 			op.f("fk_message_author_id_member"), type_="foreignkey"
 		)
 		batch_op.create_foreign_key(
-			None, "member", ["author_id"], ["id"], ondelete=None
+			op.f("fk_messages_user_id_users"),
+			"member",
+			["author_id"],
+			["id"],
+			ondelete=None,
 		)
 	with op.batch_alter_table("avatarinfo") as batch_op:
 		batch_op.drop_constraint(

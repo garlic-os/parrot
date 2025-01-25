@@ -18,17 +18,14 @@ class CRUDMember(SubCRUD):
 		guild_link = self.bot.db_session.exec(statement).first()
 		if guild_link is None:
 			guild_link = p.MemberGuildLink(
-				member_id=member.id, guild_id=member.guild.id
+				member=self.bot.db_session.get(p.Member, member.id)
+				or p.Member(id=member.id),
+				guild=self.bot.db_session.get(p.Guild, member.guild.id)
+				or p.Guild(id=member.guild.id),
 			)
-			# If a member-guild link does not exist in the database, then that
-			# may mean this guild doesn't exist in the database either, in which
-			# case, now is the time to insert it.
-			if self.bot.db_session.get(p.Guild, member.guild.id) is None:
-				self.bot.db_session.add(p.Guild(id=member.guild.id))
 		guild_link.is_registered = value
 		self.bot.db_session.add(guild_link)
 		self.bot.db_session.commit()
-		# self.bot.db_session.refresh(guild_link)
 
 	def assert_registered(self, member: discord.Member) -> None:
 		if self.is_registered(member):
@@ -41,7 +38,8 @@ class CRUDMember(SubCRUD):
 			p.MemberGuildLink.member_id == member.id,
 			p.MemberGuildLink.guild_id == member.guild.id,
 		)
-		return self.bot.db_session.exec(statement).first() is not None
+		guild_link = self.bot.db_session.exec(statement).first()
+		return guild_link is not None and guild_link.is_registered
 
 	# def get_messages(self, member: discord.Member) -> Sequence[p.Message]:
 	# 	statement = sm.select(p.Message).where(

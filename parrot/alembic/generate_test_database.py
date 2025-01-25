@@ -96,7 +96,7 @@ def main() -> None:
 			imitation_prefix="" if row[1] == "None" else row[1],
 			imitation_suffix="" if row[2] == "None" else row[2],
 		)
-		for row in to_matrix(RAW_CHANNELS)
+		for row in to_matrix(RAW_GUILDS)
 	)
 
 	session.add_all(

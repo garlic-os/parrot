@@ -67,10 +67,10 @@ class CRUDUser(SubCRUD):
 		)
 
 		# Delete any of their Markov models from the cache
-		for guild_link in db_member.guild_links:
+		for db_guild_link in db_member.guild_links:
 			try:
 				del self.bot.markov_models.cache[
-					(db_member.id, guild_link.guild_id)
+					(db_member.id, db_guild_link.guild.id)
 				]
 			except KeyError:
 				pass

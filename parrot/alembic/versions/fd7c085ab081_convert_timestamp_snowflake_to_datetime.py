@@ -1,7 +1,7 @@
-"""timestamp snowflake to datetime
+"""convert timestamp snowflake to datetime
 
 Revision ID: fd7c085ab081
-Revises: 21069c329505
+Revises: 1c781052e721
 Create Date: 2024-12-20 15:52:45.701284
 
 """
@@ -19,7 +19,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "fd7c085ab081"
-down_revision: str | None = "21069c329505"
+down_revision: str | None = "1c781052e721"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -49,8 +49,6 @@ def snowflake2datetime(snowflake: Snowflake) -> dt.datetime:
 
 
 def upgrade() -> None:
-	sm.SQLModel.__table_args__ = {"extend_existing": True}
-
 	class Message(sm.SQLModel, table=True):
 		id: Snowflake = sm.Field(primary_key=True)
 		...
@@ -58,7 +56,15 @@ def upgrade() -> None:
 		up_timestamp: dt.datetime
 
 	# Create a new timestamp column with the upgrade type (dt.datetime)
-	op.add_column("message", sa.Column("up_timestamp", sa.DateTime, nullable=False))
+	with op.batch_alter_table("message") as batch_op:
+		batch_op.add_column(
+			sa.Column(
+				"up_timestamp",
+				sa.DateTime(),
+				nullable=False,
+				server_default=snowflake2datetime(0).isoformat(),
+			)
+		)
 
 	# sqlalchemy cargo culting
 	# https://stackoverflow.com/a/70985446
@@ -72,17 +78,18 @@ def upgrade() -> None:
 	db_messages = session.exec(sm.select(Message)).all()
 	for message in db_messages:
 		message.up_timestamp = snowflake2datetime(message.timestamp)
-		session.add(message)
-	session.commit()
+	session.add_all(db_messages)
 
 	# Drop the old column and rename the new one
 	op.drop_column("message", "timestamp")
 	op.alter_column("message", "up_timestamp", new_column_name="timestamp")
 
+	# Remove this table from the metadata otherwise later migrations will
+	# explode
+	sm.SQLModel.metadata.remove(Message.__table__)  # type: ignore
+
 
 def downgrade() -> None:
-	sm.SQLModel.__table_args__ = {"extend_existing": True}
-
 	class Message(sm.SQLModel, table=True):
 		id: Snowflake = sm.Field(primary_key=True)
 		...
@@ -91,20 +98,25 @@ def downgrade() -> None:
 
 	# Create a new timestamp column with the downgrade type
 	# (Twitter Snowflake format int)
-	op.add_column("message", sa.Column("down_timestamp", sa.BigInteger, nullable=False))
+	op.add_column(
+		"message",
+		sa.Column(
+			"down_timestamp", sa.BigInteger, server_default="0", nullable=False
+		),
+	)
 
 	global target_metadata
 	target_metadata = sm.SQLModel.metadata
-
 	session = sm.Session(bind=op.get_bind())
 
 	# Convert the current timestamp to the downgrade type
 	db_messages = session.exec(sm.select(Message)).all()
 	for message in db_messages:
 		message.down_timestamp = datetime2snowflake(message.timestamp)
-		session.add(message)
-	session.commit()
+	session.add_all(db_messages)
 
 	# Drop the old column and rename the new one
 	op.drop_column("message", "timestamp")
 	op.alter_column("message", "down_timestamp", new_column_name="timestamp")
+
+	sm.SQLModel.metadata.remove(Message.__table__)  # type: ignore

@@ -6,13 +6,14 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.11.10",
-    "alembic>=1.14.0",
+    "alembic>=1.14.1",
     "asyncio-atexit>=1.0.1",
     "audioop-lts>=0.2.1",
     "discord-py>=2.4.0",
     "jishaku>=2.6.0",
     "markovify>=0.9.4",
-    "pillow>=11.0.0",
+    "pillow>=11.1.0",
+    "sqlalchemy>=2.0.37",
     "sqlmodel>=0.0.22",
     "ujson>=5.10.0",
 ]

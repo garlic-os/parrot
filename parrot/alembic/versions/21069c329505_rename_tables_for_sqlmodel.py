@@ -23,6 +23,7 @@ def upgrade() -> None:
 	op.rename_table("channels", "channel")
 	op.rename_table("messages", "message")
 	op.rename_table("guilds", "guild")
+	op.drop_table("servers", if_exists=True)  # Drop unused "servers" table
 
 
 def downgrade() -> None:

@@ -20,9 +20,10 @@ database, and are expected to be the same as their IDs from Discord.
 
 import datetime as dt
 
+import sqlalchemy as sa
 from sqlmodel import Field, Relationship, SQLModel
 
-from parrot.db import NAMING_CONVENTION
+from parrot.db import NAMING_CONVENTION, GuildMeta
 from parrot.utils.types import Snowflake
 
 
@@ -40,21 +41,28 @@ class Channel(SQLModel, table=True):
 
 
 class Message(SQLModel, table=True):
-	# not the primary key; Parrot should really get Messages through
-	# Member-Guild associations. Still good to have though.
-	id: Snowflake
+	id: Snowflake = Field(primary_key=True)
 	timestamp: dt.datetime
 	content: str
-	author_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
+	author_id: Snowflake = Field(foreign_key="member.id")
+	guild_id: Snowflake = Field(foreign_key="guild.id")
+	# Messages are going to be SELECTed almost exclusively by these columns, so
+	# add an index for them
+	__table_args__ = (
+		sa.Index("ix_guild_id_author_id", "guild_id", "author_id"),
+	)
 
 	author: "Member" = Relationship(back_populates="messages")
 	guild: "Guild" = Relationship(back_populates="messages")
 
 
 class MemberGuildLink(SQLModel, table=True):
-	member_id: Snowflake = Field(foreign_key="member.id", primary_key=True)
-	guild_id: Snowflake = Field(foreign_key="guild.id", primary_key=True)
+	member_id: Snowflake | None = Field(
+		default=None, foreign_key="member.id", primary_key=True
+	)
+	guild_id: Snowflake | None = Field(
+		default=None, foreign_key="guild.id", primary_key=True
+	)
 	is_registered: bool = False
 
 	member: "Member" = Relationship(back_populates="guild_links")
@@ -66,7 +74,8 @@ class Member(SQLModel, table=True):
 	wants_random_wawa: bool = True
 
 	guild_links: list[MemberGuildLink] = Relationship(
-		back_populates="member", cascade_delete=True
+		back_populates="member",
+		cascade_delete=True,
 	)
 	messages: list[Message] = Relationship(
 		back_populates="author", cascade_delete=True
@@ -74,13 +83,6 @@ class Member(SQLModel, table=True):
 	avatars: list["AvatarInfo"] = Relationship(
 		back_populates="member", cascade_delete=True
 	)
-
-
-class GuildMeta:
-	"""Extracted out so these can be used on their own elsewhere"""
-
-	default_imitation_prefix = "Not "
-	default_imitation_suffix = ""
 
 
 class Guild(SQLModel, table=True):
