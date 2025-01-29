@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections.abc import Callable, Coroutine
-from enum import Enum
+from enum import Enum, auto
 from typing import Any, cast
 
 import discord
@@ -27,8 +27,8 @@ class Text(commands.Cog):
 		will sabotage me
 		"""
 
-		STANDARD = 0
-		INTIMIDATE = 1
+		STANDARD = auto()
+		INTIMIDATE = auto()
 
 	def __init__(self, bot: Parrot):
 		self.bot = bot
