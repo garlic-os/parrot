@@ -6,6 +6,7 @@ Create Date: 2025-01-21 14:46:13.725138
 
 """
 
+import logging
 from collections.abc import Sequence
 
 from alembic import op
@@ -26,10 +27,14 @@ def upgrade() -> None:
 		batch_op.create_foreign_key(
 			None, "member", ["member_id"], ["id"], ondelete="CASCADE"
 		)
+	try:
+		with op.batch_alter_table("message") as batch_op:
+			batch_op.drop_constraint(
+				op.f("fk_messages_user_id_users"), type_="foreignkey"
+			)
+	except ValueError as exc:
+		logging.warning(exc)
 	with op.batch_alter_table("message") as batch_op:
-		batch_op.drop_constraint(
-			op.f("fk_messages_user_id_users"), type_="foreignkey"
-		)
 		batch_op.create_foreign_key(
 			None, "member", ["author_id"], ["id"], ondelete="CASCADE"
 		)

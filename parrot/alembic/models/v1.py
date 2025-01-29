@@ -2,10 +2,10 @@
 Database schema for Parrot v1 as defined here:
 https://github.com/garlic-os/parrot/blob/53a95b8/bot.py#L56-L82
 
-Preserved for migrations
+Ported/preserved for migrations
 """
 
-from parrot.alembic.typess import ISODateString
+# from parrot.alembic.typess import ISODateString
 from parrot.db import NAMING_CONVENTION
 from parrot.utils.types import Snowflake
 from sqlmodel import Field, SQLModel
@@ -30,14 +30,11 @@ class Guilds(SQLModel, table=True):
 class Messages(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
 	user_id: Snowflake = Field(foreign_key="users.id")
-	# This col's type is defined as int (timestamp snowflake), but apparently
-	# Parrot v1 was actually putting ISO 8601 date strings in it already.
-	# Didn't know that lol. sqlite never complained.
-	# So the type is actually str. But there are actually some messages with
-	# timestamp 0. So the type is really str | Literal[0].
-	# But But! I can't actually type annotate that because Cannot Have A Union
-	# As A SQLAlchemy Field. Say that to this columns face SQLAlchemy.
-	timestamp: ISODateString  # | Literal[0]
+	# This column's type is de facto `int | str`.
+	# See models.rfd7c085ab081.py.
+	# But! I can't type annotate that because Cannot Have A Union As A
+	# SQLAlchemy Field. Say that to this column's face SQLAlchemy.
+	timestamp: int  # | ISODateString
 	content: str
 
 

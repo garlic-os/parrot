@@ -12,8 +12,7 @@ Create Date: 2025-01-24 23:38:55.172176
 import logging
 from collections.abc import Sequence
 
-import sqlmodel as sm
-from parrot.alembic import v1_schema as v1
+import sqlmodel as sa
 
 from alembic import op
 
@@ -26,12 +25,19 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	session = sm.Session(op.get_bind())
-	statement = sm.select(v1.Messages).where(v1.Messages.id == 0)
-	db_messages = session.exec(statement).all()
-	for db_message in db_messages:
-		session.delete(db_message)
-	session.commit()
+	# fmt: off
+	op.get_bind().execute(
+		sa.text(
+			'DELETE FROM messages '
+			'WHERE id IN ('
+				'SELECT rowid '
+				'FROM pragma_foreign_key_check() '
+				'WHERE "table" = "messages" '
+				'AND "parent" = "user"'
+			')'
+		)
+	)
+	# fmt: on
 
 
 def downgrade() -> None:

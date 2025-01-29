@@ -9,7 +9,7 @@ Create Date: 2025-01-14 22:41:54.853953
 from collections.abc import Sequence
 
 import sqlmodel as sm
-from parrot.alembic import v1_schema  # noqa: F401 -- for SQLModel
+from parrot.alembic.models import v1  # noqa: F401 -- for SQLModel
 
 from alembic import op
 

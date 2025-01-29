@@ -21,8 +21,8 @@ import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
-from parrot.db import GuildMeta
 from parrot.utils.types import Snowflake
+from tqdm import tqdm
 
 from alembic import op
 
@@ -35,48 +35,16 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	class MemberGuildLink(sm.SQLModel, table=True):
-		member_id: Snowflake | None = sm.Field(
-			default=None, foreign_key="member.id", primary_key=True
-		)
-		guild_id: Snowflake | None = sm.Field(
-			default=None, foreign_key="guild.id", primary_key=True
-		)
-		is_registered: bool = False
-		member: "Member" = sm.Relationship(back_populates="guild_links")  # noqa: F821
-		guild: "Guild" = sm.Relationship(back_populates="member_links")  # noqa: F821
+	# Imported here so the models inside aren't added to the global namespace
+	from parrot.alembic.models import r79a4371fbc92
 
-	class Guild(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		imitation_prefix: str = GuildMeta.default_imitation_prefix
-		imitation_suffix: str = GuildMeta.default_imitation_suffix
-		member_links: list[MemberGuildLink] = sm.Relationship(
-			back_populates="guild"
-		)
-		...
-
-	class Member(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		wants_random_wawa: bool = True
-		guild_links: list[MemberGuildLink] = sm.Relationship(
-			back_populates="member",
-			cascade_delete=True,
-		)
-
-	op.create_table(
-		"memberguildlink",
-		sa.Column("member_id", sa.Integer(), nullable=False),
-		sa.Column("guild_id", sa.Integer(), nullable=False),
-		sa.Column("is_registered", sa.Boolean(), nullable=False),
-		sa.ForeignKeyConstraint(["guild_id"], ["guild.id"]),
-		sa.ForeignKeyConstraint(["member_id"], ["member.id"]),
-		sa.PrimaryKeyConstraint("member_id", "guild_id"),
-	)
+	conn = op.get_bind()
+	r79a4371fbc92.MemberGuildLink.__table__.create(conn)
 	op.drop_column("member", "is_registered")
 
 	global target_metadata
 	target_metadata = sm.SQLModel.metadata
-	session = sm.Session(bind=op.get_bind())
+	session = sm.Session(bind=conn)
 
 	intents = discord.Intents.default()
 	intents.members = True
@@ -85,19 +53,21 @@ def upgrade() -> None:
 	@client.event
 	async def on_ready() -> None:
 		logging.info("Scraping Discord to populate guild IDs...")
-		db_members = session.exec(sm.select(Member)).all()  # noqa: F821
+		db_members = session.exec(sm.select(r79a4371fbc92.Member)).all()
 		members_found: set[Snowflake] = set()
-		for guild in client.guilds:
+		for guild in tqdm(client.guilds):
 			member_ids = (member.id for member in guild.members)
 			for db_member in db_members:
 				if db_member.id not in member_ids:
 					continue
-				logging.debug(
-					f"User {db_member.id} is a member of guild {guild.id}"
-				)
-				db_guild = session.get(Guild, guild.id) or Guild(id=guild.id)  # noqa: F821
+				# logging.debug(
+				# 	f"User {db_member.id} is a member of guild {guild.id}"
+				# )
+				db_guild = session.get(
+					r79a4371fbc92.Guild, guild.id
+				) or r79a4371fbc92.Guild(id=guild.id)
 				session.add(
-					MemberGuildLink(  # noqa: F821
+					r79a4371fbc92.MemberGuildLink(
 						member=db_member,
 						guild=db_guild,
 					)
@@ -105,20 +75,15 @@ def upgrade() -> None:
 				members_found.add(db_member.id)
 		for db_member in db_members:
 			if db_member.id not in members_found:
-				logging.warning(f"Guild not found for user {db_member.id}")
+				logging.warning(f"No guilds found for user {db_member.id}")
 		session.commit()
 		await client.close()
 
 	client.run(config.discord_bot_token)
 
-	# If you don't remove these tables from the metadata later migrations will
-	# explode
-	sm.SQLModel.metadata.remove(Guild.__table__)  # type: ignore
-	sm.SQLModel.metadata.remove(Member.__table__)  # type: ignore
-	sm.SQLModel.metadata.remove(MemberGuildLink.__table__)  # type: ignore
-	del Guild
-	del Member
-	del MemberGuildLink
+	sm.SQLModel.metadata.remove(r79a4371fbc92.Guild.__table__)
+	sm.SQLModel.metadata.remove(r79a4371fbc92.Member.__table__)
+	sm.SQLModel.metadata.remove(r79a4371fbc92.MemberGuildLink.__table__)
 
 
 def downgrade() -> None:

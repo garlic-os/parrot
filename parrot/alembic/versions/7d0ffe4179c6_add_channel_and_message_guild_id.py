@@ -12,7 +12,6 @@ Create Date: 2025-01-21 14:40:18.601522
 """
 
 import asyncio
-import datetime as dt
 import logging
 from collections.abc import Sequence
 
@@ -20,9 +19,8 @@ import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
-from parrot.db import GuildMeta
-from parrot.utils import cast_not_none
-from parrot.utils.types import Snowflake
+from parrot.utils import cast_not_none, executor_function
+from tqdm import tqdm
 
 from alembic import op
 
@@ -33,39 +31,11 @@ down_revision: str | None = "2e2045b63d7a"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
+CHUNK_SIZE = 500
+
 
 def upgrade() -> None:
-	# Minimal SQLModel setup to complete this migration
-	# Any table referred to in a foreign key must be present too
-	class Channel(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		can_speak_here: bool = False
-		can_learn_here: bool = False
-		webhook_id: Snowflake | None = None
-		# New
-		guild_id: Snowflake = sm.Field(foreign_key="guild.id")
-
-	class Guild(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		imitation_prefix: str = GuildMeta.default_imitation_prefix
-		imitation_suffix: str = GuildMeta.default_imitation_suffix
-		...
-
-	class Member(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		wants_random_wawa: bool = True
-		...
-
-	class Message(sm.SQLModel, table=True):
-		id: Snowflake = sm.Field(primary_key=True)
-		timestamp: dt.datetime
-		content: str
-		author_id: Snowflake = sm.Field(foreign_key="member.id")
-		# New
-		guild_id: Snowflake = sm.Field(foreign_key="guild.id")
-		__table_args__ = (
-			sa.Index("ix_guild_id_author_id", "guild_id", "author_id"),
-		)
+	from parrot.alembic.models import r7d0ffe4179c6
 
 	with op.batch_alter_table("channel") as batch_op:
 		# https://stackoverflow.com/a/6710280
@@ -105,7 +75,7 @@ def upgrade() -> None:
 	async def on_ready() -> None:
 		logging.info("Scraping Discord to populate guild IDs...")
 
-		async def process_channel(db_channel: Channel) -> None:
+		async def process_channel(db_channel: r7d0ffe4179c6.Channel) -> None:
 			try:
 				channel = await client.fetch_channel(db_channel.id)
 			except Exception as exc:
@@ -124,15 +94,10 @@ def upgrade() -> None:
 			logging.debug(
 				f"Channel {db_channel.id} in guild {db_channel.guild_id}"
 			)
-			session.add(db_channel)
 
-		db_channels = session.exec(sm.select(Channel)).all()
-		logging.debug(f"{len(db_channels)} channels to process")
-		async with asyncio.TaskGroup() as tg:
-			for db_channel in db_channels:
-				tg.create_task(process_channel(db_channel))
-
-		async def fetch_message(db_message: Message) -> discord.Message | None:
+		async def fetch_message(
+			db_message: r7d0ffe4179c6.Message,
+		) -> discord.Message | None:
 			for guild in client.guilds:
 				for channel in guild.channels:
 					if not isinstance(channel, discord.TextChannel):
@@ -150,7 +115,7 @@ def upgrade() -> None:
 						)
 						continue
 
-		async def process_message(db_message: Message) -> None:
+		async def process_message(db_message: r7d0ffe4179c6.Message) -> None:
 			message = await fetch_message(db_message)
 			if message is None:
 				logging.warning(
@@ -164,15 +129,34 @@ def upgrade() -> None:
 			logging.debug(
 				f"Message {db_message.id} in guild {db_message.guild_id}"
 			)
-			session.add(db_message)
 
-		db_messages = session.exec(sm.select(Message)).all()
-		logging.debug(f"{len(db_messages)} messages to process")
+		db_channels = session.exec(sm.select(r7d0ffe4179c6.Channel)).all()
+		logging.debug(f"{len(db_channels)} channels to process")
 		async with asyncio.TaskGroup() as tg:
-			for db_message in db_messages:
-				tg.create_task(process_message(db_message))
+			for db_channel in tqdm(db_channels):
+				tg.create_task(process_channel(db_channel))
+		session.add_all(db_channels)
 
-		session.commit()
+		# Message count can be huge, so we have to work in chunks unless we
+		# want to risk running out of memory making 4,000,000 Message objects
+		# COUNT() query from https://stackoverflow.com/a/47801739
+		statement = sa.func.count(r7d0ffe4179c6.Message.id)  # type: ignore  -- it works
+		db_messages_count: int = session.query(statement).scalar()
+		logging.debug(f"{db_messages_count} messages to process")
+		for i in tqdm(
+			range(0, db_messages_count, CHUNK_SIZE),
+			total=round(db_messages_count / CHUNK_SIZE),
+			unit_scale=CHUNK_SIZE,
+		):
+			statement = (
+				sm.select(r7d0ffe4179c6.Message).offset(i).limit(CHUNK_SIZE)
+			)
+			db_messages_chunk = session.exec(statement).all()
+			async with asyncio.TaskGroup() as tg:
+				for db_message in db_messages_chunk:
+					tg.create_task(process_message(db_message))
+			session.add_all(db_messages_chunk)
+			session.commit()
 		await client.close()
 
 	client.run(config.discord_bot_token)
@@ -182,26 +166,22 @@ def upgrade() -> None:
 	with op.batch_alter_table("message") as batch_op:
 		batch_op.alter_column("guild_id", server_default=None)
 
-	# If you don't remove these tables from the metadata later migrations will
-	# explode
-	sm.SQLModel.metadata.remove(Channel.__table__)  # type: ignore
-	sm.SQLModel.metadata.remove(Guild.__table__)  # type: ignore
-	sm.SQLModel.metadata.remove(Member.__table__)  # type: ignore
-	sm.SQLModel.metadata.remove(Message.__table__)  # type: ignore
-	# No like actually completely delete them or sqlalchemy will hold onto a
-	# weakref of them
-	# I know this trips your type checker and I'm sorry
-	del Channel
-	del Guild
-	del Member
-	del Message
+	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Channel.__table__)
+	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Guild.__table__)
+	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Member.__table__)
+	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Message.__table__)
 
 
 def downgrade() -> None:
+	try:
+		with op.batch_alter_table("channel") as batch_op:
+			batch_op.drop_constraint(
+				op.f("fk_channel_guild_id_guild"), type_="foreignkey"
+			)
+			batch_op.drop_index(op.f("ix_guild_id_author_id"))
+	except ValueError as exc:
+		logging.warning(exc)
 	with op.batch_alter_table("channel") as batch_op:
-		batch_op.drop_constraint(
-			op.f("fk_channel_guild_id_guild"), type_="foreignkey"
-		)
 		batch_op.drop_column("guild_id")
 
 	with op.batch_alter_table("message") as batch_op:

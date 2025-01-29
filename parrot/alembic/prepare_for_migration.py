@@ -5,6 +5,8 @@ A database coming from Parrot v1 needs this before Alembic can execute the
 migrations on it.
 """
 
+import logging
+
 import sqlmodel as sm
 from parrot import config
 
@@ -20,6 +22,7 @@ def main() -> None:
 	sm.SQLModel.metadata.create_all(engine)
 	session = sm.Session(engine)
 	session.add(alembic_version(version_num=V1_REVISION))
+	logging.info(f"Version marker added: {V1_REVISION}")
 	session.commit()
 
 

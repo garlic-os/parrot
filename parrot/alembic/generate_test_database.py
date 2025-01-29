@@ -11,7 +11,7 @@ from collections.abc import Generator
 
 import sqlmodel as sm
 from parrot import config
-from parrot.alembic import v1_schema as v1
+from parrot.alembic.models import v1
 from parrot.utils.types import Snowflake
 
 
@@ -20,15 +20,15 @@ V1_REVISION = "fe3138aef0bd"
 # This data is from me and I grant myself the right to publish it
 RAW_MESSAGES = """
 	431263950651260939	206235904644349953	0	thanks <@!346804110303166474>
-	431264596184137728	206235904644349953	0	im never posting screenshots of windows xp videos again
-	431266865441013770	206235904644349953	0	https://www.youtube.com/watch?v=XRRsz_I44Ok o e-gads
-	431269377208352790	206235904644349953	0	0.35i39j69i61j0l4.1904j0j4
-	431271093152514058	206235904644349953	0	<@!132924988100444160>
+	431264596184137728	206235904644349953	1969-12-31T18:00:00	im never posting screenshots of windows xp videos again
+	431266865441013770	206235904644349953	2025-01-27T20:39:07.631139	https://www.youtube.com/watch?v=XRRsz_I44Ok o e-gads
+	431269377208352790	206235904644349953	2021	0.35i39j69i61j0l4.1904j0j4
+	431271093152514058	206235904644349953	2024	<@!132924988100444160>
 	431271833770393601	206235904644349953	0	tarp
 	431273094020202508	206235904644349953	0	lel crazyboye
 	431273763880042508	206235904644349953	0	ᕕ(ᐛ)ᕗ
-	431273825699758110	206235904644349953	0	https://www.youtube.com/watch?v=SAxpAs1Iaec ᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )...
-	431274136590090240	206235904644349953	0	it was worth the try 🤣 😂
+	12345	206235904644349953	0	https://www.youtube.com/watch?v=SAxpAs1Iaec ᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )ᕗᕕ( ᐛ )...
+	431274136590090240	12345	0	it was worth the try 🤣 😂
 """
 
 RAW_CHANNELS = """
@@ -70,15 +70,19 @@ def main() -> None:
 
 	logging.info("Injecting test data")
 
-	session.add_all(
-		v1.Messages(
-			id=Snowflake(row[0]),
-			user_id=Snowflake(row[1]),
-			timestamp=Snowflake(row[2]),
-			content=row[3],
+	for row in to_matrix(RAW_MESSAGES):
+		try:
+			timestamp = int(row[2])
+		except ValueError:
+			timestamp = row[2]
+		session.add(
+			v1.Messages(
+				id=Snowflake(row[0]),
+				user_id=Snowflake(row[1]),
+				timestamp=timestamp,  # type: ignore
+				content=row[3],
+			)
 		)
-		for row in to_matrix(RAW_MESSAGES)
-	)
 
 	session.add_all(
 		v1.Channels(
