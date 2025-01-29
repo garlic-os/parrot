@@ -41,13 +41,6 @@ class CRUDMember(SubCRUD):
 		guild_link = self.bot.db_session.exec(statement).first()
 		return guild_link is not None and guild_link.is_registered
 
-	# def get_messages(self, member: discord.Member) -> Sequence[p.Message]:
-	# 	statement = sm.select(p.Message).where(
-	# 		p.Message.member_id == member.id
-	# 		and p.Message.guild_id == member.guild.id
-	# 	)
-	# 	return self.bot.db_session.exec(statement).all()
-
 	def get_messages_content(self, member: discord.Member) -> Sequence[str]:
 		"""
 		Get the text content of every message this user has said in this guild.
