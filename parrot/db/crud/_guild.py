@@ -1,5 +1,4 @@
 import asyncio
-from collections.abc import Sequence
 
 import discord
 import sqlmodel as sm
@@ -61,20 +60,15 @@ class CRUDGuild(SubCRUD):
 		self.bot.db_session.commit()
 		self.bot.db_session.refresh(db_guild)
 
-	def get_registered_member_ids(
-		self, guild: discord.Guild
-	) -> Sequence[Snowflake]:
-		statement = sm.select(p.MemberGuildLink.member_id).where(
-			p.MemberGuildLink.guild_id == guild.id
-		)
-		return self.bot.db_session.exec(statement).all()
-
 	async def get_registered_members(
 		self, guild: discord.Guild
 	) -> list[discord.Member]:
+		db_guild = self.bot.db_session.get(p.Guild, guild.id)
+		if db_guild is None:
+			return []
 		return await asyncio.gather(
 			*(
-				guild.fetch_member(uid)
-				for uid in self.get_registered_member_ids(guild)
+				guild.fetch_member(link.member.id)
+				for link in db_guild.member_links
 			)
 		)
