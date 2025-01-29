@@ -1,4 +1,5 @@
 import asyncio
+from collections import OrderedDict
 import functools
 import logging
 import traceback
@@ -51,6 +52,14 @@ class HistoryCrawler:
 
 	def stop(self) -> None:
 		self.running = False
+
+
+class LastUpdatedOrderedDict[K, V](OrderedDict):
+	"""Store items in the order the keys were last added"""
+
+	def __setitem__(self, key: K, value: V):
+		super().__setitem__(key, value)
+		self.move_to_end(key)
 
 
 class ParrotEmbed(discord.Embed):

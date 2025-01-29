@@ -7,8 +7,7 @@ import markovify
 
 from parrot import config
 from parrot.db.crud import CRUD
-from parrot.utils import markov
-from parrot.utils.cache import LastUpdatedOrderedDict
+from parrot.utils import LastUpdatedOrderedDict, markov
 from parrot.utils.types import Snowflake
 
 
@@ -36,7 +35,8 @@ class MarkovModelManager:
 		while self.space_used + len(result) > MarkovModelManager.MAX_MEM_SIZE:
 			_, evicted = self.cache.popitem(last=False)
 			logging.debug(
-				f" ** Full ({self.space_used}/{MarkovModelManager.MAX_MEM_SIZE}); "
+				" ** Full "
+				f"({self.space_used}/{MarkovModelManager.MAX_MEM_SIZE}); "
 				f"evicting: {evicted} (-{len(evicted)})"
 			)
 			self.space_used -= len(evicted)
