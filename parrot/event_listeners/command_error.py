@@ -35,7 +35,7 @@ class CommandErrorEventHandler(commands.Cog):
 		embed = ParrotEmbed(
 			title=random.choice(parrot.assets.failure_phrases),
 			description=error_text,
-			color=ParrotEmbed.Color.Red,
+			color=ParrotEmbed.Color.RED,
 		)
 		await ctx.send(embed=embed, reference=ctx.message)
 

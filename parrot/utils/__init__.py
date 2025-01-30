@@ -71,14 +71,14 @@ class ParrotEmbed(discord.Embed):
 	"""
 
 	class Color(Enum):
-		Default = 0xA755B5  # Pale purple
-		Red = 0xB71C1C  # Deep, muted red
-		Orange = 0xF4511E  # Deep orange. Reserved for BIG trouble.
-		Green = 0x43A047  # Darkish muted green
-		Gray = 0x9E9E9E  # Dead gray
+		DEFAULT = 0xA755B5  # Pale purple
+		RED = 0xB71C1C  # Deep, muted red
+		ORANGE = 0xF4511E  # Deep orange. Reserved for BIG trouble.
+		GREEN = 0x43A047  # Darkish muted green
+		GRAY = 0x9E9E9E  # Dead gray
 
 	def __init__(
-		self, color_name: Color = Color.Default, *args: ..., **kwargs: ...
+		self, color_name: Color = Color.DEFAULT, *args: ..., **kwargs: ...
 	):
 		kwargs["color"] = kwargs.get("color", color_name.value)
 		super().__init__(*args, **kwargs)

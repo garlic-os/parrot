@@ -193,7 +193,7 @@ class Quickstart(commands.Cog):
 					# type: ignore  -- embed.description is definitely not None
 					f"\n😕 Couldn't find any messages from {name}."
 				)
-				embed.color = ParrotEmbed.Color.Red.value
+				embed.color = ParrotEmbed.Color.RED.value
 			asyncio.create_task(status_message.delete())
 			asyncio.create_task(ctx.author.send(embed=embed))
 		except:  # noqa - we really do want to just catch ANY error
