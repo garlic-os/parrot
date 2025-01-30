@@ -60,24 +60,28 @@ class Gibberish(markovify.Text):
 		return cls(text)
 
 	def word_join(self, words: list[str]) -> str:
-		# The generator usually puts spaces between each entry in the list
-		# because it expects them to be words. Since they're actually characters
-		# here, we join the list without spaces.
-		# I could be smarter about this and make it use a string instead of a
-		# list of strings, but I would have to modify markovify.Chain to do that
-		# and I don't want to!
+		"""
+		The generator usually puts spaces between each entry in the list
+		because it expects them to be words. Since they're actually characters
+		here, we join the list without spaces.
+		I could be smarter about this and make it use a string instead of a
+		list of strings, but I would have to modify markovify.Chain to do that
+		and I don't want to!
+		"""
 		return "".join(words)
 
 	def make_sentence(
 		self, init_state: tuple[str, ...] | None = None, **kwargs: dict
 	) -> str:
-		# Make some gibberish. If it ends up the same as the original text,
-		# maybe try again. But not always, because sometimes it's funny!
+		"""
+		Make some gibberish. If it ends up the same as the original text,
+		maybe try again. But not always, because sometimes it's funny!
+		"""
 		acceptable = False
 		sentence = ""
 		while not acceptable:
 			sentence = super().make_sentence(init_state=init_state, **kwargs)
 			acceptable = sentence is not None and (
-				sentence != self.original or random.random() < 0.5
+				sentence != self.original or random.random() < 0.2
 			)
 		return cast_not_none(sentence)
