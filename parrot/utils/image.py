@@ -9,7 +9,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Concatenate, ParamSpec, TypeAlias, cast
+from typing import Concatenate, cast
 
 import aiohttp
 from PIL import Image, ImageOps, ImageSequence
@@ -19,9 +19,7 @@ from parrot.utils import executor_function, tag
 from parrot.utils.types import AnyUser
 
 
-P = ParamSpec("P")
-# noqa: UP040 - ruff broken with `type` syntax + ParamSpecs as of v0.8.3
-ImageProcessingFunction: TypeAlias = Callable[  # noqa: UP040
+type ImageProcessingFunction[**P] = Callable[
 	Concatenate[Image.Image, P], Image.Image
 ]
 
@@ -50,7 +48,7 @@ def image_to_buffer(
 	if not durations:
 		image_list[0].save(buffer, "WEBP")
 	else:
-		giffed_frames = []
+		giffed_frames: list[Image.Image] = []
 		for frame in image_list:
 			new_frame = gif_frame_transparency(frame)
 			giffed_frames.append(new_frame)
@@ -62,8 +60,8 @@ def image_to_buffer(
 				append_images=giffed_frames[1:],
 				save_all=True,
 				duration=durations,
-				loop=0,
 				disposal=2,
+				loop=0,
 			)
 		else:
 			giffed_frames[0].save(
@@ -116,7 +114,7 @@ def resize_img(img: Image.Image, scale: float) -> Image.Image:
 
 
 @executor_function
-def process_lower_level(
+def process_lower_level[**P](
 	img: Image.Image,
 	effect: ImageProcessingFunction[P],
 	*args: P.args,
