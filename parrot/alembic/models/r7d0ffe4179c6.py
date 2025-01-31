@@ -44,6 +44,7 @@ class Message(PModel, table=True):
 	author_id: Snowflake = sm.Field(foreign_key="member.id")
 	# New
 	guild_id: Snowflake = sm.Field(foreign_key="guild.id")
+	channel_id: Snowflake
 	__table_args__ = (
 		sa.Index("ix_guild_id_author_id", "guild_id", "author_id"),
 	)

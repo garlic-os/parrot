@@ -45,6 +45,7 @@ class Message(SQLModel, table=True):
 	timestamp: dt.datetime
 	content: str
 	author_id: Snowflake = Field(foreign_key="member.id")
+	channel_id: Snowflake  # no foreign key constraint because it's not needed
 	guild_id: Snowflake = Field(foreign_key="guild.id")
 	# Messages are going to be SELECTed almost exclusively by these columns, so
 	# add an index for them

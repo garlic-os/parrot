@@ -60,6 +60,18 @@ def upgrade() -> None:
 				server_default="0",
 			)
 		)
+		# Developing this migration has made me realize Parrot sorely needs
+		# channel ID too to be able to remotely efficiently get further
+		# information from messages
+		batch_op.add_column(
+			sa.Column(
+				"channel_id",
+				sa.Integer(),
+				nullable=False,
+				# Temporary default
+				server_default="0",
+			)
+		)
 		batch_op.create_foreign_key(None, "guild", ["guild_id"], ["id"])
 		batch_op.create_index(
 			op.f("ix_guild_id_author_id"), ["guild_id", "author_id"]
