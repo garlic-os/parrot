@@ -18,8 +18,6 @@ database, and are expected to be the same as their IDs from Discord.
 
 # TODO: prune unused Relationships and back-populations
 
-import datetime as dt
-
 import sqlalchemy as sa
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -42,7 +40,6 @@ class Channel(SQLModel, table=True):
 
 class Message(SQLModel, table=True):
 	id: Snowflake = Field(primary_key=True)
-	timestamp: dt.datetime
 	content: str
 	author_id: Snowflake = Field(foreign_key="member.id")
 	channel_id: Snowflake  # no foreign key constraint because it's not needed

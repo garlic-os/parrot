@@ -1,8 +1,8 @@
 import asyncio
-from collections import OrderedDict
 import functools
 import logging
 import traceback
+from collections import OrderedDict
 from collections.abc import AsyncIterator, Callable, Coroutine
 from enum import Enum
 from typing import Any, cast
@@ -20,7 +20,7 @@ class HistoryCrawler:
 		self,
 		histories: AsyncIterator | list[AsyncIterator],
 		action: Callable[[discord.Message], bool],
-		limit: int = 100_000,
+		limit: int | None = 100_000,
 		filter: Callable[[discord.Message], bool] = lambda _: True,
 	):
 		self.num_collected = 0
@@ -35,7 +35,7 @@ class HistoryCrawler:
 
 	async def crawl(self) -> None:
 		"""
-		Iterate over up to [limit] messages in the channel in
+		Iterate over up to [limit] messages in the channel(s) in
 		reverse-chronological order.
 		"""
 		for history in self._histories:
@@ -46,7 +46,10 @@ class HistoryCrawler:
 					continue
 				if self._action(message):
 					self.num_collected += 1
-				if self.num_collected >= self._limit:
+				if (
+					self._limit is not None
+					and self.num_collected >= self._limit
+				):
 					break
 		self.running = False
 

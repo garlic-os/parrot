@@ -3,8 +3,6 @@ Minimal SQLModel setup to complete this migration.
 Any table referred to in a foreign key must be present too.
 """
 
-import datetime as dt
-
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot.alembic.typess import PModel
@@ -39,7 +37,6 @@ class Member(PModel, table=True):
 
 class Message(PModel, table=True):
 	id: Snowflake = sm.Field(primary_key=True)
-	timestamp: dt.datetime
 	content: str
 	author_id: Snowflake = sm.Field(foreign_key="member.id")
 	# New
