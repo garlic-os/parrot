@@ -11,15 +11,15 @@ Create Date: 2025-01-21 14:40:18.601522
 
 """
 
-import asyncio
 import logging
 from collections.abc import Sequence
+from enum import Enum
 
 import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
-from parrot.utils import cast_not_none, executor_function
+from parrot.utils import cast_not_none
 from tqdm import tqdm
 
 from alembic import op
@@ -31,7 +31,16 @@ down_revision: str | None = "2e2045b63d7a"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-CHUNK_SIZE = 500
+
+class ErrorCode(Enum):
+	"""
+	Sentinel values to indicate different results for this migration.
+	Goes in message.guild_id.
+	"""
+
+	UNPROCESSED = 0
+	NOT_FOUND = -1
+	REQUEST_FAILED = -2
 
 
 def upgrade() -> None:
@@ -60,7 +69,7 @@ def upgrade() -> None:
 				sa.BigInteger(),
 				nullable=False,
 				# Temporary default
-				server_default="0",
+				server_default=str(ErrorCode.UNPROCESSED.value),
 			)
 		)
 		# Developing this migration has made me realize Parrot sorely needs
@@ -72,7 +81,7 @@ def upgrade() -> None:
 				sa.BigInteger(),
 				nullable=False,
 				# Temporary default
-				server_default="0",
+				server_default=str(ErrorCode.UNPROCESSED.value),
 			)
 		)
 		batch_op.create_foreign_key(None, "guild", ["guild_id"], ["id"])
@@ -86,100 +95,143 @@ def upgrade() -> None:
 
 	client = discord.Client(intents=discord.Intents.default())
 
-	@client.event
-	async def on_ready() -> None:
-		logging.info("Scraping Discord to populate guild IDs...")
-
-		async def process_channel(db_channel: r7d0ffe4179c6.Channel) -> None:
+	async def process_channels() -> list[discord.TextChannel]:
+		db_channels = session.exec(
+			sm.select(r7d0ffe4179c6.Channel).where(
+				# TODO: works without the == True?
+				r7d0ffe4179c6.Channel.can_learn_here == True  # noqa: E712
+			)
+		).all()
+		channels: list[discord.TextChannel] = []
+		for db_channel in tqdm(db_channels, desc="Channels processed"):
 			try:
 				channel = await client.fetch_channel(db_channel.id)
 			except Exception as exc:
 				logging.warning(
 					f"Failed to fetch channel {db_channel.id}: {exc}"
 				)
-				return
+				continue
 			if not isinstance(channel, discord.TextChannel):
 				logging.warning(
 					"Invalid channel type: "
 					f"{db_channel.id} is {type(channel)}. "
-					"Defaulting channel.guild_id to 0"
+					"Defaulting channel.guild_id to 0 and skipping"
 				)
-				return
+				continue
+			channels.append(channel)
 			db_channel.guild_id = channel.guild.id
+			session.add(db_channel)
 			logging.debug(
 				f"Channel {db_channel.id} in guild {db_channel.guild_id}"
 			)
+		return channels
 
-		async def fetch_message(
-			db_message: r7d0ffe4179c6.Message,
-		) -> discord.Message | None:
-			for guild in client.guilds:
-				for channel in guild.channels:
-					if not isinstance(channel, discord.TextChannel):
-						continue
+	async def process_messages(channels: list[discord.TextChannel]) -> None:
+		"""
+		Scattershot scraping strategy: process chunks of 100 messages all over
+		Discord around relevant messages.
+		Collect every relevant message's guild and channel ID, while staying as
+		gracious to Discord's API as we can. Using the history API, we can pick
+		up up to 100 relevant messages per API call. By only calling it around
+		messages we know we need to process (as opposed to using just one
+		history iterator per channel and scanning the entire thing), we will
+		probably end up skipping chunks of messages we don't need to process,
+		further reducing API calls.
+		In a very large channel with many relevant messages, this could save
+		hours. In a very large channel with few relevant messages, this could
+		save days.
+		Unfortunately, since we don't know which channel any message is in, we
+		have to look for it in every channel Parrot can learn in.
+		Still, these calls _may_ end up finding other relevant messages.
+		"""
+		db_messages_count: int = session.query(
+			sa.func.count(r7d0ffe4179c6.Message.id)  # type: ignore -- it works
+		).scalar()
+		# Progress bar
+		with tqdm(total=db_messages_count, desc="Messages processed") as t:
+			# Pick an unprocessed message. Which one, doesn't matter.
+			statement = (
+				sm.select(r7d0ffe4179c6.Message)
+				.where(r7d0ffe4179c6.Message.guild_id == 0)
+				.limit(1)
+			)
+			# Repeat until all messages from the database are processed.
+			while (db_message := session.exec(statement).first()) is not None:
+				# Look for the message in every learning channel.
+				for channel in channels:
 					try:
-						return await channel.fetch_message(db_message.id)
-					except discord.NotFound:
-						continue
-					except discord.Forbidden:
-						continue
+						# Get a chunk of messages around the chosen message.
+						# The chosen message is relevant, and chances are ones
+						# near it are too.
+						# The largest chunk we can get from Discord's API in one
+						# call is 100.
+						messages = [
+							message
+							async for message in channel.history(
+								limit=100, around=db_message
+							)
+						]
 					except Exception as exc:
 						logging.warning(
-							"Unexpected error while attempting to fetch "
-							f"message {db_message.id}: {exc}"
+							"Request for messages around"
+							f"{channel.guild.id}/{channel.id}/{db_message.id} "
+							f"failed: {exc}"
 						)
+						db_message.guild_id = ErrorCode.REQUEST_FAILED.value
 						continue
+					message_ids = (message.id for message in messages)
+					# Get any yet-unprocessed messages from the database that
+					# match the ones in the chunk.
+					db_messages = session.exec(
+						sm.select(r7d0ffe4179c6.Message).where(
+							sm.col(r7d0ffe4179c6.Message.id).in_(message_ids),
+							r7d0ffe4179c6.Message.guild_id == 0,
+						)
+					)
+					# Fill in the guild IDs and channel IDs for those messages
+					# in the database.
+					for db_message, message in zip(db_messages, messages):
+						# message.guild guaranteed to exist because we got it
+						# from a guild
+						db_message.guild_id = cast_not_none(message.guild).id
+						db_message.channel_id = message.channel.id
+						session.add(db_message)
+						logging.debug(
+							f"Message {db_message.id} in guild/channel "
+							f"{db_message.guild_id}/{db_message.channel_id}"
+						)
+						t.update()
+				if db_message.guild_id == ErrorCode.UNPROCESSED.value:
+					# Very important failsafe otherwise we may get stuck
+					# selecting the same unprocessable message over and over
+					logging.warning(
+						f"Message {db_message.id} not found in learning "
+						"channels"
+					)
+					db_message.guild_id = db_message.channel_id = (
+						ErrorCode.NOT_FOUND.value
+					)
+					session.add(db_message)
+				session.commit()
 
-		async def process_message(db_message: r7d0ffe4179c6.Message) -> None:
-			message = await fetch_message(db_message)
-			if message is None:
-				logging.warning(
-					"Orphaned message: "
-					f"could not find source guild for ID {db_message.id}. "
-					"Defaulting message.guild_id to 0"
-				)
-				return
-			# message.guild guaranteed to exist because we got it from a guild
-			db_message.guild_id = cast_not_none(message.guild).id
-			logging.debug(
-				f"Message {db_message.id} in guild {db_message.guild_id}"
-			)
-
-		db_channels = session.exec(sm.select(r7d0ffe4179c6.Channel)).all()
-		logging.debug(f"{len(db_channels)} channels to process")
-		async with asyncio.TaskGroup() as tg:
-			for db_channel in tqdm(db_channels):
-				tg.create_task(process_channel(db_channel))
-		session.add_all(db_channels)
-
-		# Message count can be huge, so we have to work in chunks unless we
-		# want to risk running out of memory making 4,000,000 Message objects
-		# COUNT() query from https://stackoverflow.com/a/47801739
-		statement = sa.func.count(r7d0ffe4179c6.Message.id)  # type: ignore  -- it works
-		db_messages_count: int = session.query(statement).scalar()
-		logging.debug(f"{db_messages_count} messages to process")
-		for i in tqdm(
-			range(0, db_messages_count, CHUNK_SIZE),
-			total=round(db_messages_count / CHUNK_SIZE),
-			unit_scale=CHUNK_SIZE,
-		):
-			statement = (
-				sm.select(r7d0ffe4179c6.Message).offset(i).limit(CHUNK_SIZE)
-			)
-			db_messages_chunk = session.exec(statement).all()
-			async with asyncio.TaskGroup() as tg:
-				for db_message in db_messages_chunk:
-					tg.create_task(process_message(db_message))
-			session.add_all(db_messages_chunk)
+	@client.event
+	async def on_ready() -> None:
+		logging.info("Scraping Discord to populate guild IDs...")
+		try:
+			channels = await process_channels()
+			await process_messages(channels)
+		except Exception as exc:
 			session.commit()
+			logging.error(exc)
 		await client.close()
 
 	client.run(config.discord_bot_token)
 
-	# Remove temporary default value setting from message.guild_id now that they
-	# should have all been populated
+	# Remove the temporary default value settings from message.guild_id and
+	# channel_id now that they should have all been populated
 	with op.batch_alter_table("message") as batch_op:
 		batch_op.alter_column("guild_id", server_default=None)
+		batch_op.alter_column("channel_id", server_default=None)
 
 	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Channel.__table__)
 	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Guild.__table__)
