@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Any
 import sqlmodel as sm
 
 import parrot.db.models as p
-from parrot.utils import cast_not_none
 from parrot.utils.types import AnyUser
 
 from .types import SubCRUD
@@ -31,7 +30,9 @@ class CRUDUser(SubCRUD):
 		Toggle your "wants random wawa" setting globally.
 		Returns new state.
 		"""
-		db_member = cast_not_none(self.bot.db_session.get(p.Member, user.id))
+		db_member = self.bot.db_session.get(p.Member, user.id) or p.Member(
+			id=user.id
+		)
 		db_member.wants_random_wawa = not db_member.wants_random_wawa
 		self.bot.db_session.add(db_member)
 		self.bot.db_session.commit()

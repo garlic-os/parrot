@@ -15,14 +15,14 @@ class CRUDMember(SubCRUD):
 			p.MemberGuildLink.member_id == member.id,
 			p.MemberGuildLink.guild_id == member.guild.id,
 		)
-		guild_link = self.bot.db_session.exec(statement).first()
-		if guild_link is None:
-			guild_link = p.MemberGuildLink(
-				member=self.bot.db_session.get(p.Member, member.id)
-				or p.Member(id=member.id),
-				guild=self.bot.db_session.get(p.Guild, member.guild.id)
-				or p.Guild(id=member.guild.id),
-			)
+		guild_link = self.bot.db_session.exec(
+			statement
+		).first() or p.MemberGuildLink(
+			member=self.bot.db_session.get(p.Member, member.id)
+			or p.Member(id=member.id),
+			guild=self.bot.db_session.get(p.Guild, member.guild.id)
+			or p.Guild(id=member.guild.id),
+		)
 		guild_link.is_registered = value
 		self.bot.db_session.add(guild_link)
 		self.bot.db_session.commit()

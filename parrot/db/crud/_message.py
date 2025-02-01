@@ -106,13 +106,13 @@ class CRUDMessage(SubCRUD):
 		# user's corpus.
 		self.bot.db_session.add_all(
 			p.Message(
-				id=m.id,
+				id=message.id,
 				author_id=member.id,
 				guild_id=member.guild.id,
-				timestamp=m.created_at,
-				content=CRUDMessage._extract_text(m),
+				channel_id=message.channel.id,
+				content=CRUDMessage._extract_text(message),
 			)
-			for m in messages_filtered
+			for message in messages_filtered
 		)
 		self.bot.db_session.commit()
 

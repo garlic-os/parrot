@@ -32,11 +32,10 @@ class CRUDGuild(SubCRUD):
 		)
 
 	def set_prefix(self, guild: discord.Guild, new_prefix: str) -> None:
-		db_guild = self.bot.db_session.get(p.Guild, guild.id)
-		if db_guild is not None:
-			db_guild.imitation_prefix = new_prefix
-		else:
-			db_guild = p.Guild(id=guild.id, imitation_prefix=new_prefix)
+		db_guild = self.bot.db_session.get(p.Guild, guild.id) or p.Guild(
+			id=guild.id, imitation_prefix=new_prefix
+		)
+		db_guild.imitation_prefix = new_prefix
 		self.bot.db_session.add(db_guild)
 		self.bot.db_session.commit()
 		self.bot.db_session.refresh(db_guild)
@@ -51,11 +50,10 @@ class CRUDGuild(SubCRUD):
 		)
 
 	def set_suffix(self, guild: discord.Guild, new_suffix: str) -> None:
-		db_guild = self.bot.db_session.get(p.Guild, guild.id)
-		if db_guild is not None:
-			db_guild.imitation_suffix = new_suffix
-		else:
-			db_guild = p.Guild(id=guild.id, imitation_suffix=new_suffix)
+		db_guild = self.bot.db_session.get(p.Guild, guild.id) or p.Guild(
+			id=guild.id, imitation_suffix=new_suffix
+		)
+		db_guild.imitation_suffix = new_suffix
 		self.bot.db_session.add(db_guild)
 		self.bot.db_session.commit()
 		self.bot.db_session.refresh(db_guild)
