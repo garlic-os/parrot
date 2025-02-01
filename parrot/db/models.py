@@ -11,6 +11,7 @@ database, and are expected to be the same as their IDs from Discord.
 
 # TODO: Feasible to keep all Markov chain generators in the database,
 # remove the in-memory cache?
+# NOTE: sa.PickleType?
 
 # TODO: understand .commit() and .refresh()/see if there are any occurrences
 # that can be deleted

@@ -33,10 +33,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 class ErrorCode(Enum):
-	"""
-	Sentinel values to indicate different results for this migration.
-	Goes in message.guild_id.
-	"""
+	"""Sentinel guild IDs to indicate different results for this migration."""
 
 	UNPROCESSED = 0
 	NOT_FOUND = -1
