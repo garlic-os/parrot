@@ -154,10 +154,9 @@ def trace_format_command_origin(ctx: commands.Context) -> str:
 	return result
 
 
-# TODO: type annotate this finelier without Pylance exploding
 def trace[**P, Ret](
-	fn: Callable,  # Callable[P, Awaitable[Ret]],
-) -> Callable:  # Callable[P, Awaitable[Ret]]:
+	fn: Callable[P, Coroutine[Any, Any, Ret]],
+) -> Callable[P, Coroutine[Any, Any, Ret]]:
 	@functools.wraps(fn)
 	async def decorated(*args: P.args, **kwargs: P.kwargs) -> Ret:
 		if len(args) >= 2 and isinstance(args[0], commands.Cog):
