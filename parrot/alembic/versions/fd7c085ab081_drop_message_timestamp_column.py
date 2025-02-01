@@ -36,7 +36,7 @@ def downgrade() -> None:
 		"message",
 		sa.Column(
 			"timestamp",
-			sa.Integer(),
+			sa.BigInteger(),
 			nullable=False,
 			server_default="0",
 		),

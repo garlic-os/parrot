@@ -43,7 +43,10 @@ def upgrade() -> None:
 		# remove the default value after for it to work
 		batch_op.add_column(
 			sa.Column(
-				"guild_id", sa.Integer(), nullable=False, server_default="0"
+				"guild_id",
+				sa.BigInteger(),
+				nullable=False,
+				server_default=str(ErrorCode.UNPROCESSED.value),
 			)
 		)
 	with op.batch_alter_table("channel") as batch_op:
@@ -54,7 +57,7 @@ def upgrade() -> None:
 		batch_op.add_column(
 			sa.Column(
 				"guild_id",
-				sa.Integer(),
+				sa.BigInteger(),
 				nullable=False,
 				# Temporary default
 				server_default="0",
@@ -66,7 +69,7 @@ def upgrade() -> None:
 		batch_op.add_column(
 			sa.Column(
 				"channel_id",
-				sa.Integer(),
+				sa.BigInteger(),
 				nullable=False,
 				# Temporary default
 				server_default="0",

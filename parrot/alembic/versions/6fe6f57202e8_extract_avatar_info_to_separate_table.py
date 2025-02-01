@@ -30,9 +30,9 @@ def upgrade() -> None:
 		"avatarinfo",
 		sa.Column("original_avatar_url", sa.String(), nullable=False),
 		sa.Column("antiavatar_url", sa.String(), nullable=False),
-		sa.Column("antiavatar_message_id", sa.Integer(), nullable=False),
-		sa.Column("member_id", sa.Integer(), nullable=False),
-		sa.Column("guild_id", sa.Integer(), nullable=False),
+		sa.Column("antiavatar_message_id", sa.BigInteger(), nullable=False),
+		sa.Column("member_id", sa.BigInteger(), nullable=False),
+		sa.Column("guild_id", sa.BigInteger(), nullable=False),
 		sa.ForeignKeyConstraint(["guild_id"], ["guild.id"]),
 		sa.ForeignKeyConstraint(["member_id"], ["member.id"]),
 		sa.PrimaryKeyConstraint("member_id", "guild_id"),
@@ -48,7 +48,7 @@ def downgrade() -> None:
 	)
 	op.add_column(
 		"member",
-		sa.Column("modified_avatar_message_id", sa.Integer(), nullable=True),
+		sa.Column("modified_avatar_message_id", sa.BigInteger(), nullable=True),
 	)
 	op.add_column(
 		"member", sa.Column("modified_avatar_url", sa.String(), nullable=True)
