@@ -11,6 +11,7 @@ class Member(PModel, table=True):
 		back_populates="member",
 		cascade_delete=True,
 	)
+	...
 
 
 class Guild(PModel, table=True):

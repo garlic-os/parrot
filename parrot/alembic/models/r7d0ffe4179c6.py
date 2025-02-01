@@ -20,6 +20,7 @@ class Channel(PModel, table=True):
 	webhook_id: Snowflake | None = None
 	# New
 	guild_id: Snowflake = sm.Field(foreign_key="guild.id")
+	...
 
 
 class Guild(PModel, table=True):
