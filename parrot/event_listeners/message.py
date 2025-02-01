@@ -34,7 +34,7 @@ class MessageEventHandler(commands.Cog):
 		# users, anyway.
 		try:
 			recorded = self.bot.crud.message.record(message)
-			if len(list(recorded)) > 0:
+			if len(recorded) > 0:
 				logging.info(
 					f"Collected a message (ID: {message.id}) from user "
 					f"{tag(message.author)} (ID: {message.author.id})"

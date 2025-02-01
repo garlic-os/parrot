@@ -74,7 +74,7 @@ class CRUDMessage(SubCRUD):
 
 	def record(
 		self, messages: discord.Message | list[discord.Message]
-	) -> Iterable[discord.Message]:
+	) -> list[discord.Message]:
 		"""
 		Add a Message or list of Messages to a user's corpus.
 		Every Message in the list must be from the same user.
@@ -100,7 +100,9 @@ class CRUDMessage(SubCRUD):
 
 		# Filter out any messages that don't pass all of validate_message()'s
 		# checks.
-		messages_filtered = filter(self.validate_message, messages)
+		messages_filtered = [
+			message for message in messages if self.validate_message(message)
+		]
 
 		# Convert the messages to the database's format and add them to this
 		# user's corpus.
@@ -116,7 +118,6 @@ class CRUDMessage(SubCRUD):
 		)
 		self.bot.db_session.commit()
 
-		# TODO: is this actually exhausted now?
 		return messages_filtered
 
 		# for message in messages:

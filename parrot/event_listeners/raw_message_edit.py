@@ -26,7 +26,7 @@ class RawMessageEditEventHandler(commands.Cog):
 			return
 		message = await channel.fetch_message(event.message_id)
 		recorded = self.bot.crud.message.record(message)
-		if len(list(recorded)) > 0:
+		if len(recorded) > 0:
 			# Invalidate cached model
 			try:
 				del self.bot.markov_models.cache[

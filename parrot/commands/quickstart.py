@@ -149,9 +149,7 @@ class Quickstart(commands.Cog):
 
 			def crawler_action(message: discord.Message) -> bool:
 				recorded = self.bot.crud.message.record(message)
-				for _ in recorded:
-					return True
-				return False
+				return len(recorded) > 0
 
 			# Create an object that will scan through the server's message
 			# history and learn from the messages this user has posted.
