@@ -55,8 +55,9 @@ def upgrade() -> None:
 		logging.info("Scraping Discord to populate guild IDs...")
 		db_members = session.exec(sm.select(r79a4371fbc92.Member)).all()
 		members_found: set[Snowflake] = set()
-		for guild in tqdm(client.guilds):
+		for guild in tqdm(client.guilds, desc="Guilds processed"):
 			member_ids = (member.id for member in guild.members)
+			# for db_member in tqdm(db_members):
 			for db_member in db_members:
 				if db_member.id not in member_ids:
 					continue
