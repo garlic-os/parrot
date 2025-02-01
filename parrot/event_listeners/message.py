@@ -39,9 +39,16 @@ class MessageEventHandler(commands.Cog):
 					f"Collected a message (ID: {message.id}) from user "
 					f"{tag(message.author)} (ID: {message.author.id})"
 				)
+			# TODO: implement in a way that doesn't run for _every_ collected
+			# message. Every hundred from one member? Every certain proportion
+			# of the size of a member's corpus?
+			# guaranteed to be Member because message is guaranteed above to be
+			# in a guild
 			# member = cast(discord.Member, message.author)
 			# corpus_update = (message.content for message in recorded)
-			# asyncio.create_task(self.bot.markov_models.update(member, corpus_update))
+			# asyncio.create_task(
+			# 	self.bot.markov_models.update(member, corpus_update)
+			# )
 		except NotRegisteredError:
 			pass
 
