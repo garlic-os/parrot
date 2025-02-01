@@ -9,12 +9,11 @@ N.B. The primary keys on tables that are direct analogs to Discord entities
 database, and are expected to be the same as their IDs from Discord.
 """
 
-# TODO: with markovify.Text.combine(), is regenerating necessary anymore, except
-# for infrequent things like message edits and deletes? Can models instead be
-# kept (serialized or pickled) always and only in the database?
+# TODO: Feasible to keep all Markov chain generators in the database,
+# remove the in-memory cache?
 
-# TODO: understand .commit() and .refresh()/see if there are any occurrences of
-# them that can be deleted
+# TODO: understand .commit() and .refresh()/see if there are any occurrences
+# that can be deleted
 
 # TODO: prune unused Relationships and back-populations
 
