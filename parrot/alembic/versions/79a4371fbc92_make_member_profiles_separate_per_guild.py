@@ -57,24 +57,24 @@ def upgrade() -> None:
 		db_members = session.exec(sm.select(r79a4371fbc92.Member)).all()
 		members_found: set[Snowflake] = set()
 		for guild in tqdm(client.guilds, desc="Guilds processed"):
-			member_ids = (member.id for member in guild.members)
-			# for db_member in tqdm(db_members):
-			for db_member in db_members:
-				if db_member.id not in member_ids:
-					continue
-				# logging.debug(
-				# 	f"User {db_member.id} is a member of guild {guild.id}"
-				# )
-				db_guild = session.get(
-					r79a4371fbc92.Guild, guild.id
-				) or r79a4371fbc92.Guild(id=guild.id)
-				session.add(
-					r79a4371fbc92.MemberGuildLink(
-						member=db_member,
-						guild=db_guild,
+			async for member in guild.fetch_members(limit=None):
+				for db_member in db_members:
+					if db_member.id != member.id:
+						continue
+					# logging.debug(
+					# 	f"User {db_member.id} is a member of guild {guild.id}"
+					# )
+					db_guild = session.get(
+						r79a4371fbc92.Guild, guild.id
+					) or r79a4371fbc92.Guild(id=guild.id)
+					session.add(
+						r79a4371fbc92.MemberGuildLink(
+							member=db_member,
+							guild=db_guild,
+						)
 					)
-				)
-				members_found.add(db_member.id)
+					members_found.add(db_member.id)
+					break
 		for db_member in db_members:
 			if db_member.id not in members_found:
 				logging.warning(f"No guilds found for user {db_member.id}")
