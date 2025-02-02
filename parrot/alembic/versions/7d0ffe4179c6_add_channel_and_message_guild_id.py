@@ -166,6 +166,7 @@ def upgrade() -> None:
 							f"failed: {exc}"
 						)
 						db_message.guild_id = ErrorCode.REQUEST_FAILED.value
+						t.update()
 						continue
 					message_ids = (message.id for message in messages)
 					# Get any yet-unprocessed messages from the database that
@@ -199,6 +200,7 @@ def upgrade() -> None:
 					db_message.guild_id = db_message.channel_id = (
 						ErrorCode.NOT_FOUND.value
 					)
+					t.update()
 					session.add(db_message)
 				session.commit()
 
