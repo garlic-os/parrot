@@ -25,6 +25,8 @@ class CRUDChannel(SubCRUD):
 			if getattr(db_channel, permission) == value:
 				# Flag already had this value
 				return False
+			# Set this now because it might not have been during the migrations
+			db_channel.guild_id = channel.guild.id
 		else:
 			db_channel = p.Channel(id=channel.id, guild_id=channel.guild.id)
 		setattr(db_channel, permission, value)
