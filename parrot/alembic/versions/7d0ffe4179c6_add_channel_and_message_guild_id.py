@@ -19,6 +19,7 @@ import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
+from parrot.alembic.common import count
 from parrot.utils import cast_not_none
 from tqdm import tqdm
 
@@ -141,9 +142,7 @@ def upgrade() -> None:
 		have to look for it in every channel Parrot can learn in.
 		Still, these calls _may_ end up finding other relevant messages.
 		"""
-		db_messages_count: int = session.query(
-			sa.func.count(r7d0ffe4179c6.Message.id)  # type: ignore -- it works
-		).scalar()
+		db_messages_count = count(session, r7d0ffe4179c6.Message.id)
 		# Progress bar
 		with tqdm(total=db_messages_count, desc="Messages processed") as t:
 			# Pick an unprocessed message. Which one, doesn't matter.
