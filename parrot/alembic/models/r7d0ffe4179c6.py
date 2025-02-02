@@ -3,6 +3,8 @@ Minimal SQLModel setup to complete this migration.
 Any table referred to in a foreign key must be present too.
 """
 
+from enum import Enum
+
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot.alembic.typess import PModel
@@ -10,7 +12,15 @@ from parrot.db import GuildMeta
 from parrot.utils.types import Snowflake
 
 
-__all__ = ["Channel", "Guild", "Member", "Message"]
+__all__ = ["Channel", "Guild", "Member", "Message", "ErrorCode"]
+
+
+class ErrorCode(Enum):
+	"""Sentinel guild IDs to indicate different results for this migration."""
+
+	UNPROCESSED = 0
+	NOT_FOUND = -1
+	REQUEST_FAILED = -2
 
 
 class Channel(PModel, table=True):

@@ -13,7 +13,6 @@ Create Date: 2025-01-21 14:40:18.601522
 
 import logging
 from collections.abc import Sequence
-from enum import Enum
 
 import discord
 import sqlalchemy as sa
@@ -33,16 +32,9 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-class ErrorCode(Enum):
-	"""Sentinel guild IDs to indicate different results for this migration."""
-
-	UNPROCESSED = 0
-	NOT_FOUND = -1
-	REQUEST_FAILED = -2
-
-
 def upgrade() -> None:
 	from parrot.alembic.models import r7d0ffe4179c6
+	from parrot.alembic.models.r7d0ffe4179c6 import ErrorCode
 
 	with op.batch_alter_table("channel") as batch_op:
 		# https://stackoverflow.com/a/6710280

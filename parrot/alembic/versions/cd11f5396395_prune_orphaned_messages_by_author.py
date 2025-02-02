@@ -1,4 +1,4 @@
-"""prune orphaned messages
+"""prune orphaned messages by author
 
 WARNING!!! This migration is irreversible. You should have a backup of your
 database before running migrations anyway but just saying
@@ -12,7 +12,9 @@ Create Date: 2025-01-24 23:38:55.172176
 import logging
 from collections.abc import Sequence
 
-import sqlmodel as sa
+import sqlmodel as sm
+from parrot.alembic.common import count
+from parrot.alembic.models import v1
 
 from alembic import op
 
@@ -25,8 +27,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	op.get_bind().execute(
-		sa.text("""
+	session = sm.Session(op.get_bind())
+	logging.info(f"Initial message count: {count(session, v1.Messages.id)}")
+	session.execute(
+		sm.text("""
 			DELETE FROM messages
 			WHERE id IN (
 				SELECT rowid
@@ -36,6 +40,8 @@ def upgrade() -> None:
 			)
 		""")
 	)
+	logging.info(f"New message count: {count(session, v1.Messages.id)}")
+	session.commit()
 
 
 def downgrade() -> None:

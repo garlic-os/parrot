@@ -9,7 +9,7 @@ Scrapes Discord to populate this table based on what guilds the bot is in and
 what users exist in the database being migrated.
 
 Revision ID: 79a4371fbc92
-Revises: 7d0ffe4179c6
+Revises: b6fa8b3c752a
 Create Date: 2025-01-21 14:43:16.104103
 
 """
@@ -29,7 +29,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "79a4371fbc92"
-down_revision: str | None = "7d0ffe4179c6"
+down_revision: str | None = "b6fa8b3c752a"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
