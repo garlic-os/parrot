@@ -5,17 +5,15 @@ For testing on a smaller version of the real database.
 
 import logging
 
-import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
 from parrot.alembic import prepare_for_migration
-from parrot.alembic.common import count
 from parrot.alembic.models import v1
 
 
 V1_REVISION = "fe3138aef0bd"
 
-PARING_FACTOR = 1_000  # 1,000 times fewer messages
+PARING_FACTOR = 2_0000  # 4,000,000 → 200 messages
 
 
 def main() -> None:
@@ -26,7 +24,13 @@ def main() -> None:
 	session = sm.Session(engine)
 
 	logging.info("Paring message table")
-	logging.info(f"Initial message count: {count(session, v1.Messages.id)}")
+	db_messages_count: int = session.execute(
+		sa.func.count(v1.Messages.id)  # type: ignore -- it works
+	).scalar()
+	logging.info(f"Initial message count: {db_messages_count}")
+	logging.info(
+		f"Estimated new count after paring: {db_messages_count // PARING_FACTOR}"
+	)
 	session.execute(
 		sm.text("""
 			DELETE FROM messages WHERE id IN (
@@ -40,8 +44,11 @@ def main() -> None:
 		"""),
 		{"factor": PARING_FACTOR},
 	)
-	logging.info(f"New message count: {count(session, v1.Messages.id)}")
-	session.commit()
+
+	db_messages_count: int = session.execute(
+		sa.func.count(v1.Messages.id)  # type: ignore
+	).scalar()
+	logging.info(f"New message count: {db_messages_count}")
 
 
 if __name__ == "__main__":
