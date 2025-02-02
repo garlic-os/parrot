@@ -21,6 +21,7 @@ import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
+from parrot.alembic.common import cleanup_models
 from parrot.utils.types import Snowflake
 from tqdm import tqdm
 
@@ -82,9 +83,7 @@ def upgrade() -> None:
 
 	client.run(config.discord_bot_token)
 
-	sm.SQLModel.metadata.remove(r79a4371fbc92.Guild.__table__)
-	sm.SQLModel.metadata.remove(r79a4371fbc92.Member.__table__)
-	sm.SQLModel.metadata.remove(r79a4371fbc92.MemberGuildLink.__table__)
+	cleanup_models(r79a4371fbc92)
 
 
 def downgrade() -> None:

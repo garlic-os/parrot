@@ -18,7 +18,7 @@ import discord
 import sqlalchemy as sa
 import sqlmodel as sm
 from parrot import config
-from parrot.alembic.common import count
+from parrot.alembic.common import cleanup_models, count
 from parrot.utils import cast_not_none
 from tqdm import tqdm
 
@@ -221,10 +221,7 @@ def upgrade() -> None:
 		batch_op.alter_column("guild_id", server_default=None)
 		batch_op.alter_column("channel_id", server_default=None)
 
-	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Channel.__table__)
-	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Guild.__table__)
-	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Member.__table__)
-	sm.SQLModel.metadata.remove(r7d0ffe4179c6.Message.__table__)
+	cleanup_models(r7d0ffe4179c6)
 
 
 def downgrade() -> None:

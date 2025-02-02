@@ -42,6 +42,8 @@ def upgrade() -> None:
 	)
 	session.commit()
 
+	cleanup_models(r7d0ffe4179c6)
+
 
 def downgrade() -> None:
 	logging.warning("No action taken: this migration is irreversible.")

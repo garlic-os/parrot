@@ -4,6 +4,9 @@ from parrot.db import GuildMeta
 from parrot.utils.types import Snowflake
 
 
+__all__ = ["Member", "Guild", "MemberGuildLink"]
+
+
 class Member(PModel, table=True):
 	id: Snowflake = sm.Field(primary_key=True)
 	wants_random_wawa: bool = True
