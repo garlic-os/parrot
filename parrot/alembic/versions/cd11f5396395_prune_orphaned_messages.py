@@ -25,19 +25,17 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	# fmt: off
 	op.get_bind().execute(
-		sa.text(
-			'DELETE FROM messages '
-			'WHERE id IN ('
-				'SELECT rowid '
-				'FROM pragma_foreign_key_check() '
-				'WHERE "table" = "messages" '
-				'AND "parent" = "user"'
-			')'
-		)
+		sa.text("""
+			DELETE FROM messages
+			WHERE id IN (
+				SELECT rowid
+				FROM pragma_foreign_key_check()
+				WHERE "table" = "messages"
+					AND "parent" = "users"
+			)
+		""")
 	)
-	# fmt: on
 
 
 def downgrade() -> None:
